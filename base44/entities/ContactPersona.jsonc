@@ -1,0 +1,64 @@
+{
+  "name": "ContactPersona",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Persona Name (e.g., Steve - Skeptical CTO)"
+    },
+    "job_title": {
+      "type": "string",
+      "description": "Job Title"
+    },
+    "disc_profile": {
+      "type": "string",
+      "description": "DISC Profile type"
+    },
+    "communication_style": {
+      "type": "object",
+      "description": "JSON object with likes and dislikes",
+      "properties": {
+        "likes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "dislikes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  },
+  "required": [
+    "name",
+    "job_title"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "read": {
+      "user_condition": {
+        "role": {
+          "$ne": "guest"
+        }
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

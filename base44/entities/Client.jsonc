@@ -1,0 +1,292 @@
+{
+  "name": "Client",
+  "type": "object",
+  "properties": {
+    "crm_lead_id": {
+      "type": "string",
+      "description": "Reference to the original Lead ID"
+    },
+    "crm_opportunity_id": {
+      "type": "string",
+      "description": "Reference to the original Opportunity ID"
+    },
+    "full_name": {
+      "type": "string",
+      "description": "Client's full name"
+    },
+    "email": {
+      "type": "string",
+      "description": "Client email"
+    },
+    "phone_number": {
+      "type": "string",
+      "description": "Client phone number"
+    },
+    "product_type": {
+      "type": "string",
+      "description": "Product purchased"
+    },
+    "initial_amount": {
+      "type": "number",
+      "description": "Initial contract value"
+    },
+    "contract_start_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date the contract started"
+    },
+    "onboarding_status": {
+      "type": "string",
+      "enum": [
+        "Not Started",
+        "In Progress",
+        "Completed",
+        "On Hold"
+      ],
+      "default": "Not Started",
+      "description": "Current status of onboarding"
+    },
+    "onboarding_track": {
+      "type": "string",
+      "enum": [
+        "enterprise",
+        "smb"
+      ],
+      "description": "Selected onboarding track"
+    },
+    "onboarding_plan": {
+      "type": "object",
+      "description": "Full structure of the onboarding plan including phases and tasks",
+      "properties": {
+        "title": {
+          "type": "string"
+        },
+        "total_days_est": {
+          "type": "number"
+        },
+        "phases": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "status": {
+                "type": "string"
+              },
+              "tasks": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "text": {
+                      "type": "string"
+                    },
+                    "completed": {
+                      "type": "boolean"
+                    },
+                    "owner": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "onboarding_items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          },
+          "phase": {
+            "type": "string"
+          },
+          "is_completed": {
+            "type": "boolean",
+            "default": false
+          },
+          "completed_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "assigned_to": {
+            "type": "string",
+            "enum": [
+              "CSM",
+              "Client",
+              "Technical Support",
+              "Sales"
+            ],
+            "default": "CSM"
+          },
+          "due_date": {
+            "type": "string",
+            "format": "date"
+          }
+        }
+      },
+      "description": "Assigned onboarding checklist"
+    },
+    "customer_segment": {
+      "type": "string",
+      "enum": [
+        "SMB",
+        "Mid-Market",
+        "Enterprise",
+        "Key Account"
+      ],
+      "default": "SMB",
+      "description": "Customer segmentation"
+    },
+    "health_score": {
+      "type": "number",
+      "default": 100,
+      "description": "Customer Health Score (0-100)"
+    },
+    "last_engagement_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Last touchpoint with client"
+    },
+    "renewal_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Expected renewal date"
+    },
+    "assigned_csm": {
+      "type": "string",
+      "description": "Email of the assigned Customer Success Manager (legacy compatibility)"
+    },
+    "cs_notes": {
+      "type": "string",
+      "description": "Notes specific to Customer Success"
+    },
+    "documents": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          }
+        }
+      },
+      "description": "Client related documents"
+    },
+    "owner_user_id": {
+      "type": "string",
+      "description": "User ID of the record owner (permanent ownership key)"
+    },
+    "assigned_team_id": {
+      "type": "string",
+      "description": "Team ID assigned to this client"
+    },
+    "assigned_supervisor_user_id": {
+      "type": "string",
+      "description": "User ID of the assigned supervisor"
+    },
+    "ownership_status": {
+      "type": "string",
+      "enum": [
+        "assigned",
+        "unassigned",
+        "transfer_pending",
+        "inactive_owner"
+      ],
+      "default": "unassigned",
+      "description": "Current ownership state"
+    },
+    "assignment_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the record was last assigned to the current owner"
+    },
+    "assigned_by_user_id": {
+      "type": "string",
+      "description": "User ID who performed the assignment"
+    },
+    "last_modified_by_user_id": {
+      "type": "string",
+      "description": "User ID who last modified the record"
+    },
+    "last_activity_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Date of the most recent activity on this record"
+    }
+  },
+  "required": [
+    "full_name"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "$or": [
+          {
+            "role": "admin"
+          },
+          {
+            "access_level": "editor"
+          }
+        ]
+      }
+    },
+    "read": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "assigned_csm": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "assigned_csm": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

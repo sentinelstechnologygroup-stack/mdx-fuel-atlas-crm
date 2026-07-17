@@ -1,0 +1,107 @@
+{
+  "name": "OrganizationSettings",
+  "type": "object",
+  "properties": {
+    "company_name": {
+      "type": "string",
+      "description": "Company Name"
+    },
+    "logo_url": {
+      "type": "string",
+      "description": "URL to company logo"
+    },
+    "favicon_url": {
+      "type": "string",
+      "description": "URL to company favicon"
+    },
+    "primary_color": {
+      "type": "string",
+      "description": "Brand primary color"
+    },
+    "secondary_color": {
+      "type": "string",
+      "description": "Brand secondary color"
+    },
+    "font_family": {
+      "type": "string",
+      "enum": [
+        "Inter",
+        "Roboto",
+        "Open Sans",
+        "Lato",
+        "Poppins"
+      ],
+      "default": "Inter",
+      "description": "System font family"
+    },
+    "currency": {
+      "type": "string",
+      "default": "$",
+      "description": "Default currency symbol"
+    },
+    "address": {
+      "type": "string",
+      "description": "Company Address"
+    },
+    "support_phone": {
+      "type": "string",
+      "description": "Support Phone Number"
+    },
+    "industry": {
+      "type": "string",
+      "description": "Company Industry/Sector"
+    },
+    "timezone": {
+      "type": "string",
+      "description": "Default Timezone"
+    },
+    "pipeline_stages": {
+      "type": "object",
+      "description": "JSON configuration of pipeline stages"
+    },
+    "lead_statuses": {
+      "type": "object",
+      "description": "JSON configuration of lead statuses"
+    },
+    "system_tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Global list of available tags"
+    },
+    "business_hours": {
+      "type": "string",
+      "description": "Business hours description"
+    },
+    "support_email": {
+      "type": "string",
+      "description": "Internal support contact"
+    }
+  },
+  "required": [],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "read": {
+      "user_condition": {
+        "role": {
+          "$ne": "guest"
+        }
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

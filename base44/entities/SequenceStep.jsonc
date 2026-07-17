@@ -1,0 +1,98 @@
+{
+  "name": "SequenceStep",
+  "type": "object",
+  "properties": {
+    "sequence_id": {
+      "type": "string",
+      "description": "Reference to MarketingSequence"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "ACTION_EMAIL",
+        "ACTION_SMS",
+        "ACTION_TASK",
+        "DELAY",
+        "DECISION_SPLIT"
+      ],
+      "description": "Type of step"
+    },
+    "template_id": {
+      "type": "string",
+      "description": "Reference to MarketingTemplate (optional)"
+    },
+    "config": {
+      "type": "object",
+      "description": "Step-specific configuration"
+    },
+    "position_ui": {
+      "type": "object",
+      "description": "UI coordinates for the visual builder",
+      "properties": {
+        "x": {
+          "type": "number"
+        },
+        "y": {
+          "type": "number"
+        }
+      }
+    }
+  },
+  "required": [
+    "sequence_id",
+    "type"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "$or": [
+          {
+            "role": "admin"
+          },
+          {
+            "access_level": "editor"
+          }
+        ]
+      }
+    },
+    "read": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "access_level": "editor"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "access_level": "editor"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

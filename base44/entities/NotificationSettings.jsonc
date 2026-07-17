@@ -1,0 +1,50 @@
+{
+  "name": "NotificationSettings",
+  "type": "object",
+  "properties": {
+    "user_email": {
+      "type": "string"
+    },
+    "notify_new_leads": {
+      "type": "boolean",
+      "default": true,
+      "description": "Alert on new leads"
+    },
+    "notify_opp_closing": {
+      "type": "boolean",
+      "default": true,
+      "description": "Alert on opportunities closing soon"
+    },
+    "notify_tasks": {
+      "type": "boolean",
+      "default": true,
+      "description": "Alert on assigned tasks"
+    },
+    "days_before_deadline": {
+      "type": "number",
+      "default": 3,
+      "description": "How many days before deadline to alert"
+    }
+  },
+  "required": [
+    "user_email"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": {
+          "$ne": "guest"
+        }
+      }
+    },
+    "read": {
+      "user_email": "{{user.email}}"
+    },
+    "update": {
+      "user_email": "{{user.email}}"
+    },
+    "delete": {
+      "user_email": "{{user.email}}"
+    }
+  }
+}

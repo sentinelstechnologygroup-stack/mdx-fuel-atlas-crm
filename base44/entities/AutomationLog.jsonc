@@ -1,0 +1,63 @@
+{
+  "name": "AutomationLog",
+  "type": "object",
+  "properties": {
+    "rule_id": {
+      "type": "string",
+      "description": "Reference to AutomationRule"
+    },
+    "rule_name": {
+      "type": "string",
+      "description": "Name of the rule that was executed"
+    },
+    "entity_type": {
+      "type": "string",
+      "description": "Lead or Opportunity"
+    },
+    "entity_id": {
+      "type": "string",
+      "description": "ID of the entity that triggered the rule"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "success",
+        "failed"
+      ],
+      "description": "Execution status"
+    },
+    "error_message": {
+      "type": "string",
+      "description": "Error details if failed"
+    },
+    "action_taken": {
+      "type": "string",
+      "description": "Description of the action performed"
+    },
+    "execution_time": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the rule was executed"
+    }
+  },
+  "required": [
+    "rule_id",
+    "entity_type",
+    "entity_id",
+    "status"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": false,
+    "delete": false
+  }
+}

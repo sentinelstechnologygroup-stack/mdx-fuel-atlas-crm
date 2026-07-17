@@ -1,0 +1,158 @@
+{
+  "name": "Task",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string",
+      "description": "Task title"
+    },
+    "description": {
+      "type": "string",
+      "description": "Task description"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "todo",
+        "in_progress",
+        "done"
+      ],
+      "default": "todo"
+    },
+    "priority": {
+      "type": "string",
+      "enum": [
+        "low",
+        "medium",
+        "high"
+      ],
+      "default": "medium",
+      "description": "Task priority"
+    },
+    "due_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "assigned_to": {
+      "type": "string",
+      "description": "Email of the user assigned to perform the task (legacy compatibility)"
+    },
+    "related_lead_id": {
+      "type": "string"
+    },
+    "related_opportunity_id": {
+      "type": "string"
+    },
+    "related_client_id": {
+      "type": "string",
+      "description": "Reference to the Client ID"
+    },
+    "owner_user_id": {
+      "type": "string",
+      "description": "User ID of the record owner (the employee who owns the task record)"
+    },
+    "assignee_user_id": {
+      "type": "string",
+      "description": "User ID of the person assigned to perform the task (distinct from owner)"
+    },
+    "assigned_team_id": {
+      "type": "string",
+      "description": "Team ID assigned to this task"
+    },
+    "assigned_supervisor_user_id": {
+      "type": "string",
+      "description": "User ID of the assigned supervisor"
+    },
+    "assigned_by_user_id": {
+      "type": "string",
+      "description": "User ID who created/assigned the task"
+    },
+    "ownership_status": {
+      "type": "string",
+      "enum": [
+        "assigned",
+        "unassigned",
+        "transfer_pending",
+        "inactive_owner"
+      ],
+      "default": "unassigned",
+      "description": "Current ownership state"
+    },
+    "last_modified_by_user_id": {
+      "type": "string",
+      "description": "User ID who last modified the task"
+    },
+    "last_activity_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Date of the most recent activity on this task"
+    }
+  },
+  "required": [
+    "title"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "access_level": "editor"
+          }
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "assigned_to": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "assigned_to": "{{user.email}}"
+        },
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "assigned_to": "{{user.email}}"
+        },
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

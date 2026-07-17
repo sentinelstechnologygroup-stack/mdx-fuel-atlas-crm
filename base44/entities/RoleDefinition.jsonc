@@ -1,0 +1,136 @@
+{
+  "name": "RoleDefinition",
+  "type": "object",
+  "properties": {
+    "role_key": {
+      "type": "string",
+      "description": "Stable unique role key (system keys are fixed; custom keys must be unique and cannot reuse system keys)"
+    },
+    "name": {
+      "type": "string",
+      "description": "User-facing role name"
+    },
+    "description": {
+      "type": "string",
+      "description": "Role description"
+    },
+    "role_type": {
+      "type": "string",
+      "enum": [
+        "system",
+        "custom"
+      ],
+      "description": "Whether this is a built-in system role or a custom role"
+    },
+    "base_role_key": {
+      "type": "string",
+      "description": "For custom roles, the system role this role inherits from. Null/empty for system roles."
+    },
+    "hierarchy_level": {
+      "type": "number",
+      "description": "Hierarchy level (1-5). Higher is more privileged."
+    },
+    "is_system_role": {
+      "type": "boolean",
+      "default": false,
+      "description": "True for the five built-in MDX system roles"
+    },
+    "is_protected": {
+      "type": "boolean",
+      "default": false,
+      "description": "True for roles that cannot be modified by ordinary Administrators (super_admin always; administrator protected from ordinary Administrators)"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "inactive"
+      ],
+      "default": "active",
+      "description": "Role status. Inactive custom roles fall back to the user's base application_role."
+    },
+    "created_by_user_id": {
+      "type": "string",
+      "description": "User ID that created the role definition"
+    },
+    "last_modified_by_user_id": {
+      "type": "string",
+      "description": "User ID that last modified the role definition"
+    },
+    "created_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the role definition was created"
+    },
+    "modified_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the role definition was last modified"
+    }
+  },
+  "required": [
+    "role_key",
+    "name",
+    "role_type"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "application_role": "super_admin"
+          }
+        },
+        {
+          "user_condition": {
+            "application_role": "administrator"
+          }
+        }
+      ]
+    },
+    "read": true,
+    "update": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "application_role": "super_admin"
+          }
+        },
+        {
+          "user_condition": {
+            "application_role": "administrator"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "application_role": "super_admin"
+          }
+        },
+        {
+          "user_condition": {
+            "application_role": "administrator"
+          }
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,229 @@
+{
+  "name": "Opportunity",
+  "type": "object",
+  "properties": {
+    "lead_id": {
+      "type": "string",
+      "description": "Reference to the Lead ID"
+    },
+    "client_id": {
+      "type": "string",
+      "description": "Reference to the converted Client ID"
+    },
+    "lead_name": {
+      "type": "string",
+      "description": "Cached name of the lead for easy display"
+    },
+    "phone_number": {
+      "type": "string",
+      "description": "Contact phone number"
+    },
+    "email": {
+      "type": "string",
+      "description": "Contact email"
+    },
+    "product_type": {
+      "type": "string",
+      "enum": [
+        "Consulting",
+        "Service",
+        "Product",
+        "Software",
+        "Other"
+      ],
+      "description": "Type of product interested in"
+    },
+    "deal_type": {
+      "type": "string",
+      "enum": [
+        "Business",
+        "Private"
+      ],
+      "default": "Business",
+      "description": "Type of deal (Business or Private)"
+    },
+    "amount": {
+      "type": "number",
+      "description": "Deal Amount / Value"
+    },
+    "deal_stage": {
+      "type": "string",
+      "default": "New",
+      "description": "Current stage in the sales pipeline"
+    },
+    "probability": {
+      "type": "number",
+      "description": "Percentage probability of closing (0-100)"
+    },
+    "expected_close_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Target date for closing"
+    },
+    "next_task": {
+      "type": "string",
+      "description": "Immediate next step"
+    },
+    "main_pain_point": {
+      "type": "string",
+      "enum": [
+        "Budget",
+        "Timeline",
+        "Features",
+        "Authority",
+        "Need",
+        "Other"
+      ],
+      "description": "Main reason for the deal"
+    },
+    "current_objection": {
+      "type": "string",
+      "description": "Current objection from the client"
+    },
+    "ai_sales_strategy": {
+      "type": "string",
+      "description": "AI generated sales strategy"
+    },
+    "ai_objection_handler": {
+      "type": "string",
+      "description": "AI generated objection handling script"
+    },
+    "checklist_completed": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "List of completed checklist item IDs"
+    },
+    "documents": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          }
+        }
+      },
+      "description": "Uploaded documents"
+    },
+    "custom_data": {
+      "type": "object",
+      "description": "Key-value pairs for custom fields"
+    },
+    "owner_user_id": {
+      "type": "string",
+      "description": "User ID of the record owner (permanent ownership key)"
+    },
+    "assigned_team_id": {
+      "type": "string",
+      "description": "Team ID assigned to this record"
+    },
+    "assigned_supervisor_user_id": {
+      "type": "string",
+      "description": "User ID of the assigned supervisor"
+    },
+    "ownership_status": {
+      "type": "string",
+      "enum": [
+        "assigned",
+        "unassigned",
+        "transfer_pending",
+        "inactive_owner"
+      ],
+      "default": "unassigned",
+      "description": "Current ownership state"
+    },
+    "assignment_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the record was last assigned to the current owner"
+    },
+    "assigned_by_user_id": {
+      "type": "string",
+      "description": "User ID who performed the assignment"
+    },
+    "last_modified_by_user_id": {
+      "type": "string",
+      "description": "User ID who last modified the record"
+    },
+    "last_activity_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Date of the most recent activity on this record"
+    }
+  },
+  "required": [
+    "lead_id",
+    "product_type",
+    "deal_stage"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "access_level": "editor"
+          }
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "access_level": "editor"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "access_level": "editor"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

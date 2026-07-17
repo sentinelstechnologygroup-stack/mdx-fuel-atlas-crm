@@ -1,0 +1,153 @@
+{
+  "name": "RecordTransferHistory",
+  "type": "object",
+  "properties": {
+    "entity_type": {
+      "type": "string",
+      "enum": [
+        "lead",
+        "opportunity",
+        "task",
+        "activity",
+        "client"
+      ],
+      "description": "Type of record that was transferred"
+    },
+    "entity_id": {
+      "type": "string",
+      "description": "ID of the transferred record"
+    },
+    "entity_display_name": {
+      "type": "string",
+      "description": "Human-readable name of the transferred record at transfer time"
+    },
+    "from_owner_user_id": {
+      "type": "string",
+      "description": "User ID of the previous owner"
+    },
+    "to_owner_user_id": {
+      "type": "string",
+      "description": "User ID of the new owner"
+    },
+    "from_team_id": {
+      "type": "string",
+      "description": "Previous assigned team ID"
+    },
+    "to_team_id": {
+      "type": "string",
+      "description": "New assigned team ID"
+    },
+    "from_supervisor_user_id": {
+      "type": "string",
+      "description": "Previous assigned supervisor user ID"
+    },
+    "to_supervisor_user_id": {
+      "type": "string",
+      "description": "New assigned supervisor user ID"
+    },
+    "transferred_by_user_id": {
+      "type": "string",
+      "description": "User ID of the administrator who performed the transfer"
+    },
+    "transfer_reason": {
+      "type": "string",
+      "description": "Reason recorded for the transfer"
+    },
+    "transfer_type": {
+      "type": "string",
+      "enum": [
+        "manual",
+        "bulk",
+        "deactivation",
+        "team_change",
+        "territory_change",
+        "correction"
+      ],
+      "default": "manual",
+      "description": "Category of transfer"
+    },
+    "transfer_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the transfer occurred"
+    },
+    "related_deactivated_user_id": {
+      "type": "string",
+      "description": "If the transfer resulted from a deactivation, the deactivated user ID"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Additional notes"
+    },
+    "transfer_operation_id": {
+      "type": "string",
+      "description": "Stable identifier shared by all records within one transfer operation (generated once by the frontend and reused on retry)"
+    },
+    "idempotency_key": {
+      "type": "string",
+      "description": "Unique key per record within an operation: operation_id + entity_type + entity_id + destination owner. Used to prevent duplicate history on retry."
+    },
+    "transfer_status": {
+      "type": "string",
+      "enum": [
+        "completed",
+        "failed",
+        "reconciliation_required"
+      ],
+      "default": "completed",
+      "description": "Outcome of the individual transfer attempt"
+    },
+    "error_message": {
+      "type": "string",
+      "description": "Error details when transfer_status is failed or reconciliation_required"
+    }
+  },
+  "required": [
+    "entity_type",
+    "entity_id",
+    "to_owner_user_id",
+    "transfer_type"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "application_role": "super_admin"
+          }
+        },
+        {
+          "user_condition": {
+            "application_role": "administrator"
+          }
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "application_role": "super_admin"
+          }
+        },
+        {
+          "user_condition": {
+            "application_role": "administrator"
+          }
+        }
+      ]
+    },
+    "update": false,
+    "delete": false
+  }
+}

@@ -1,0 +1,61 @@
+{
+  "name": "SequenceActivityLog",
+  "type": "object",
+  "properties": {
+    "enrollment_id": {
+      "type": "string",
+      "description": "Reference to SequenceEnrollment"
+    },
+    "step_id": {
+      "type": "string",
+      "description": "Reference to SequenceStep"
+    },
+    "activity_type": {
+      "type": "string",
+      "enum": [
+        "SENT",
+        "OPENED",
+        "CLICKED",
+        "REPLIED",
+        "BOUNCED"
+      ],
+      "description": "Type of activity"
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Additional info (User-Agent, IP, Link URL)"
+    }
+  },
+  "required": [
+    "enrollment_id",
+    "activity_type"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "$or": [
+          {
+            "role": "admin"
+          },
+          {
+            "access_level": "editor"
+          }
+        ]
+      }
+    },
+    "read": {
+      "user_condition": {
+        "$or": [
+          {
+            "role": "admin"
+          },
+          {
+            "access_level": "editor"
+          }
+        ]
+      }
+    },
+    "update": false,
+    "delete": false
+  }
+}

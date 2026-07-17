@@ -1,0 +1,88 @@
+{
+  "name": "OnboardingTemplate",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string",
+      "description": "Template Name"
+    },
+    "product_type": {
+      "type": "string",
+      "enum": [
+        "Consulting",
+        "Service",
+        "Product",
+        "Software",
+        "Other"
+      ],
+      "description": "Applicable Product Type"
+    },
+    "customer_segment": {
+      "type": "string",
+      "enum": [
+        "SMB",
+        "Mid-Market",
+        "Enterprise",
+        "Key Account"
+      ],
+      "description": "Applicable Customer Segment"
+    },
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string"
+          },
+          "phase": {
+            "type": "string"
+          },
+          "default_assignee": {
+            "type": "string",
+            "enum": [
+              "CSM",
+              "Client",
+              "Technical Support",
+              "Sales"
+            ],
+            "default": "CSM"
+          },
+          "relative_due_days": {
+            "type": "number",
+            "default": 0
+          }
+        }
+      },
+      "description": "List of checklist tasks with details"
+    }
+  },
+  "required": [
+    "title",
+    "items"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "read": {
+      "user_condition": {
+        "role": {
+          "$ne": "guest"
+        }
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

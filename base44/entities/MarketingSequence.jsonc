@@ -1,0 +1,118 @@
+{
+  "name": "MarketingSequence",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Name of the sequence"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "DRAFT",
+        "ACTIVE",
+        "PAUSED",
+        "ARCHIVED"
+      ],
+      "default": "DRAFT",
+      "description": "Current status of the sequence"
+    },
+    "exit_criteria": {
+      "type": "object",
+      "description": "Global Kill Switch rules (e.g. stop_on_reply)",
+      "properties": {
+        "stop_on_reply": {
+          "type": "boolean"
+        },
+        "stop_on_meeting_booked": {
+          "type": "boolean"
+        },
+        "stop_on_negotiation": {
+          "type": "boolean"
+        }
+      }
+    },
+    "schedule_config": {
+      "type": "object",
+      "description": "Sending window configuration",
+      "properties": {
+        "days": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "start_time": {
+          "type": "string"
+        },
+        "end_time": {
+          "type": "string"
+        },
+        "timezone": {
+          "type": "string"
+        }
+      }
+    },
+    "sender_identity_id": {
+      "type": "string",
+      "description": "ID of the user/identity sending the campaign"
+    }
+  },
+  "required": [
+    "name",
+    "status"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "$or": [
+          {
+            "role": "admin"
+          },
+          {
+            "access_level": "editor"
+          }
+        ]
+      }
+    },
+    "read": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "access_level": "editor"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "access_level": "editor"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

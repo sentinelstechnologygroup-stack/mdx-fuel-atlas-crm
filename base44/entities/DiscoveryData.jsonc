@@ -1,0 +1,103 @@
+{
+  "name": "DiscoveryData",
+  "type": "object",
+  "properties": {
+    "lead_id": {
+      "type": "string",
+      "description": "Reference to the Lead ID"
+    },
+    "notes": {
+      "type": "string",
+      "description": "General notes"
+    },
+    "requirements": {
+      "type": "string",
+      "description": "Client requirements"
+    },
+    "budget": {
+      "type": "number",
+      "description": "Client budget"
+    },
+    "timeline": {
+      "type": "string",
+      "description": "Timeline for project"
+    },
+    "documents_collected": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "List of collected documents"
+    }
+  },
+  "required": [
+    "lead_id"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "access_level": "editor"
+          }
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "access_level": "editor"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "access_level": "editor"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "access_level": "editor"
+          }
+        }
+      ]
+    }
+  }
+}

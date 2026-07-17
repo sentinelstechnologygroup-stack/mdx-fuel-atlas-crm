@@ -1,0 +1,147 @@
+{
+  "name": "Activity",
+  "type": "object",
+  "properties": {
+    "lead_id": {
+      "type": "string",
+      "description": "Reference to the Lead ID"
+    },
+    "opportunity_id": {
+      "type": "string",
+      "description": "Reference to the Opportunity ID (optional)"
+    },
+    "related_client_id": {
+      "type": "string",
+      "description": "Reference to the Client ID (optional)"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "Call",
+        "Email",
+        "SMS",
+        "Meeting",
+        "Note",
+        "Document Collection"
+      ],
+      "default": "Call",
+      "description": "Type of interaction"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "Completed",
+        "Scheduled",
+        "No Answer",
+        "Left Message"
+      ],
+      "default": "Completed",
+      "description": "Outcome of the activity"
+    },
+    "summary": {
+      "type": "string",
+      "description": "Summary of the interaction"
+    },
+    "date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the activity happened or is scheduled for"
+    },
+    "owner_user_id": {
+      "type": "string",
+      "description": "User ID of the record owner (normally follows related Lead/Opportunity/Client)"
+    },
+    "performed_by_user_id": {
+      "type": "string",
+      "description": "User ID of the employee who performed the activity"
+    },
+    "assigned_team_id": {
+      "type": "string",
+      "description": "Team ID assigned to this activity"
+    },
+    "assigned_supervisor_user_id": {
+      "type": "string",
+      "description": "User ID of the assigned supervisor"
+    },
+    "last_modified_by_user_id": {
+      "type": "string",
+      "description": "User ID who last modified the activity"
+    },
+    "last_activity_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Date of the most recent activity on this record"
+    }
+  },
+  "required": [
+    "type",
+    "date"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "access_level": "editor"
+          }
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "access_level": "editor"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "access_level": "editor"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "access_level": "editor"
+          }
+        }
+      ]
+    }
+  }
+}

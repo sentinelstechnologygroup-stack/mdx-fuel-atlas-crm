@@ -1,0 +1,100 @@
+{
+  "name": "StepTransition",
+  "type": "object",
+  "properties": {
+    "source_step_id": {
+      "type": "string",
+      "description": "Reference to source SequenceStep"
+    },
+    "target_step_id": {
+      "type": "string",
+      "description": "Reference to target SequenceStep"
+    },
+    "condition_trigger": {
+      "type": "string",
+      "enum": [
+        "DEFAULT",
+        "IF_OPENED",
+        "IF_CLICKED",
+        "IF_REPLIED",
+        "IF_NO_ACTION"
+      ],
+      "default": "DEFAULT",
+      "description": "Condition to traverse this path"
+    }
+  },
+  "required": [
+    "source_step_id",
+    "target_step_id"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "access_level": "editor"
+          }
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "access_level": "editor"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "access_level": "editor"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "access_level": "editor"
+          }
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,143 @@
+{
+  "name": "Territory",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Territory name"
+    },
+    "code": {
+      "type": "string",
+      "description": "Short territory code"
+    },
+    "description": {
+      "type": "string",
+      "description": "Territory description"
+    },
+    "territory_type": {
+      "type": "string",
+      "enum": [
+        "geographic",
+        "service_area",
+        "named_accounts",
+        "industry",
+        "custom"
+      ],
+      "default": "geographic",
+      "description": "Type of sales territory or service area"
+    },
+    "service_area": {
+      "type": "string",
+      "description": "General service area description"
+    },
+    "counties": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Counties covered by the territory"
+    },
+    "cities": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Cities covered by the territory"
+    },
+    "postal_codes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Postal codes covered by the territory"
+    },
+    "primary_manager_user_id": {
+      "type": "string",
+      "description": "Reference to the User ID of the territory's primary manager"
+    },
+    "team_id": {
+      "type": "string",
+      "description": "Reference to the Team ID assigned to the territory"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "inactive"
+      ],
+      "default": "active",
+      "description": "Territory status"
+    },
+    "created_by_user_id": {
+      "type": "string",
+      "description": "Reference to the User ID that created the territory"
+    },
+    "last_modified_by_user_id": {
+      "type": "string",
+      "description": "Reference to the User ID that last modified the territory"
+    }
+  },
+  "required": [
+    "name"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "application_role": "super_admin"
+          }
+        },
+        {
+          "user_condition": {
+            "application_role": "administrator"
+          }
+        }
+      ]
+    },
+    "read": true,
+    "update": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "application_role": "super_admin"
+          }
+        },
+        {
+          "user_condition": {
+            "application_role": "administrator"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "application_role": "super_admin"
+          }
+        },
+        {
+          "user_condition": {
+            "application_role": "administrator"
+          }
+        }
+      ]
+    }
+  }
+}

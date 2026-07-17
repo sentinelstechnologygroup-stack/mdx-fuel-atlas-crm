@@ -1,0 +1,125 @@
+{
+  "name": "MarketingTemplate",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Name of the template"
+    },
+    "channel": {
+      "type": "string",
+      "enum": [
+        "EMAIL",
+        "SMS",
+        "LINKEDIN"
+      ],
+      "default": "EMAIL"
+    },
+    "subject_line": {
+      "type": "string",
+      "description": "Subject line with variables support"
+    },
+    "body_content": {
+      "type": "string",
+      "description": "HTML or text content"
+    },
+    "variables_detected": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "List of variables detected in the content"
+    },
+    "ai_resonance_score": {
+      "type": "number",
+      "description": "AI predicted resonance score (0-100)"
+    },
+    "tone_setting": {
+      "type": "string",
+      "enum": [
+        "Professional",
+        "Casual",
+        "Urgent",
+        "Friendly",
+        "Direct"
+      ],
+      "default": "Professional",
+      "description": "Tone of the message"
+    }
+  },
+  "required": [
+    "name",
+    "channel",
+    "body_content"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "access_level": "editor"
+          }
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "access_level": "editor"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "access_level": "editor"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "access_level": "editor"
+          }
+        }
+      ]
+    }
+  }
+}

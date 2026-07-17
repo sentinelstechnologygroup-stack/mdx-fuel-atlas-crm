@@ -1,0 +1,125 @@
+{
+  "name": "ReportConfig",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Report Name"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "table",
+        "bar_chart",
+        "pie_chart",
+        "line_chart",
+        "kpi_card"
+      ],
+      "description": "Type of report"
+    },
+    "entity_type": {
+      "type": "string",
+      "enum": [
+        "Lead",
+        "Opportunity",
+        "Task",
+        "Activity"
+      ],
+      "description": "Data source"
+    },
+    "config": {
+      "type": "object",
+      "description": "Configuration: fields, filters, axes",
+      "properties": {
+        "fields": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "filters": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        },
+        "xAxis": {
+          "type": "string"
+        },
+        "yAxis": {
+          "type": "string"
+        },
+        "aggregation": {
+          "type": "string",
+          "enum": [
+            "count",
+            "sum",
+            "avg"
+          ]
+        }
+      }
+    },
+    "description": {
+      "type": "string"
+    },
+    "show_on_dashboard": {
+      "type": "boolean",
+      "default": true
+    }
+  },
+  "required": [
+    "name",
+    "type",
+    "entity_type"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "$or": [
+          {
+            "role": "admin"
+          },
+          {
+            "access_level": "editor"
+          }
+        ]
+      }
+    },
+    "read": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

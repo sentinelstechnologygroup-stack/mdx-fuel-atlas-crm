@@ -1,0 +1,44 @@
+{
+  "name": "AuditLog",
+  "type": "object",
+  "properties": {
+    "action": {
+      "type": "string",
+      "description": "The action performed (e.g. 'update_settings')"
+    },
+    "entity": {
+      "type": "string",
+      "description": "The entity affected"
+    },
+    "entity_id": {
+      "type": "string",
+      "description": "ID of the affected entity"
+    },
+    "user_email": {
+      "type": "string",
+      "description": "Email of the user who performed the action"
+    },
+    "details": {
+      "type": "string",
+      "description": "JSON string details of the change"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "action",
+    "user_email"
+  ],
+  "rls": {
+    "create": false,
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": false,
+    "delete": false
+  }
+}

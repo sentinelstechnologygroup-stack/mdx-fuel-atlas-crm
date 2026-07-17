@@ -1,0 +1,170 @@
+{
+  "name": "ModulePermission",
+  "type": "object",
+  "properties": {
+    "role_definition_id": {
+      "type": "string",
+      "description": "Reference to the RoleDefinition ID this permission belongs to"
+    },
+    "role_key": {
+      "type": "string",
+      "description": "Stable role key (system key or custom role key). Used as the primary lookup key for resolution."
+    },
+    "module_key": {
+      "type": "string",
+      "description": "Stable module key from the portable module registry"
+    },
+    "record_scope": {
+      "type": "string",
+      "enum": [
+        "none",
+        "own",
+        "team",
+        "all"
+      ],
+      "default": "none",
+      "description": "Record visibility scope. Does not independently grant access; can_view must also be true."
+    },
+    "can_view": {
+      "type": "boolean",
+      "default": false
+    },
+    "can_create": {
+      "type": "boolean",
+      "default": false
+    },
+    "can_edit": {
+      "type": "boolean",
+      "default": false
+    },
+    "can_delete": {
+      "type": "boolean",
+      "default": false
+    },
+    "can_assign": {
+      "type": "boolean",
+      "default": false
+    },
+    "can_export": {
+      "type": "boolean",
+      "default": false
+    },
+    "can_approve": {
+      "type": "boolean",
+      "default": false
+    },
+    "can_manage_configuration": {
+      "type": "boolean",
+      "default": false
+    },
+    "conditions": {
+      "type": "object",
+      "description": "Portable JSON object reserved for later conditional permissions. Must not contain executable code."
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "inactive"
+      ],
+      "default": "active",
+      "description": "Only one active permission record should exist per role and module."
+    },
+    "created_by_user_id": {
+      "type": "string"
+    },
+    "last_modified_by_user_id": {
+      "type": "string"
+    },
+    "created_date": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "modified_date": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "role_key",
+    "module_key"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "application_role": "super_admin"
+          }
+        },
+        {
+          "user_condition": {
+            "application_role": "administrator"
+          }
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "application_role": "super_admin"
+          }
+        },
+        {
+          "user_condition": {
+            "application_role": "administrator"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "application_role": "super_admin"
+          }
+        },
+        {
+          "user_condition": {
+            "application_role": "administrator"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "application_role": "super_admin"
+          }
+        },
+        {
+          "user_condition": {
+            "application_role": "administrator"
+          }
+        }
+      ]
+    }
+  }
+}

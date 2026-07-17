@@ -1,0 +1,259 @@
+{
+  "name": "Lead",
+  "type": "object",
+  "properties": {
+    "full_name": {
+      "type": "string",
+      "description": "Client's full name"
+    },
+    "phone_number": {
+      "type": "string",
+      "description": "Contact number"
+    },
+    "email": {
+      "type": "string",
+      "description": "Contact email address"
+    },
+    "assigned_to": {
+      "type": "string",
+      "description": "Email of the user assigned to this lead (legacy compatibility)"
+    },
+    "is_deleted": {
+      "type": "boolean",
+      "default": false,
+      "description": "Soft delete flag"
+    },
+    "age": {
+      "type": "number",
+      "description": "Client age"
+    },
+    "city": {
+      "type": "string",
+      "description": "City of residence"
+    },
+    "source_year": {
+      "type": "string",
+      "enum": [
+        "2023",
+        "2024",
+        "2025"
+      ],
+      "description": "Year the lead was acquired"
+    },
+    "original_status_color": {
+      "type": "string",
+      "enum": [
+        "Green",
+        "Red",
+        "Yellow",
+        "Orange"
+      ],
+      "description": "Legacy status mapping"
+    },
+    "lead_status": {
+      "type": "string",
+      "enum": [
+        "New",
+        "Attempting Contact",
+        "Contacted - Qualifying",
+        "Sales Ready",
+        "Qualified",
+        "Converted",
+        "Lost / Unqualified"
+      ],
+      "default": "New",
+      "description": "Current status in the funnel"
+    },
+    "last_contact_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date of last interaction"
+    },
+    "notes": {
+      "type": "string",
+      "description": "General notes and history"
+    },
+    "lead_temperature": {
+      "type": "string",
+      "enum": [
+        "Warm",
+        "Cold",
+        "Hot History"
+      ],
+      "description": "Calculated lead temperature"
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Tags for the lead"
+    },
+    "documents": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          }
+        }
+      },
+      "description": "Uploaded documents"
+    },
+    "ai_quality_score": {
+      "type": "number",
+      "description": "AI generated quality score (0-100)"
+    },
+    "ai_classification": {
+      "type": "string",
+      "enum": [
+        "Hot",
+        "Warm",
+        "Cold"
+      ],
+      "description": "AI generated classification"
+    },
+    "ai_analysis": {
+      "type": "string",
+      "description": "Detailed AI analysis text"
+    },
+    "ai_suggested_actions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "List of AI suggested next actions"
+    },
+    "ai_last_analysis_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When was the last AI analysis performed"
+    },
+    "custom_data": {
+      "type": "object",
+      "description": "Key-value pairs for custom fields"
+    },
+    "owner_user_id": {
+      "type": "string",
+      "description": "User ID of the record owner (permanent ownership key)"
+    },
+    "assigned_team_id": {
+      "type": "string",
+      "description": "Team ID assigned to this record"
+    },
+    "assigned_supervisor_user_id": {
+      "type": "string",
+      "description": "User ID of the assigned supervisor"
+    },
+    "ownership_status": {
+      "type": "string",
+      "enum": [
+        "assigned",
+        "unassigned",
+        "transfer_pending",
+        "inactive_owner"
+      ],
+      "default": "unassigned",
+      "description": "Current ownership state"
+    },
+    "assignment_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the record was last assigned to the current owner"
+    },
+    "assigned_by_user_id": {
+      "type": "string",
+      "description": "User ID who performed the assignment"
+    },
+    "last_modified_by_user_id": {
+      "type": "string",
+      "description": "User ID who last modified the record"
+    },
+    "last_activity_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Date of the most recent activity on this record"
+    }
+  },
+  "required": [
+    "full_name",
+    "phone_number"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "$or": [
+          {
+            "role": "admin"
+          },
+          {
+            "access_level": "editor"
+          }
+        ]
+      }
+    },
+    "read": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "assigned_to": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "$or": [
+              {
+                "role": "admin"
+              },
+              {
+                "access_level": "editor"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "assigned_to": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "$or": [
+              {
+                "role": "admin"
+              },
+              {
+                "access_level": "editor"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

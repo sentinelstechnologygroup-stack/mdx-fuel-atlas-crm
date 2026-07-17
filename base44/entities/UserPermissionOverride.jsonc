@@ -1,0 +1,185 @@
+{
+  "name": "UserPermissionOverride",
+  "type": "object",
+  "properties": {
+    "user_id": {
+      "type": "string",
+      "description": "Reference to the User ID this override applies to"
+    },
+    "module_key": {
+      "type": "string",
+      "description": "Stable module key from the portable module registry"
+    },
+    "override_mode": {
+      "type": "string",
+      "enum": [
+        "inherit",
+        "replace",
+        "restrict"
+      ],
+      "default": "inherit",
+      "description": "inherit uses role permission; replace substitutes specified values; restrict may only reduce inherited permission"
+    },
+    "record_scope": {
+      "type": "string",
+      "enum": [
+        "none",
+        "own",
+        "team",
+        "all"
+      ],
+      "default": "none"
+    },
+    "can_view": {
+      "type": "boolean",
+      "default": false
+    },
+    "can_create": {
+      "type": "boolean",
+      "default": false
+    },
+    "can_edit": {
+      "type": "boolean",
+      "default": false
+    },
+    "can_delete": {
+      "type": "boolean",
+      "default": false
+    },
+    "can_assign": {
+      "type": "boolean",
+      "default": false
+    },
+    "can_export": {
+      "type": "boolean",
+      "default": false
+    },
+    "can_approve": {
+      "type": "boolean",
+      "default": false
+    },
+    "can_manage_configuration": {
+      "type": "boolean",
+      "default": false
+    },
+    "reason": {
+      "type": "string",
+      "description": "Required reason for the override change (audited)"
+    },
+    "effective_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the override becomes effective"
+    },
+    "expiration_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the override expires. Expired overrides do not affect effective permissions."
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "inactive"
+      ],
+      "default": "active"
+    },
+    "created_by_user_id": {
+      "type": "string"
+    },
+    "last_modified_by_user_id": {
+      "type": "string"
+    },
+    "created_date": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "modified_date": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "user_id",
+    "module_key",
+    "override_mode"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "application_role": "super_admin"
+          }
+        },
+        {
+          "user_condition": {
+            "application_role": "administrator"
+          }
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "application_role": "super_admin"
+          }
+        },
+        {
+          "user_condition": {
+            "application_role": "administrator"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "application_role": "super_admin"
+          }
+        },
+        {
+          "user_condition": {
+            "application_role": "administrator"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "application_role": "super_admin"
+          }
+        },
+        {
+          "user_condition": {
+            "application_role": "administrator"
+          }
+        }
+      ]
+    }
+  }
+}

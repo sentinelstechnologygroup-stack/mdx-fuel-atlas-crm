@@ -1,0 +1,114 @@
+{
+  "name": "Team",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Team name"
+    },
+    "code": {
+      "type": "string",
+      "description": "Short team code"
+    },
+    "description": {
+      "type": "string",
+      "description": "Team description"
+    },
+    "department": {
+      "type": "string",
+      "description": "Department the team belongs to"
+    },
+    "manager_user_id": {
+      "type": "string",
+      "description": "Reference to the User ID of the team's primary manager"
+    },
+    "parent_team_id": {
+      "type": "string",
+      "description": "Reference to the parent Team ID for nested team organization"
+    },
+    "region": {
+      "type": "string",
+      "description": "Region the team operates in"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "inactive"
+      ],
+      "default": "active",
+      "description": "Team status"
+    },
+    "created_by_user_id": {
+      "type": "string",
+      "description": "Reference to the User ID that created the team"
+    },
+    "last_modified_by_user_id": {
+      "type": "string",
+      "description": "Reference to the User ID that last modified the team"
+    }
+  },
+  "required": [
+    "name"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "application_role": "super_admin"
+          }
+        },
+        {
+          "user_condition": {
+            "application_role": "administrator"
+          }
+        }
+      ]
+    },
+    "read": true,
+    "update": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "application_role": "super_admin"
+          }
+        },
+        {
+          "user_condition": {
+            "application_role": "administrator"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "application_role": "super_admin"
+          }
+        },
+        {
+          "user_condition": {
+            "application_role": "administrator"
+          }
+        }
+      ]
+    }
+  }
+}

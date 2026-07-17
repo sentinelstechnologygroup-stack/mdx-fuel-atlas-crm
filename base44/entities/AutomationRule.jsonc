@@ -1,0 +1,119 @@
+{
+  "name": "AutomationRule",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Name of the rule"
+    },
+    "trigger_entity": {
+      "type": "string",
+      "enum": [
+        "Lead",
+        "Opportunity"
+      ],
+      "description": "Entity that triggers the rule"
+    },
+    "trigger_event": {
+      "type": "string",
+      "enum": [
+        "create",
+        "update"
+      ],
+      "description": "Event type"
+    },
+    "condition_field": {
+      "type": "string",
+      "description": "Field to check (e.g., lead_status)"
+    },
+    "condition_operator": {
+      "type": "string",
+      "enum": [
+        "equals",
+        "not_equals",
+        "contains",
+        "greater_than",
+        "less_than",
+        "is_empty",
+        "is_not_empty"
+      ],
+      "default": "equals",
+      "description": "Comparison operator"
+    },
+    "condition_value": {
+      "type": "string",
+      "description": "Value to match"
+    },
+    "action_type": {
+      "type": "string",
+      "enum": [
+        "send_email",
+        "create_task",
+        "update_entity"
+      ],
+      "description": "Action to perform"
+    },
+    "action_config": {
+      "type": "object",
+      "description": "Configuration for the action (JSON)",
+      "properties": {
+        "email_to": {
+          "type": "string"
+        },
+        "email_subject": {
+          "type": "string"
+        },
+        "email_body": {
+          "type": "string"
+        },
+        "task_title": {
+          "type": "string"
+        },
+        "task_description": {
+          "type": "string"
+        },
+        "task_due_days": {
+          "type": "number"
+        },
+        "update_field": {
+          "type": "string"
+        },
+        "update_value": {
+          "type": "string"
+        }
+      }
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true
+    }
+  },
+  "required": [
+    "name",
+    "trigger_entity",
+    "trigger_event",
+    "action_type"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

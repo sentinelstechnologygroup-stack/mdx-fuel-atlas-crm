@@ -1,0 +1,156 @@
+{
+  "name": "AutomationTrigger",
+  "type": "object",
+  "properties": {
+    "sequence_id": {
+      "type": "string",
+      "description": "The sequence to start"
+    },
+    "trigger_type": {
+      "type": "string",
+      "enum": [
+        "EVENT",
+        "PROPERTY_CHANGE",
+        "SCHEDULED"
+      ],
+      "description": "The type of trigger"
+    },
+    "trigger_config": {
+      "type": "object",
+      "description": "Specific event name or property to watch",
+      "properties": {
+        "event_name": {
+          "type": "string"
+        },
+        "field_name": {
+          "type": "string"
+        },
+        "target_value": {
+          "type": "string"
+        },
+        "cron_schedule": {
+          "type": "string"
+        }
+      }
+    },
+    "filter_logic": {
+      "type": "object",
+      "description": "Nested inclusion/exclusion rules (The Gatekeeper)",
+      "properties": {
+        "operator": {
+          "type": "string",
+          "enum": [
+            "AND",
+            "OR"
+          ]
+        },
+        "rules": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "field": {
+                "type": "string"
+              },
+              "operator": {
+                "type": "string"
+              },
+              "value": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "priority_level": {
+      "type": "number",
+      "default": 5,
+      "description": "Priority 1-10 for concurrent triggers"
+    },
+    "allow_reenrollment": {
+      "type": "boolean",
+      "default": false,
+      "description": "Can a contact go through this sequence twice?"
+    },
+    "cooldown_period_days": {
+      "type": "number",
+      "default": 90,
+      "description": "Days before re-enrollment is allowed"
+    }
+  },
+  "required": [
+    "sequence_id",
+    "trigger_type"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "access_level": "editor"
+          }
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "access_level": "editor"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "access_level": "editor"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "access_level": "editor"
+          }
+        }
+      ]
+    }
+  }
+}

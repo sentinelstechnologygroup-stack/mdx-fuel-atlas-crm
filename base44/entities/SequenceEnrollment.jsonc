@@ -1,0 +1,113 @@
+{
+  "name": "SequenceEnrollment",
+  "type": "object",
+  "properties": {
+    "sequence_id": {
+      "type": "string",
+      "description": "Reference to MarketingSequence"
+    },
+    "contact_id": {
+      "type": "string",
+      "description": "Reference to Lead or Client"
+    },
+    "current_step_id": {
+      "type": "string",
+      "description": "Reference to SequenceStep"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "PENDING",
+        "PROCESSING",
+        "COMPLETED",
+        "KILLED_BY_REPLY",
+        "ERROR"
+      ],
+      "default": "PENDING"
+    },
+    "next_execution_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the next step should run"
+    },
+    "context_snapshot": {
+      "type": "object",
+      "description": "Snapshot of contact data at enrollment time"
+    }
+  },
+  "required": [
+    "sequence_id",
+    "contact_id",
+    "status"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "access_level": "editor"
+          }
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "access_level": "editor"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "access_level": "editor"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "access_level": "editor"
+          }
+        }
+      ]
+    }
+  }
+}
