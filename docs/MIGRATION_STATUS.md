@@ -4,12 +4,12 @@ Last updated: 2026-07-17
 
 ## Current state
 
-- Active phase: Phase 1 — Firebase structure and emulators
+- Active phase: Phase 2 — Firebase Authentication and employee profiles (shadow-mode checkpoint)
 - Baseline verified: tag and commit identity verified
 - Firebase development project: `mdx-fuel-atlas-crm-dev` (`485940537312`)
 - Firestore location: `nam5`
-- Firebase foundation added: yes; configuration and Functions scaffold only
-- Frontend connected to Firebase runtime: no
+- Firebase foundation added: yes; Phase 1 foundation commit `c89f440` pushed
+- Frontend connected to Firebase runtime: yes, for Phase 2 Auth/profile shadow-mode testing only
 - Base44 removed: no
 - Production cutover authorized: no
 - `base44/` rename authorized: no; unsafe until runtime and reference material are separated and Phase 13 gates pass
@@ -20,8 +20,9 @@ Last updated: 2026-07-17
 | Phase | Status | Exit evidence |
 |---:|---|---|
 | 0 | Complete | Baseline inventory and migration documentation committed; baseline production build passed; pre-existing typecheck and lint findings recorded |
-| 1 | In progress — foundation checkpoint verified; commit pending | Firebase dev project configured; Auth enabled; Firestore created; Functions scaffold builds; four emulators verified; default-deny rules manually verified |
-| 2–14 | Not started | None |
+| 1 | Complete | Foundation commit `c89f440` pushed to `migration/phase-1-firebase-foundation`; Firebase dev project and Emulator Suite verified |
+| 2 | In progress — implementation verified locally in shadow mode; checkpoint commit pending | Firebase login and employee profile lookup verified; deterministic emulator seeding passed; 33 Firestore rules tests passed; Functions lint/build and frontend production build passed; cutover blocked by Base44 entity dependencies |
+| 3–14 | Not started | None |
 
 ## Phase 1 foundation implemented
 
@@ -67,15 +68,45 @@ Last updated: 2026-07-17
   - unauthenticated Storage read returned HTTP `403` with no read permission
   - unauthenticated Storage write returned HTTP `403` with no write permission
 
-## Phase 1 remaining work
+## Phase 1 completion
 
-Before Phase 1 receives its final exit approval:
+Phase 1 was completed and pushed as commit `c89f440`. Deterministic role fixtures and automated profile-rule tests were implemented during Phase 2.
 
-1. Add deterministic emulator fixtures for the planned user roles and authorization scopes.
-2. Add durable automated emulator tests instead of relying only on manual REST probes.
-3. Add automated secret scanning and GitHub push protection where repository administration permits.
-4. Record the final Phase 1 commit and remote branch identity.
-5. Issue an explicit Phase 1 go/no-go decision.
+## Phase 2 Firebase Authentication and employee profiles
+
+- Installed Firebase browser SDK `12.16.0`, Vitest, and Firebase Rules Unit Testing.
+- Added Firebase browser initialization for Authentication, Firestore, and Storage with development-only emulator connections.
+- Added canonical Phase 2 employee roles and account statuses.
+- Added Firebase authentication/profile service, context, unified provider adapter, and native MDX Fuel ATLAS CRM login screen.
+- Updated application authentication and navigation tracking to use the selected provider.
+- Firebase Auth remains shadow mode; `VITE_AUTH_PROVIDER=base44` remains the local default.
+- Firestore permits authenticated users to get only their own `userProfiles/{uid}` document.
+- Browser profile list, create, update, and delete operations remain denied for every role.
+- All unrelated Firestore collections remain default-deny.
+- Added guarded deterministic emulator seeding for six test-only accounts.
+- Added a durable 33-test Firestore Rules Unit Testing suite and automatic emulator wrapper.
+- Added `docs/FIREBASE_LOCAL_DEVELOPMENT.md`.
+- Firebase login and profile loading were verified locally with the seeded salesperson account.
+- Authentication cutover is not approved because Leads, Opportunities, Tasks, and other CRM paths still depend on Base44.
+- No Firebase deployment was performed, and no staging or production Firebase project was touched.
+
+## Phase 2 verification evidence
+
+- Targeted JavaScript lint: **no errors reported**; the existing root ESLint configuration does not cover the new JSX paths, so JSX validation relied on the production build.
+- Functions lint: **passed**
+- Functions TypeScript build: **passed**
+- Firestore rules wrapper: **passed**, 33 of 33 tests; wrapper exit code `0`; emulator shut down automatically.
+- Frontend production build: **passed** with exit code `0` and generated `dist/index.html`.
+- Existing non-blocking build warnings remain:
+  - Base44 proxy disabled because local Base44 configuration is absent
+  - stale browser compatibility datasets
+  - ambiguous Tailwind class `duration-[10s]`
+- Direct Firebase-authenticated dashboard testing confirmed the remaining blocker: legacy Base44 entity requests fail when direct-local Base44 app ID/server URL values are absent.
+- This blocker must be resolved by implementing and verifying Firebase replacements, not by deleting `src/api/base44Client.js` prematurely.
+
+## Phase 2 cutover decision
+
+**No-go for authentication cutover.** Phase 2 is verified only as a shadow-mode implementation checkpoint. Base44 remains the active provider until all dependent CRM entity and integration paths have independently implemented and verified replacements.
 
 ## Original baseline audit results
 
@@ -92,4 +123,4 @@ Before Phase 1 receives its final exit approval:
 
 ## Exact next implementation step
 
-Review every Phase 1 changed and generated file, confirm that only intended Firebase foundation and migration-status changes are present, and inspect the diff for secrets or unrelated modifications before creating the checkpoint commit.
+Complete the Phase 2 secret/unintended-change scan, review the final diff, then commit and push the verified shadow-mode checkpoint. Do not approve authentication cutover.

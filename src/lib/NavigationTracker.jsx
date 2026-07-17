@@ -1,12 +1,13 @@
+// src/lib/NavigationTracker.jsx
 import { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
-import { useAuth } from './AuthContext';
+import { useAuth } from '@/auth/AuthContext';
 import { base44 } from '@/api/base44Client';
 import { pagesConfig } from '@/pages.config';
 
 export default function NavigationTracker() {
     const location = useLocation();
-    const { isAuthenticated } = useAuth();
+    const { authProvider, isAuthenticated } = useAuth();
     const { Pages, mainPage } = pagesConfig;
     const mainPageKey = mainPage ?? Object.keys(Pages)[0];
 
@@ -18,24 +19,28 @@ export default function NavigationTracker() {
         }, '*');
     }, [location]);
 
-    // Log user activity when navigating to a page
+    // Preserve legacy Base44 activity logging only while Base44 is active.
     useEffect(() => {
+        if (authProvider !== 'base44') {
+            return;
+        }
+
         // Extract page name from pathname
         const pathname = location.pathname;
         let pageName;
-        
+
         if (pathname === '/' || pathname === '') {
             pageName = mainPageKey;
         } else {
             // Remove leading slash and get the first segment
             const pathSegment = pathname.replace(/^\//, '').split('/')[0];
-            
+
             // Try case-insensitive lookup in Pages config
             const pageKeys = Object.keys(Pages);
             const matchedKey = pageKeys.find(
                 key => key.toLowerCase() === pathSegment.toLowerCase()
             );
-            
+
             pageName = matchedKey || null;
         }
 
@@ -44,7 +49,13 @@ export default function NavigationTracker() {
                 // Silently fail - logging shouldn't break the app
             });
         }
-    }, [location, isAuthenticated, Pages, mainPageKey]);
+    }, [
+        authProvider,
+        location,
+        isAuthenticated,
+        Pages,
+        mainPageKey
+    ]);
 
     return null;
 }

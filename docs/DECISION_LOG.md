@@ -28,3 +28,15 @@ Decision: do not rename `base44/` to `atlas/` now. The directory contains Base44
 
 Decision: one `migration/phase-N-short-description` branch per phase. Phase 0 documentation uses `migration/phase-0-baseline-audit`; Phase 1 uses `migration/phase-1-firebase-foundation` after Phase 0 acceptance.
 
+
+## 2026-07-17 — Phase 2 authentication shadow mode
+
+Decision: Firebase Authentication, employee profile lookup, and the native ATLAS CRM login screen are verified locally in shadow mode. Base44 remains the active authentication provider because authenticated dashboard workflows still depend on legacy Base44 entities. Authentication cutover is not approved.
+
+## 2026-07-17 — Full functional parity required
+
+Decision: no CRM feature may be deleted, reduced, or silently disabled during Base44 replacement. Existing forms, routes, dashboards, entities, tasks, reports, workflows, automations, permissions, ownership controls, imports, notifications, file operations, AI capabilities, email, and SMS must receive independently implemented and verified replacements before their Base44 paths are retired.
+
+## 2026-07-17 — Provider replacement boundaries
+
+Decision: Firebase Authentication, Firestore, Cloud Functions, and Firebase Storage are the approved replacements for Base44 identity, entity data, trusted server workflows, and file storage. Dedicated providers will be selected for AI, email, and SMS capabilities. Provider credentials must remain server-side and may not be placed in browser code.

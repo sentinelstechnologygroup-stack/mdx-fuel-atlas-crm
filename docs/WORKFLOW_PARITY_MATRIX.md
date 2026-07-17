@@ -8,11 +8,21 @@ Status values: `Legacy`, `In progress`, `Verified`, `Approved for cutover`, `Ret
 | Stale Opportunity Follow-up | Daily 08:00 America/Chicago | `findStaleOpportunities` → wait 3 days → `recheckAndFollowUp` | Scheduler + Cloud Tasks delayed recheck | 14-day boundary, activity cancellation, owner notification, exactly-once follow-up task, timezone/DST, retry/dead-letter, AI audit | Legacy |
 | Weekly Sales Report | Monday 09:00 America/Chicago | `generateWeeklySalesReport` → `emailReportSummary` | Scheduler + report service + export service + email provider | recipient authorization, figures/export parity, Monday timezone/DST, email result, retry/idempotency, audit | Legacy |
 
+
+## Phase 2 checkpoint evidence
+
+- Firebase email/password authentication and own-profile lookup were verified against local emulators.
+- Active and inactive employee-profile behavior is covered by deterministic fixtures.
+- Firestore profile rules passed 33 automated tests.
+- The Firebase-authenticated dashboard is not approved for cutover because CRM entities still use Base44.
+- No Base44 authentication or entity path is retired by the Phase 2 checkpoint.
+- Full application functionality must remain available until each replacement row reaches verified parity and receives cutover approval.
+
 ## Integration parity register
 
 | Capability | Observed legacy API | Replacement phase | Status |
 |---|---|---:|---|
-| Authentication/session | `base44.auth.*` | 2 | Legacy |
+| Authentication/session | `base44.auth.*` | 2 | In progress — Firebase Auth and own-profile lookup verified locally in shadow mode; cutover blocked by legacy entity dependencies |
 | Entity CRUD/query/schema | `base44.entities.*` | 3–8 | Legacy |
 | Privileged functions | `base44.functions.invoke` | 2–10 | Legacy |
 | File upload | `Core.UploadFile` | 9 | Legacy |
@@ -25,4 +35,3 @@ Status values: `Legacy`, `In progress`, `Verified`, `Approved for cutover`, `Ret
 | App usage logging | `base44.appLogs.*` | 1/8 | Legacy |
 
 No row may be marked Verified without linked test evidence and permission checks.
-
