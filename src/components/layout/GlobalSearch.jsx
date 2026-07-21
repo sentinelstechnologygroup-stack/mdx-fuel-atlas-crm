@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { Search, User, Briefcase, Loader2, X, CheckSquare, Activity, FileText } from 'lucide-react';
-import { base44 } from '@/api/base44Client';
+import { atlas } from '@/api/atlasClient';
 import { createPageUrl } from '@/utils';
 import { useQuery } from '@tanstack/react-query';
 import { useSettings } from '@/components/context/SettingsContext';
@@ -31,10 +31,10 @@ export default function GlobalSearch() {
 
       // Fetch more recent items for better coverage
       const [leads, opportunities, tasks, activities] = await Promise.all([
-        base44.entities.Lead.list('-updated_date', 100),
-        base44.entities.Opportunity.list('-updated_date', 100),
-        base44.entities.Task.list('-updated_date', 100),
-        base44.entities.Activity.list('-date', 50)
+        atlas.entities.Lead.list('-updated_date', 100),
+        atlas.entities.Opportunity.list('-updated_date', 100),
+        atlas.entities.Task.list('-updated_date', 100),
+        atlas.entities.Activity.list('-date', 50)
       ]);
 
       const lowerTerm = searchTerm.toLowerCase().trim();

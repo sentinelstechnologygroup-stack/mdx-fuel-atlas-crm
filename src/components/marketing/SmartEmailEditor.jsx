@@ -14,7 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
-import { base44 } from '@/api/base44Client';
+import { atlas } from '@/api/atlasClient';
 import { toast } from 'sonner';
 import { useSettings } from '@/components/context/SettingsContext';
 import { useQuery } from '@tanstack/react-query';
@@ -158,10 +158,10 @@ export default function SmartEmailEditor() {
             };
 
             if (templateId && !templateId.startsWith('t_')) {
-                await base44.entities.MarketingTemplate.update(templateId, templateData);
+                await atlas.entities.MarketingTemplate.update(templateId, templateData);
                 toast.success("Template updated successfully");
             } else {
-                const newTemplate = await base44.entities.MarketingTemplate.create(templateData);
+                const newTemplate = await atlas.entities.MarketingTemplate.create(templateData);
                 toast.success("Template created successfully");
                 // Optional: redirect to edit mode with new ID, but for now just stay or go back
                 // navigate(`${createPageUrl('TemplateEditor')}?id=${newTemplate.id}`, { replace: true });
@@ -177,13 +177,13 @@ export default function SmartEmailEditor() {
     // Fetch CRM Data
     const { data: leads = [] } = useQuery({ 
         queryKey: ['leads'], 
-        queryFn: () => base44.entities.Lead.list(),
+        queryFn: () => atlas.entities.Lead.list(),
         enabled: personaSource === 'crm'
     });
     
     const { data: opportunities = [] } = useQuery({ 
         queryKey: ['opportunities'], 
-        queryFn: () => base44.entities.Opportunity.list(),
+        queryFn: () => atlas.entities.Opportunity.list(),
         enabled: personaSource === 'crm'
     });
 
@@ -241,7 +241,7 @@ export default function SmartEmailEditor() {
                 setResonanceScore(mock.ai_resonance_score);
             } else {
                 // Fallback to DB
-                base44.entities.MarketingTemplate.read({ id: templateId }).then(res => {
+                atlas.entities.MarketingTemplate.read({ id: templateId }).then(res => {
                     if (res && res[0]) {
                         setTemplateName(res[0].name);
                         setSubject(res[0].subject_line || "");
@@ -325,7 +325,7 @@ export default function SmartEmailEditor() {
                     - Do NOT be overly polite if the persona is busy/skeptical.
                 `;
 
-                const res = await base44.integrations.Core.InvokeLLM({ prompt });
+                const res = await atlas.integrations.Core.InvokeLLM({ prompt });
                 reply = res.trim().replace(/^"|"$/g, '');
             } catch (e) {
                 console.error("Simulation error:", e);

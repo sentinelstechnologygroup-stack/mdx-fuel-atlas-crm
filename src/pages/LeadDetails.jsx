@@ -1,5 +1,5 @@
 import React from 'react';
-import { base44 } from '@/api/base44Client';
+import { atlas } from '@/api/atlasClient';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Loader2 } from "lucide-react";
@@ -22,17 +22,17 @@ export default function LeadDetailsPage() {
       if (!leadId) return null;
       // Since .get(id) isn't explicitly documented in the prompt's examples but usually exists,
       // I'll use filter or list. But usually list() returns all.
-      // Best practice from prompt: base44.entities.Lead.list() and find, OR filter.
+      // Best practice from prompt: atlas.entities.Lead.list() and find, OR filter.
       // Actually, usually there is a .get(id). If not, I'll filter.
       // Let's try filter by ID which is safer if get isn't available.
-      const leads = await base44.entities.Lead.filter({ id: leadId });
+      const leads = await atlas.entities.Lead.filter({ id: leadId });
       return leads[0];
     },
     enabled: !!leadId
   });
 
   const updateLead = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.Lead.update(id, data),
+    mutationFn: ({ id, data }) => atlas.entities.Lead.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries(['lead', leadId]);
       queryClient.invalidateQueries(['leads']);
@@ -41,9 +41,9 @@ export default function LeadDetailsPage() {
 
   const convertToOpportunity = useMutation({
     mutationFn: async (leadData) => {
-      await base44.entities.Lead.update(leadData.id, { lead_status: "Converted" });
+      await atlas.entities.Lead.update(leadData.id, { lead_status: "Converted" });
       // Copy lead ownership to the new opportunity so ownership follows the lead.
-      return await base44.entities.Opportunity.create({
+      return await atlas.entities.Opportunity.create({
         lead_id: leadData.id,
         lead_name: leadData.full_name,
         phone_number: leadData.phone_number,

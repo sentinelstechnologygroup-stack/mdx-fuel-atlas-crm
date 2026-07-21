@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from "react";
-import { base44 } from "@/api/base44Client";
+import { atlas } from "@/api/atlasClient";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -96,19 +96,19 @@ export default function LeadsPage() {
   // שליפת נתונים
   const { data: leads, isLoading } = useQuery({
     queryKey: ['leads'],
-    queryFn: () => base44.entities.Lead.list(),
+    queryFn: () => atlas.entities.Lead.list(),
     initialData: []
   });
 
   const { data: currentUser } = useQuery({
     queryKey: ['currentUser'],
-    queryFn: () => base44.auth.me(),
+    queryFn: () => atlas.auth.me(),
     staleTime: 1000 * 60 * 5 // Cache for 5 minutes
   });
 
   const { data: activities } = useQuery({
     queryKey: ['activities'],
-    queryFn: () => base44.entities.Activity.list(),
+    queryFn: () => atlas.entities.Activity.list(),
     initialData: []
   });
 
@@ -188,7 +188,7 @@ export default function LeadsPage() {
 
   // מוטציות (פעולות שרת)
   const createLead = useMutation({
-    mutationFn: (data) => base44.entities.Lead.create(data),
+    mutationFn: (data) => atlas.entities.Lead.create(data),
     onSuccess: async (data) => {
       queryClient.invalidateQueries(['leads']);
       // No automatic close - handled by handlers
@@ -197,8 +197,8 @@ export default function LeadsPage() {
       // Create notification
       try {
           // In a real app, you'd fetch the admin email or iterate relevant users
-          const currentUser = await base44.auth.me();
-          await base44.entities.Notification.create({
+          const currentUser = await atlas.auth.me();
+          await atlas.entities.Notification.create({
               title: 'ליד חדש התקבל',
               message: `${data.full_name} - ${data.phone_number}`,
               type: 'lead',
@@ -212,7 +212,7 @@ export default function LeadsPage() {
   });
 
   const updateLead = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.Lead.update(id, data),
+    mutationFn: ({ id, data }) => atlas.entities.Lead.update(id, data),
     onMutate: async ({ id, data }) => {
       // Cancel outgoing refetches
       await queryClient.cancelQueries(['leads']);
@@ -237,7 +237,7 @@ export default function LeadsPage() {
   });
 
   const deleteLead = useMutation({
-    mutationFn: (id) => base44.entities.Lead.update(id, { is_deleted: true }),
+    mutationFn: (id) => atlas.entities.Lead.update(id, { is_deleted: true }),
     onSuccess: () => {
       queryClient.invalidateQueries(['leads']);
       alert("הליד הועבר לארכיון בהצלחה (מחיקה רכה)");
@@ -246,8 +246,8 @@ export default function LeadsPage() {
 
   const convertToOpportunity = useMutation({
     mutationFn: async (leadData) => {
-      await base44.entities.Lead.update(leadData.id, { lead_status: "Converted" });
-      return await base44.entities.Opportunity.create({
+      await atlas.entities.Lead.update(leadData.id, { lead_status: "Converted" });
+      return await atlas.entities.Opportunity.create({
         lead_id: leadData.id,
         lead_name: leadData.full_name,
         phone_number: leadData.phone_number,

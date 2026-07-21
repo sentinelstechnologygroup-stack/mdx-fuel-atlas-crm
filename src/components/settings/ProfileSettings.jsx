@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { base44 } from "@/api/base44Client";
+import { atlas } from "@/api/atlasClient";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -18,14 +18,14 @@ export default function ProfileSettings() {
 
     // Load user data
     React.useEffect(() => {
-        base44.auth.me().then(setUser).catch(() => {});
+        atlas.auth.me().then(setUser).catch(() => {});
     }, []);
 
     const handleRequestUpgrade = async () => {
         if (!user) return;
         setRequestLoading(true);
         try {
-            await base44.entities.User.update(user.id, { requested_access_upgrade: true });
+            await atlas.entities.User.update(user.id, { requested_access_upgrade: true });
             setUser(prev => ({ ...prev, requested_access_upgrade: true }));
             alert("Your request has been sent to the system admin");
         } catch (e) {
@@ -40,7 +40,7 @@ export default function ProfileSettings() {
         e.preventDefault();
         setLoading(true);
         try {
-            await base44.auth.updateMe({
+            await atlas.auth.updateMe({
                 full_name: user.full_name,
             });
             // alert("Profile updated successfully");
@@ -129,7 +129,7 @@ export default function ProfileSettings() {
                 </CardHeader>
                 <CardContent className="space-y-4">
                     <div className="flex flex-col sm:flex-row gap-4">
-                        <Button variant="outline" className="text-slate-600 hover:bg-slate-50 w-full sm:w-auto" onClick={() => base44.auth.logout()}>
+                        <Button variant="outline" className="text-slate-600 hover:bg-slate-50 w-full sm:w-auto" onClick={() => atlas.auth.logout()}>
                             Sign Out
                         </Button>
                         
@@ -141,9 +141,9 @@ export default function ProfileSettings() {
                                     try {
                                         setLoading(true);
                                         // Call backend function to delete account
-                                        await base44.functions.invoke('deleteAccount', {});
+                                        await atlas.functions.invoke('deleteAccount', {});
                                         // Then logout
-                                        base44.auth.logout();
+                                        atlas.auth.logout();
                                     } catch (e) {
                                         console.error("Failed to delete account", e);
                                         alert("Error deleting account. Please try again later.");

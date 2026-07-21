@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { base44 } from '@/api/base44Client';
+import { atlas } from '@/api/atlasClient';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -31,7 +31,7 @@ export default function UserPermissionOverrides() {
 
   const { data: users = [], isLoading: usersLoading } = useQuery({
     queryKey: ['users_overrides'],
-    queryFn: () => base44.entities.User.list(500),
+    queryFn: () => atlas.entities.User.list(500),
     initialData: []
   });
 
@@ -50,7 +50,7 @@ export default function UserPermissionOverrides() {
   // Effective permissions for the selected user.
   const { data: effData, isLoading: effLoading, refetch: refetchEff } = useQuery({
     queryKey: ['effectivePermissionsFor', targetUser?.id],
-    queryFn: () => base44.functions.invoke('getEffectivePermissions', { target_user_id: targetUser.id }),
+    queryFn: () => atlas.functions.invoke('getEffectivePermissions', { target_user_id: targetUser.id }),
     enabled: !!targetUser,
     retry: false
   });
@@ -58,7 +58,7 @@ export default function UserPermissionOverrides() {
   // Active overrides for the selected user.
   const { data: overrides = [], refetch: refetchOverrides } = useQuery({
     queryKey: ['overridesFor', targetUser?.id],
-    queryFn: () => base44.entities.UserPermissionOverride.filter({ user_id: targetUser.id, status: 'active' }, 200),
+    queryFn: () => atlas.entities.UserPermissionOverride.filter({ user_id: targetUser.id, status: 'active' }, 200),
     enabled: !!targetUser,
     initialData: []
   });
@@ -104,7 +104,7 @@ export default function UserPermissionOverrides() {
         reason: editing.reason,
         expiration_date: editing.expiration_date ? new Date(editing.expiration_date).toISOString() : null
       };
-      const res = await base44.functions.invoke('updateUserPermissionOverride', payload);
+      const res = await atlas.functions.invoke('updateUserPermissionOverride', payload);
       if (res?.data?.error) throw new Error(res.data.error);
       setEditing(null);
       refetchOverrides();
@@ -119,7 +119,7 @@ export default function UserPermissionOverrides() {
   const handleDeactivate = async (ov) => {
     if (!window.confirm(`Deactivate the "${MODULE_BY_KEY[ov.module_key]?.name || ov.module_key}" override for ${targetUser.email}?`)) return;
     try {
-      const res = await base44.functions.invoke('updateUserPermissionOverride', { action: 'deactivate', user_id: targetUser.id, module_key: ov.module_key, reason: `deactivated by ${perms.user?.email}` });
+      const res = await atlas.functions.invoke('updateUserPermissionOverride', { action: 'deactivate', user_id: targetUser.id, module_key: ov.module_key, reason: `deactivated by ${perms.user?.email}` });
       if (res?.data?.error) throw new Error(res.data.error);
       refetchOverrides();
       refetchEff();

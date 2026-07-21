@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { base44 } from '@/api/base44Client';
+import { atlas } from '@/api/atlasClient';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSettings } from '@/components/context/SettingsContext';
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -24,7 +24,7 @@ export default function Notifications() {
 
     // Get Current User
     useEffect(() => {
-        base44.auth.me().then(setCurrentUser).catch(() => {});
+        atlas.auth.me().then(setCurrentUser).catch(() => {});
     }, []);
 
     // Fetch Settings
@@ -32,7 +32,7 @@ export default function Notifications() {
         queryKey: ['notification_settings', currentUser?.email],
         queryFn: async () => {
             if (!currentUser?.email) return null;
-            const res = await base44.entities.NotificationSettings.filter({ user_email: currentUser.email });
+            const res = await atlas.entities.NotificationSettings.filter({ user_email: currentUser.email });
             return res[0] || { notify_tasks: true, notify_opp_closing: true, days_before_deadline: 3 }; // Defaults
         },
         enabled: !!currentUser
@@ -41,7 +41,7 @@ export default function Notifications() {
     // Fetch 1: Persistent Notifications (DB)
     const { data: persistentNotifications } = useQuery({
         queryKey: ['notifications_db', currentUser?.email],
-        queryFn: () => base44.entities.Notification.filter(
+        queryFn: () => atlas.entities.Notification.filter(
             { user_email: currentUser.email, is_read: false }, 
             '-created_date', 
             20
@@ -55,7 +55,7 @@ export default function Notifications() {
         queryKey: ['notifications_tasks', currentUser?.email],
         queryFn: async () => {
             if (!settings?.notify_tasks) return [];
-            const tasks = await base44.entities.Task.list(); // Filter logic below due to SDK limitations on complex dates
+            const tasks = await atlas.entities.Task.list(); // Filter logic below due to SDK limitations on complex dates
             const today = new Date();
             const twoDaysFromNow = new Date();
             twoDaysFromNow.setDate(today.getDate() + 2);
@@ -89,7 +89,7 @@ export default function Notifications() {
         queryKey: ['notifications_opps'],
         queryFn: async () => {
             if (!settings?.notify_opp_closing) return [];
-            const opps = await base44.entities.Opportunity.list();
+            const opps = await atlas.entities.Opportunity.list();
             const days = settings.days_before_deadline || 3;
             const threshold = new Date();
             threshold.setDate(threshold.getDate() + days);
@@ -115,7 +115,7 @@ export default function Notifications() {
 
     // Mark as read mutation
     const markAsRead = useMutation({
-        mutationFn: (id) => base44.entities.Notification.update(id, { is_read: true }),
+        mutationFn: (id) => atlas.entities.Notification.update(id, { is_read: true }),
         onSuccess: () => queryClient.invalidateQueries(['notifications_db'])
     });
 

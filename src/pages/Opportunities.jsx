@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from "react";
-import { base44 } from "@/api/base44Client";
+import { atlas } from "@/api/atlasClient";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import { useLocation } from "react-router-dom";
@@ -101,13 +101,13 @@ export default function OpportunitiesPage() {
 
   const { data: opportunities, isLoading: isLoadingOpp } = useQuery({
     queryKey: ['opportunities'],
-    queryFn: () => base44.entities.Opportunity.list(),
+    queryFn: () => atlas.entities.Opportunity.list(),
     initialData: []
   });
 
   const { data: leads, isLoading: isLoadingLeads } = useQuery({
     queryKey: ['leads'],
-    queryFn: () => base44.entities.Lead.list(),
+    queryFn: () => atlas.entities.Lead.list(),
     initialData: []
   });
 
@@ -170,7 +170,7 @@ export default function OpportunitiesPage() {
   };
 
   const createOppMutation = useMutation({
-    mutationFn: (data) => base44.entities.Opportunity.create(data),
+    mutationFn: (data) => atlas.entities.Opportunity.create(data),
     onSuccess: (data) => {
       queryClient.invalidateQueries(['opportunities']);
       setShowForm(false);
@@ -181,7 +181,7 @@ export default function OpportunitiesPage() {
   });
 
   const updateOppMutation = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.Opportunity.update(id, data),
+    mutationFn: ({ id, data }) => atlas.entities.Opportunity.update(id, data),
     onMutate: async ({ id, data }) => {
       await queryClient.cancelQueries(['opportunities']);
       const previousOpps = queryClient.getQueryData(['opportunities']);
@@ -209,7 +209,7 @@ export default function OpportunitiesPage() {
   });
 
   const deleteOppMutation = useMutation({
-    mutationFn: (id) => base44.entities.Opportunity.delete(id),
+    mutationFn: (id) => atlas.entities.Opportunity.delete(id),
     onSuccess: () => {
         queryClient.invalidateQueries(['opportunities']);
         alert("Opportunity deleted successfully");
@@ -237,7 +237,7 @@ export default function OpportunitiesPage() {
 
       if (newStage.includes('Closed Won')) {
           // Trigger Automation
-          base44.functions.invoke('convertOpportunityToClient', { opportunityId: opp.id });
+          atlas.functions.invoke('convertOpportunityToClient', { opportunityId: opp.id });
           
           triggerConfetti();
           // Custom Toast Logic

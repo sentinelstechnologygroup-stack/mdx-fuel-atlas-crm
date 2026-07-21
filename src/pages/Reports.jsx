@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { base44 } from '@/api/base44Client';
+import { atlas } from '@/api/atlasClient';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -27,31 +27,31 @@ export default function ReportsPage() {
   // Fetch all necessary data
   const { data: leads, isLoading: leadsLoading } = useQuery({
     queryKey: ['leads'],
-    queryFn: () => base44.entities.Lead.list(),
+    queryFn: () => atlas.entities.Lead.list(),
     initialData: []
   });
 
   const { data: opportunities, isLoading: oppsLoading } = useQuery({
     queryKey: ['opportunities'],
-    queryFn: () => base44.entities.Opportunity.list(),
+    queryFn: () => atlas.entities.Opportunity.list(),
     initialData: []
   });
 
   const { data: tasks, isLoading: tasksLoading } = useQuery({
     queryKey: ['tasks'],
-    queryFn: () => base44.entities.Task.list(),
+    queryFn: () => atlas.entities.Task.list(),
     initialData: []
   });
 
   const { data: activities, isLoading: activitiesLoading } = useQuery({
     queryKey: ['activities'],
-    queryFn: () => base44.entities.Activity.list(),
+    queryFn: () => atlas.entities.Activity.list(),
     initialData: []
   });
 
   const { data: users } = useQuery({
     queryKey: ['users'],
-    queryFn: () => base44.entities.User.list(),
+    queryFn: () => atlas.entities.User.list(),
     initialData: []
   });
 
@@ -60,7 +60,7 @@ export default function ReportsPage() {
   const handleExport = async () => {
       try {
           setIsExporting(true);
-          const response = await base44.functions.invoke('exportReport', { reportId: activeReport, timeRange });
+          const response = await atlas.functions.invoke('exportReport', { reportId: activeReport, timeRange });
           
           if (response.status === 200 && response.data?.file) {
               // Decode base64 to binary

@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { base44 } from "@/api/base44Client";
+import { atlas } from "@/api/atlasClient";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, TrendingUp, AlertTriangle, CheckCircle } from "lucide-react";
 import { useSettings } from "@/components/context/SettingsContext";

@@ -2,7 +2,7 @@
 // MDX portable module registry (Phase 3C.1)
 //
 // Centralized, dependency-free definition of every permission module in the
-// CRM. This file is intentionally portable — it contains no Base44 imports —
+// CRM. This file is intentionally portable — it contains no ATLAS imports —
 // so it travels unchanged when the app is exported and deployed independently.
 //
 // Future reserved modules are DECLARED here only (no pages/entities are built

@@ -1,6 +1,6 @@
 import React, { useCallback, useState } from 'react';
 import { Upload, FileSpreadsheet, Loader2, FileType } from 'lucide-react';
-import { base44 } from "@/api/base44Client";
+import { atlas } from "@/api/atlasClient";
 
 export default function StepUpload({ onDataParsed }) {
   const [isDragging, setIsDragging] = useState(false);
@@ -34,10 +34,10 @@ export default function StepUpload({ onDataParsed }) {
       } else {
         // For Excel, we use the integration
         // 1. Upload
-        const { file_url } = await base44.integrations.Core.UploadFile({ file });
+        const { file_url } = await atlas.integrations.Core.UploadFile({ file });
         
         // 2. Extract (asking for raw array of objects)
-        const res = await base44.integrations.Core.ExtractDataFromUploadedFile({
+        const res = await atlas.integrations.Core.ExtractDataFromUploadedFile({
             file_url,
             json_schema: {
                 type: "array",

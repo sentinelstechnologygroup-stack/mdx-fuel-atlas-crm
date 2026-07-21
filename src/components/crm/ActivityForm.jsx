@@ -6,7 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Loader2, Sparkles, X, Undo2, Zap, Flag, Target } from "lucide-react";
-import { base44 } from "@/api/base44Client";
+import { atlas } from "@/api/atlasClient";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -32,12 +32,12 @@ export default function ActivityForm({ initialData, onSubmit, onCancel, isSubmit
     setIsSummarizing(true);
     try {
       // Snapshot for undo
-      const leads = await base44.entities.Lead.filter({ id: leadId });
+      const leads = await atlas.entities.Lead.filter({ id: leadId });
       if (leads[0]) {
         setLastLeadSnapshot(leads[0]);
       }
 
-      const response = await base44.functions.invoke('summarizeActivity', {
+      const response = await atlas.functions.invoke('summarizeActivity', {
         activityText: currentSummary,
         leadId: leadId
       });
@@ -77,7 +77,7 @@ export default function ActivityForm({ initialData, onSubmit, onCancel, isSubmit
     if (!lastLeadSnapshot || !leadId) return;
 
     try {
-      await base44.entities.Lead.update(leadId, lastLeadSnapshot);
+      await atlas.entities.Lead.update(leadId, lastLeadSnapshot);
       setAiSummary(null);
       setLastLeadSnapshot(null);
       toast.success("Changes undone", {

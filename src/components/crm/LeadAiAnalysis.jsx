@@ -1,5 +1,5 @@
 import React from 'react';
-import { base44 } from '@/api/base44Client';
+import { atlas } from '@/api/atlasClient';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -50,7 +50,7 @@ export default function LeadAiAnalysis({ lead }) {
           }
         `;
 
-        const response = await base44.integrations.Core.InvokeLLM({
+        const response = await atlas.integrations.Core.InvokeLLM({
           prompt: prompt,
           response_json_schema: {
             type: "object",
@@ -64,7 +64,7 @@ export default function LeadAiAnalysis({ lead }) {
         });
 
         // Update the lead with AI results
-        await base44.entities.Lead.update(lead.id, {
+        await atlas.entities.Lead.update(lead.id, {
           ai_classification: response.classification,
           ai_quality_score: response.score,
           ai_analysis: response.analysis,

@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { base44 } from "@/api/base44Client";
+import { atlas } from "@/api/atlasClient";
 import ClientDashboard from "@/components/cs/ClientDashboard";
 import ClientList from "@/components/cs/ClientList";
 import ClientDetails from "@/components/cs/ClientDetails";
@@ -16,7 +16,7 @@ export default function CSManagementPage() {
 
     const { data: clients, isLoading } = useQuery({
         queryKey: ['clients'],
-        queryFn: () => base44.entities.Client.list(),
+        queryFn: () => atlas.entities.Client.list(),
         initialData: []
     });
 

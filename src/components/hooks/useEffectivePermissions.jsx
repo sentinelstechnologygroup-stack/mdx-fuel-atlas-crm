@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { base44 } from '@/api/base44Client';
+import { atlas } from '@/api/atlasClient';
 
 // ---------------------------------------------------------------------------
 // useEffectivePermissions (Phase 3C.1)
@@ -17,7 +17,7 @@ export function useEffectivePermissions() {
     queryKey: ['effectivePermissions'],
     queryFn: async () => {
       try {
-        const res = await base44.functions.invoke('getEffectivePermissions', {});
+        const res = await atlas.functions.invoke('getEffectivePermissions', {});
         return res?.data || null;
       } catch (_e) {
         return null;

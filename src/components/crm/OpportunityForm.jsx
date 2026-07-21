@@ -9,7 +9,7 @@ import { Loader2, Briefcase, Sparkles, MessageSquare, BrainCircuit, Activity, Fi
 import { useSettings } from "@/components/context/SettingsContext";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ActivityLog from "./ActivityLog";
-import { base44 } from "@/api/base44Client";
+import { atlas } from "@/api/atlasClient";
 import FileUpload from "../common/FileUpload";
 import { useQuery } from "@tanstack/react-query";
 import LeadSelector from "./LeadSelector";
@@ -69,7 +69,7 @@ export default function OpportunityForm({ opportunity, initialLead, onSubmit, on
 
   const { data: originalLeadData, isLoading: isLoadingLead } = useQuery({
     queryKey: ['lead', leadId],
-    queryFn: () => base44.entities.Lead.list().then((leads) => leads.find((l) => l.id === leadId)),
+    queryFn: () => atlas.entities.Lead.list().then((leads) => leads.find((l) => l.id === leadId)),
     enabled: !!leadId
   });
   
@@ -130,8 +130,8 @@ export default function OpportunityForm({ opportunity, initialLead, onSubmit, on
 
       // Execute in parallel
       const [strategyRes, objectionRes] = await Promise.all([
-      base44.integrations.Core.InvokeLLM({ prompt: strategyPrompt }),
-      values.current_objection ? base44.integrations.Core.InvokeLLM({ prompt: objectionPrompt }) : Promise.resolve({ output: "" })]
+      atlas.integrations.Core.InvokeLLM({ prompt: strategyPrompt }),
+      values.current_objection ? atlas.integrations.Core.InvokeLLM({ prompt: objectionPrompt }) : Promise.resolve({ output: "" })]
       );
 
       setValue("ai_sales_strategy", typeof strategyRes === 'string' ? strategyRes : strategyRes.output);

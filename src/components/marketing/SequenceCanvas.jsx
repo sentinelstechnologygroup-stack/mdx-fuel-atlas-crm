@@ -14,7 +14,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import SmartTriggerConfig from './SmartTriggerConfig';
 import { useSettings } from '@/components/context/SettingsContext';
-import { base44 } from '@/api/base44Client';
+import { atlas } from '@/api/atlasClient';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 
@@ -146,9 +146,9 @@ export default function SequenceCanvas({ sequenceId }) {
         queryKey: ['sequence', sequenceId],
         queryFn: async () => {
             if (!sequenceId) return null;
-            const seq = await base44.entities.MarketingSequence.read({ id: sequenceId });
-            const steps = await base44.entities.SequenceStep.list({ sequence_id: sequenceId });
-            const transitions = await base44.entities.StepTransition.list({ sequence_id: sequenceId }); // Ideally filter by steps related to this seq, but list all for now or improved API needed
+            const seq = await atlas.entities.MarketingSequence.read({ id: sequenceId });
+            const steps = await atlas.entities.SequenceStep.list({ sequence_id: sequenceId });
+            const transitions = await atlas.entities.StepTransition.list({ sequence_id: sequenceId }); // Ideally filter by steps related to this seq, but list all for now or improved API needed
             // NOTE: StepTransition doesn't have sequence_id in the schema I saw earlier, but logically it should relate. 
             // If not, we have to fetch transitions for each step. 
             // Assuming simplified fetching for this implementation or that we can filter transitions.
@@ -175,7 +175,7 @@ export default function SequenceCanvas({ sequenceId }) {
             // Need to fetch transitions where source_step_id is in loadedNodes
             // This part might be tricky without a direct sequence_id on Transition. 
             // For now, let's load what we can. 
-            const transitionsList = await base44.entities.StepTransition.filter({ 
+            const transitionsList = await atlas.entities.StepTransition.filter({ 
                 source_step_id: { "$in": loadedNodes.map(n => n.id) } 
             });
             
@@ -206,7 +206,7 @@ export default function SequenceCanvas({ sequenceId }) {
 
             // 1. Upsert Sequence
             if (!currentSeqId) {
-                const newSeq = await base44.entities.MarketingSequence.create({
+                const newSeq = await atlas.entities.MarketingSequence.create({
                     name: sequenceName,
                     status: status,
                     exit_criteria: {},
@@ -214,7 +214,7 @@ export default function SequenceCanvas({ sequenceId }) {
                 });
                 currentSeqId = newSeq.id;
             } else {
-                await base44.entities.MarketingSequence.update(currentSeqId, {
+                await atlas.entities.MarketingSequence.update(currentSeqId, {
                     name: sequenceName,
                     status: status
                 });
@@ -244,10 +244,10 @@ export default function SequenceCanvas({ sequenceId }) {
 
                 if (node.id.startsWith('start') || node.id.startsWith('email') || node.id.length < 10) { 
                     // Assume temp ID
-                    const created = await base44.entities.SequenceStep.create(stepData);
+                    const created = await atlas.entities.SequenceStep.create(stepData);
                     savedStepMap[node.id] = created.id;
                 } else {
-                    await base44.entities.SequenceStep.update(node.id, stepData);
+                    await atlas.entities.SequenceStep.update(node.id, stepData);
                     savedStepMap[node.id] = node.id;
                 }
             }
@@ -265,7 +265,7 @@ export default function SequenceCanvas({ sequenceId }) {
                     if (conn.id) {
                          // Update if needed
                     } else {
-                        await base44.entities.StepTransition.create({
+                        await atlas.entities.StepTransition.create({
                             source_step_id: sourceId,
                             target_step_id: targetId,
                             condition_trigger: 'DEFAULT'

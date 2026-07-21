@@ -3,7 +3,7 @@ import { ArrowRight, UploadCloud, AlertTriangle, CheckCircle } from 'lucide-reac
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Progress } from "@/components/ui/progress";
-import { base44 } from "@/api/base44Client";
+import { atlas } from "@/api/atlasClient";
 import { findBestMatch } from "./StepMapping";
 
 export default function StepPreview({ data, mapping, customLabels, onBack, onImport }) {
@@ -92,7 +92,7 @@ export default function StepPreview({ data, mapping, customLabels, onBack, onImp
                 };
             });
 
-            await base44.entities.Lead.bulkCreate(batch);
+            await atlas.entities.Lead.bulkCreate(batch);
             
             successCount += batch.length;
             setProgress(Math.round(((i + 1) / totalBatches) * 100));

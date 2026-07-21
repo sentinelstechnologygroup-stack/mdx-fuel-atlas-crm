@@ -1,5 +1,5 @@
 import React from 'react';
-import { base44 } from '@/api/base44Client';
+import { atlas } from '@/api/atlasClient';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -13,8 +13,8 @@ export default function AiInsights() {
   const [isLoadingAI, setIsLoadingAI] = React.useState(false);
 
   // Fetch data for analysis
-  const { data: leads } = useQuery({ queryKey: ['leads'], queryFn: () => base44.entities.Lead.list() });
-  const { data: opportunities } = useQuery({ queryKey: ['opportunities'], queryFn: () => base44.entities.Opportunity.list() });
+  const { data: leads } = useQuery({ queryKey: ['leads'], queryFn: () => atlas.entities.Lead.list() });
+  const { data: opportunities } = useQuery({ queryKey: ['opportunities'], queryFn: () => atlas.entities.Opportunity.list() });
 
   const generateInsights = async () => {
     if (!leads || !opportunities) return;
@@ -65,7 +65,7 @@ export default function AiInsights() {
         }
       `;
 
-      const result = await base44.integrations.Core.InvokeLLM({
+      const result = await atlas.integrations.Core.InvokeLLM({
         prompt: prompt,
         response_json_schema: {
             type: "object",

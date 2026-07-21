@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { base44 } from "@/api/base44Client";
+import { atlas } from "@/api/atlasClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { CheckCircle2, Circle, Clock, Plus, Trash2, Calendar, X } from "lucide-react";
@@ -22,16 +22,16 @@ export default function RelatedTasks({ leadId, opportunityId }) {
       
       if (leadId) {
         // 1. Fetch tasks directly linked to the lead
-        const leadTasks = await base44.entities.Task.filter({ related_lead_id: leadId });
+        const leadTasks = await atlas.entities.Task.filter({ related_lead_id: leadId });
         fetchedTasks = [...leadTasks];
 
         // 2. Fetch tasks linked to opportunities of this lead
         try {
-            const opportunities = await base44.entities.Opportunity.filter({ lead_id: leadId });
+            const opportunities = await atlas.entities.Opportunity.filter({ lead_id: leadId });
             if (opportunities.length > 0) {
                 // Fetch tasks for each opportunity
                 const oppTasksPromises = opportunities.map(opp => 
-                    base44.entities.Task.filter({ related_opportunity_id: opp.id })
+                    atlas.entities.Task.filter({ related_opportunity_id: opp.id })
                     .then(tasks => tasks.map(t => ({ ...t, _opportunityContext: opp }))) // Tag for UI
                 );
                 const oppTasksArrays = await Promise.all(oppTasksPromises);
@@ -42,7 +42,7 @@ export default function RelatedTasks({ leadId, opportunityId }) {
         }
 
       } else if (opportunityId) {
-        fetchedTasks = await base44.entities.Task.filter({ related_opportunity_id: opportunityId });
+        fetchedTasks = await atlas.entities.Task.filter({ related_opportunity_id: opportunityId });
       }
 
       // Deduplicate by ID
@@ -58,8 +58,8 @@ export default function RelatedTasks({ leadId, opportunityId }) {
 
   const createTask = useMutation({
     mutationFn: async (data) => {
-      const user = await base44.auth.me();
-      return base44.entities.Task.create({
+      const user = await atlas.auth.me();
+      return atlas.entities.Task.create({
         ...data,
         assigned_to: user?.email,
         related_lead_id: leadId,
@@ -74,7 +74,7 @@ export default function RelatedTasks({ leadId, opportunityId }) {
   });
 
   const updateTask = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.Task.update(id, data),
+    mutationFn: ({ id, data }) => atlas.entities.Task.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries(queryKey);
       queryClient.invalidateQueries(['tasks']);
@@ -82,7 +82,7 @@ export default function RelatedTasks({ leadId, opportunityId }) {
   });
 
   const deleteTask = useMutation({
-    mutationFn: (id) => base44.entities.Task.delete(id),
+    mutationFn: (id) => atlas.entities.Task.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries(queryKey);
       queryClient.invalidateQueries(['tasks']);

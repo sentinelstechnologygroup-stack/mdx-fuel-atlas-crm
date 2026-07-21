@@ -81,7 +81,7 @@ export default function RoleHierarchy() {
         }`}
       >
         Enforcement of the full module-action permission matrix is scheduled for Phase 3C. Until then,
-        role assignment and account status are managed here, while existing Base44 authentication
+        role assignment and account status are managed here, while existing ATLAS authentication
         and legacy access levels remain active for compatibility.
       </div>
     </div>

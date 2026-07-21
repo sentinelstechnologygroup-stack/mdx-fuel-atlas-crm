@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { base44 } from '@/api/base44Client';
+import { atlas } from '@/api/atlasClient';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -42,12 +42,12 @@ export default function CustomReports() {
     // Fetch saved reports
     const { data: savedReports, isLoading: loadingReports } = useQuery({
         queryKey: ['report_configs'],
-        queryFn: () => base44.entities.ReportConfig.filter({ type: 'table' }),
+        queryFn: () => atlas.entities.ReportConfig.filter({ type: 'table' }),
         initialData: []
     });
 
     const deleteMutation = useMutation({
-        mutationFn: (id) => base44.entities.ReportConfig.delete(id),
+        mutationFn: (id) => atlas.entities.ReportConfig.delete(id),
         onSuccess: () => {
             queryClient.invalidateQueries(['report_configs']);
             if (selectedReport?.id) setSelectedReport(null);
@@ -144,12 +144,12 @@ function ReportEditor({ onCancel, onSave }) {
             try {
                 let s = null;
                 try {
-                    s = await base44.entities[config.entity_type].schema();
+                    s = await atlas.entities[config.entity_type].schema();
                 } catch (err) {}
 
                 if (!s || !s.properties || Object.keys(s.properties).length === 0) {
                     try {
-                        const items = await base44.entities[config.entity_type].list(1);
+                        const items = await atlas.entities[config.entity_type].list(1);
                         if (items && items.length > 0) {
                             const props = {};
                             Object.keys(items[0]).forEach(key => {
@@ -166,7 +166,7 @@ function ReportEditor({ onCancel, onSave }) {
     }, [config.entity_type]);
 
     const saveMutation = useMutation({
-        mutationFn: (data) => base44.entities.ReportConfig.create(data),
+        mutationFn: (data) => atlas.entities.ReportConfig.create(data),
         onSuccess: onSave
     });
 
@@ -250,7 +250,7 @@ function ReportViewer({ report }) {
     const { theme } = useSettings();
     const { data, isLoading } = useQuery({
         queryKey: ['report_data', report.id],
-        queryFn: () => base44.entities[report.entity_type].list(),
+        queryFn: () => atlas.entities[report.entity_type].list(),
     });
 
     if (isLoading) return <div className="flex justify-center p-20"><Loader2 className="animate-spin" /></div>;

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { base44 } from '@/api/base44Client';
+import { atlas } from '@/api/atlasClient';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,12 +20,12 @@ export default function OnboardingSettings() {
 
     const { data: templates, isLoading } = useQuery({
         queryKey: ['onboarding_templates'],
-        queryFn: () => base44.entities.OnboardingTemplate.list(),
+        queryFn: () => atlas.entities.OnboardingTemplate.list(),
         initialData: []
     });
 
     const createTemplateMutation = useMutation({
-        mutationFn: (data) => base44.entities.OnboardingTemplate.create(data),
+        mutationFn: (data) => atlas.entities.OnboardingTemplate.create(data),
         onSuccess: () => {
             queryClient.invalidateQueries(['onboarding_templates']);
             setIsEditing(false);
@@ -34,7 +34,7 @@ export default function OnboardingSettings() {
     });
 
     const updateTemplateMutation = useMutation({
-        mutationFn: ({ id, data }) => base44.entities.OnboardingTemplate.update(id, data),
+        mutationFn: ({ id, data }) => atlas.entities.OnboardingTemplate.update(id, data),
         onSuccess: () => {
             queryClient.invalidateQueries(['onboarding_templates']);
             setIsEditing(false);
@@ -43,7 +43,7 @@ export default function OnboardingSettings() {
     });
 
     const deleteTemplateMutation = useMutation({
-        mutationFn: (id) => base44.entities.OnboardingTemplate.delete(id),
+        mutationFn: (id) => atlas.entities.OnboardingTemplate.delete(id),
         onSuccess: () => queryClient.invalidateQueries(['onboarding_templates'])
     });
 

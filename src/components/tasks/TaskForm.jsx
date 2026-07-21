@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { atlas } from "@/api/atlasClient";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,8 +11,8 @@ export default function TaskForm({ task, onSubmit, onCancel, isSubmitting }) {
   const { theme } = useSettings();
 
   // Fetch leads and opportunities for selection
-  const { data: leads = [] } = useQuery({ queryKey: ['leads_basic'], queryFn: () => base44.entities.Lead.list(), staleTime: 60000 });
-  const { data: opportunities = [] } = useQuery({ queryKey: ['opportunities_basic'], queryFn: () => base44.entities.Opportunity.list(), staleTime: 60000 });
+  const { data: leads = [] } = useQuery({ queryKey: ['leads_basic'], queryFn: () => atlas.entities.Lead.list(), staleTime: 60000 });
+  const { data: opportunities = [] } = useQuery({ queryKey: ['opportunities_basic'], queryFn: () => atlas.entities.Opportunity.list(), staleTime: 60000 });
 
   const [formData, setFormData] = useState({
     title: "",
@@ -51,7 +51,7 @@ export default function TaskForm({ task, onSubmit, onCancel, isSubmitting }) {
     // If no assigned_to, use current user
     if (!submissionData.assigned_to) {
         try {
-            const user = await base44.auth.me();
+            const user = await atlas.auth.me();
             submissionData.assigned_to = user.email;
         } catch (e) {
             console.error("Could not get current user", e);

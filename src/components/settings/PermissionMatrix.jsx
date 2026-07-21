@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { base44 } from '@/api/base44Client';
+import { atlas } from '@/api/atlasClient';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -30,13 +30,13 @@ export default function PermissionMatrix() {
   // Load role definitions (system + all custom, to show inactive too).
   const { data: roleDefs = [], isLoading: rolesLoading } = useQuery({
     queryKey: ['roleDefinitions'],
-    queryFn: () => base44.entities.RoleDefinition.list(200)
+    queryFn: () => atlas.entities.RoleDefinition.list(200)
   });
 
   // Initialize the permission model once if no permissions exist.
   const { data: allPerms = [], refetch: refetchPerms } = useQuery({
     queryKey: ['allModulePermissions'],
-    queryFn: () => base44.entities.ModulePermission.list(500),
+    queryFn: () => atlas.entities.ModulePermission.list(500),
     initialData: []
   });
 
@@ -45,7 +45,7 @@ export default function PermissionMatrix() {
     if (!rolesLoading && roleDefs.length === 0 && allPerms.length === 0 && (perms.isSuperAdmin || perms.isAdministrator)) {
       (async () => {
         try {
-          await base44.functions.invoke('initializePermissionModel', {});
+          await atlas.functions.invoke('initializePermissionModel', {});
           queryClient.invalidateQueries(['roleDefinitions']);
           queryClient.invalidateQueries(['allModulePermissions']);
         } catch (_e) { /* ignore */ }
@@ -137,7 +137,7 @@ export default function PermissionMatrix() {
         can_manage_configuration: d.can_manage_configuration,
         reason: opts.reason || `Matrix edit by ${perms.user?.email || 'admin'}`
       };
-      const res = await base44.functions.invoke('updateModulePermission', payload);
+      const res = await atlas.functions.invoke('updateModulePermission', payload);
       if (res?.data?.error) throw new Error(res.data.error);
       setDraft((p) => { const n = { ...p }; delete n[moduleKey]; return n; });
       setSavedFlash((p) => ({ ...p, [moduleKey]: true }));
@@ -166,7 +166,7 @@ export default function PermissionMatrix() {
   const initModel = async () => {
     setSaving('__init__');
     try {
-      await base44.functions.invoke('initializePermissionModel', {});
+      await atlas.functions.invoke('initializePermissionModel', {});
       queryClient.invalidateQueries(['roleDefinitions']);
       queryClient.invalidateQueries(['allModulePermissions']);
     } catch (e) {

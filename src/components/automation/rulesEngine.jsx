@@ -1,11 +1,11 @@
-import { base44 } from "@/api/base44Client";
+import { atlas } from "@/api/atlasClient";
 
 export const processAutomation = async (entityName, eventType, newData, previousData = null) => {
   try {
     console.log(`Processing automation for ${entityName} ${eventType}`, newData);
     
     // Fetch active rules for this entity and event
-    const rules = await base44.entities.AutomationRule.filter({
+    const rules = await atlas.entities.AutomationRule.filter({
       trigger_entity: entityName,
       trigger_event: eventType,
       is_active: true
@@ -78,7 +78,7 @@ const evaluateCondition = (rule, newData, previousData, eventType) => {
 
 const logExecution = async (rule, data, status, errorMessage = null) => {
   try {
-    await base44.entities.AutomationLog.create({
+    await atlas.entities.AutomationLog.create({
       rule_id: rule.id,
       rule_name: rule.name,
       entity_type: rule.trigger_entity,
@@ -108,7 +108,7 @@ const executeAction = async (rule, data) => {
     const to = replacePlaceholders(config.email_to);
     
     if (to && to.includes('@')) {
-        await base44.integrations.Core.SendEmail({
+        await atlas.integrations.Core.SendEmail({
             to: to,
             subject: replacePlaceholders(config.email_subject),
             body: replacePlaceholders(config.email_body)
@@ -119,7 +119,7 @@ const executeAction = async (rule, data) => {
     const dueDate = new Date();
     dueDate.setDate(dueDate.getDate() + dueDays);
 
-    await base44.entities.Task.create({
+    await atlas.entities.Task.create({
         title: replacePlaceholders(config.task_title),
         description: replacePlaceholders(config.task_description),
         status: 'todo',
@@ -133,7 +133,7 @@ const executeAction = async (rule, data) => {
     
     if (updateField) {
       const entityName = rule.trigger_entity;
-      await base44.entities[entityName].update(data.id, {
+      await atlas.entities[entityName].update(data.id, {
         [updateField]: updateValue
       });
     }

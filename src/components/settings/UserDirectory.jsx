@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { base44 } from '@/api/base44Client';
+import { atlas } from '@/api/atlasClient';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -48,7 +48,7 @@ export default function UserDirectory() {
 
   const { data: territories = [] } = useQuery({
     queryKey: ['territories_directory'],
-    queryFn: () => base44.entities.Territory.list(),
+    queryFn: () => atlas.entities.Territory.list(),
     initialData: []
   });
 
@@ -106,7 +106,7 @@ export default function UserDirectory() {
   const runAccountAction = async (payload) => {
     setSaving(true);
     try {
-      const res = await base44.functions.invoke('updateUserAccount', payload);
+      const res = await atlas.functions.invoke('updateUserAccount', payload);
       if (res?.data?.error) throw new Error(res.data.error);
       toast({ title: 'Action completed' });
       refreshAll();

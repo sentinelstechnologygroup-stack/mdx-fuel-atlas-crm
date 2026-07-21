@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { base44 } from '@/api/base44Client';
+import { atlas } from '@/api/atlasClient';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -29,7 +29,7 @@ export default function CustomRoles() {
 
   const { data: roleDefs = [], refetch } = useQuery({
     queryKey: ['roleDefinitions'],
-    queryFn: () => base44.entities.RoleDefinition.list(200)
+    queryFn: () => atlas.entities.RoleDefinition.list(200)
   });
 
   const customRoles = roleDefs.filter((r) => r.role_type === 'custom');
@@ -42,7 +42,7 @@ export default function CustomRoles() {
     setCreating(true);
     setError(null);
     try {
-      const res = await base44.functions.invoke('createCustomRole', form);
+      const res = await atlas.functions.invoke('createCustomRole', form);
       if (res?.data?.error) throw new Error(res.data.error);
       setCreateOpen(false);
       setForm({ name: '', description: '', base_role_key: 'supervisor' });
@@ -61,7 +61,7 @@ export default function CustomRoles() {
     }
     setBusy(rd.id + action);
     try {
-      const res = await base44.functions.invoke('updateRoleDefinition', { role_definition_id: rd.id, action, reason: `${action} by ${perms.user?.email || 'admin'}` });
+      const res = await atlas.functions.invoke('updateRoleDefinition', { role_definition_id: rd.id, action, reason: `${action} by ${perms.user?.email || 'admin'}` });
       if (res?.data?.error) throw new Error(res.data.error);
       if (action === 'deactivate' && res?.data?.affected_users?.length) {
         setAffected({ role: rd.name, users: res.data.affected_users });
@@ -79,7 +79,7 @@ export default function CustomRoles() {
     if (!ok) return;
     setBusy(rd.id + 'delete');
     try {
-      const res = await base44.functions.invoke('updateRoleDefinition', { role_definition_id: rd.id, action: 'delete', reason: `delete by ${perms.user?.email || 'admin'}` });
+      const res = await atlas.functions.invoke('updateRoleDefinition', { role_definition_id: rd.id, action: 'delete', reason: `delete by ${perms.user?.email || 'admin'}` });
       if (res?.data?.error) throw new Error(res.data.error);
       queryClient.invalidateQueries(['roleDefinitions']);
     } catch (e) {

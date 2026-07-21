@@ -7,7 +7,7 @@ import StepUpload from "./StepUpload";
 import StepMapping from "./StepMapping";
 import StepPreview from "./StepPreview";
 import StepResult from "./StepResult";
-import { base44 } from "@/api/base44Client";
+import { atlas } from "@/api/atlasClient";
 
 export default function ImportWizard() {
   const [step, setStep] = useState(1);

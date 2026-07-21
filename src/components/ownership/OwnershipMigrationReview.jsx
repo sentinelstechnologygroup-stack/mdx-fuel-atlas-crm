@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Loader2, ShieldAlert, CheckCircle2, XCircle, AlertCircle } from 'lucide-react';
-import { base44 } from '@/api/base44Client';
+import { atlas } from '@/api/atlasClient';
 import { useToast } from '@/components/ui/use-toast';
 
 const STATUS_ICON = {
@@ -30,7 +30,7 @@ export default function OwnershipMigrationReview() {
   const { data, isLoading, refetch } = useQuery({
     queryKey: ['ownershipMigration'],
     queryFn: async () => {
-      const res = await base44.functions.invoke('ownershipMigrationReview', { action: 'list' });
+      const res = await atlas.functions.invoke('ownershipMigrationReview', { action: 'list' });
       return res?.data;
     }
   });
@@ -45,7 +45,7 @@ export default function OwnershipMigrationReview() {
     setConfirming(p.entity_id);
     const operationId = (crypto.randomUUID?.() || `migration-${Date.now()}`);
     try {
-      const res = await base44.functions.invoke('ownershipMigrationReview', {
+      const res = await atlas.functions.invoke('ownershipMigrationReview', {
         action: 'confirm',
         entity_type: p.entity_type,
         entity_id: p.entity_id,

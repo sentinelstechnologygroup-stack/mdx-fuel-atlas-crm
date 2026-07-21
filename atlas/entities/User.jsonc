@@ -1,0 +1,171 @@
+{
+  "name": "User",
+  "type": "object",
+  "properties": {
+    "access_level": {
+      "type": "string",
+      "enum": [
+        "viewer",
+        "editor"
+      ],
+      "default": "viewer",
+      "description": "Legacy legacy platform access level (temporary, retained for backward compatibility during MDX role migration)"
+    },
+    "requested_access_upgrade": {
+      "type": "boolean",
+      "default": false,
+      "description": "Legacy flag indicating user requested editor access (temporary, retained for backward compatibility)"
+    },
+    "first_name": {
+      "type": "string",
+      "description": "Employee first name (portable MDX profile field)"
+    },
+    "last_name": {
+      "type": "string",
+      "description": "Employee last name (portable MDX profile field)"
+    },
+    "display_name": {
+      "type": "string",
+      "description": "Preferred display name shown across the CRM"
+    },
+    "job_title": {
+      "type": "string",
+      "description": "Employee job title"
+    },
+    "phone": {
+      "type": "string",
+      "description": "Employee contact phone"
+    },
+    "profile_photo_url": {
+      "type": "string",
+      "description": "URL to employee profile photo"
+    },
+    "employee_id": {
+      "type": "string",
+      "description": "Internal MDX employee identifier"
+    },
+    "application_role": {
+      "type": "string",
+      "enum": [
+        "super_admin",
+        "administrator",
+        "supervisor",
+        "salesperson",
+        "viewer_support"
+      ],
+      "default": "viewer_support",
+      "description": "MDX business application role (portable, separate from legacy platform auth role)"
+    },
+    "mdx_role_initialized": {
+      "type": "boolean",
+      "default": false,
+      "description": "True once an MDX role has been intentionally assigned (distinguishes an intentionally assigned Viewer/Support role from a legacy platform schema default applied before MDX role initialization)"
+    },
+    "custom_role_id": {
+      "type": "string",
+      "description": "Optional reference to a RoleDefinition (custom role). When present and active, its module permissions are used instead of the base application_role permissions. The application_role remains the user's base MDX role."
+    },
+    "team_id": {
+      "type": "string",
+      "description": "Reference to the Team ID the employee belongs to"
+    },
+    "supervisor_user_id": {
+      "type": "string",
+      "description": "Reference to the User ID of the employee's supervisor"
+    },
+    "territory_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "References to Territory IDs assigned to the employee"
+    },
+    "department": {
+      "type": "string",
+      "description": "Employee department"
+    },
+    "service_area_notes": {
+      "type": "string",
+      "description": "Notes about the employee's service area coverage"
+    },
+    "account_status": {
+      "type": "string",
+      "enum": [
+        "invited",
+        "active",
+        "inactive",
+        "suspended"
+      ],
+      "default": "active",
+      "description": "MDX account status"
+    },
+    "activated_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the account was activated"
+    },
+    "deactivated_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the account was deactivated"
+    },
+    "deactivated_by_user_id": {
+      "type": "string",
+      "description": "Reference to the User ID who deactivated the account"
+    },
+    "deactivation_reason": {
+      "type": "string",
+      "description": "Reason recorded for the deactivation"
+    },
+    "last_login_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Last time the user signed in"
+    },
+    "notification_preferences": {
+      "type": "object",
+      "description": "User notification preferences (portable key-value structure)"
+    },
+    "email_signature": {
+      "type": "string",
+      "description": "Default email signature for the user"
+    },
+    "default_email_template_id": {
+      "type": "string",
+      "description": "Reference to the default MarketingTemplate ID for the user"
+    },
+    "timezone": {
+      "type": "string",
+      "description": "User preferred timezone"
+    },
+    "preferred_theme": {
+      "type": "string",
+      "enum": [
+        "light",
+        "dark",
+        "system"
+      ],
+      "default": "system",
+      "description": "User preferred UI theme"
+    },
+    "created_by_user_id": {
+      "type": "string",
+      "description": "Reference to the User ID that created this profile"
+    },
+    "last_modified_by_user_id": {
+      "type": "string",
+      "description": "Reference to the User ID that last modified this profile"
+    },
+    "profile_created_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the MDX profile was created"
+    },
+    "profile_modified_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the MDX profile was last modified"
+    }
+  },
+  "required": []
+}

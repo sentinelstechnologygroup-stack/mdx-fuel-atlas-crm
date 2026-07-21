@@ -1,21 +1,22 @@
-import { base44 } from './base44Client';
+import { atlas } from './atlasClient';
 
 
 
 
-export const Core = base44.integrations.Core;
+export const Core = atlas.integrations.Core;
 
-export const InvokeLLM = base44.integrations.Core.InvokeLLM;
+export const InvokeLLM = atlas.integrations.Core.InvokeLLM;
 
-export const SendEmail = base44.integrations.Core.SendEmail;
+export const SendEmail = atlas.integrations.Core.SendEmail;
 
-export const SendSMS = base44.integrations.Core.SendSMS;
+export const SendSMS = atlas.integrations.Core.SendSMS;
 
-export const UploadFile = base44.integrations.Core.UploadFile;
+export const UploadFile = atlas.integrations.Core.UploadFile;
 
-export const GenerateImage = base44.integrations.Core.GenerateImage;
+export const GenerateImage = atlas.integrations.Core.GenerateImage;
 
-export const ExtractDataFromUploadedFile = base44.integrations.Core.ExtractDataFromUploadedFile;
+export const ExtractDataFromUploadedFile = atlas.integrations.Core.ExtractDataFromUploadedFile;
+
 
 
 

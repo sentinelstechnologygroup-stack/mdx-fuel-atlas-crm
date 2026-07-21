@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { base44 } from '@/api/base44Client';
+import { atlas } from '@/api/atlasClient';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -23,17 +23,17 @@ export default function TeamManagement() {
 
   const { data: teams = [], isLoading } = useQuery({
     queryKey: ['teams_mgmt'],
-    queryFn: () => base44.entities.Team.list(),
+    queryFn: () => atlas.entities.Team.list(),
     initialData: []
   });
   const { data: users = [] } = useQuery({
     queryKey: ['users_for_teams'],
-    queryFn: () => base44.entities.User.list(),
+    queryFn: () => atlas.entities.User.list(),
     initialData: []
   });
 
   const saveMutation = useMutation({
-    mutationFn: ({ id, data }) => id ? base44.entities.Team.update(id, data) : base44.entities.Team.create(data),
+    mutationFn: ({ id, data }) => id ? atlas.entities.Team.update(id, data) : atlas.entities.Team.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries(['teams_mgmt']);
       queryClient.invalidateQueries(['teams_directory']);
@@ -41,7 +41,7 @@ export default function TeamManagement() {
     }
   });
   const statusMutation = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.Team.update(id, data),
+    mutationFn: ({ id, data }) => atlas.entities.Team.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries(['teams_mgmt']);
       queryClient.invalidateQueries(['teams_directory']);

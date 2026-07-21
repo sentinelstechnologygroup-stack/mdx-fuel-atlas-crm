@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Calendar, Plus, Loader2, CheckCircle2 } from "lucide-react";
-import { base44 } from "@/api/base44Client";
+import { atlas } from "@/api/atlasClient";
 import { useSettings } from "@/components/context/SettingsContext";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -27,8 +27,8 @@ export default function QuickTaskCreator({ leadId, leadName }) {
 
     setIsCreating(true);
     try {
-      const user = await base44.auth.me();
-      await base44.entities.Task.create({
+      const user = await atlas.auth.me();
+      await atlas.entities.Task.create({
         title: taskData.title,
         description: taskData.description,
         due_date: taskData.due_date || null,

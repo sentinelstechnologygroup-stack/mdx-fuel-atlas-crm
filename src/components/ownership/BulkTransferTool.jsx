@@ -9,7 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Loader2, ArrowRightLeft, AlertTriangle } from 'lucide-react';
-import { base44 } from '@/api/base44Client';
+import { atlas } from '@/api/atlasClient';
 import { useDirectoryData } from '@/components/hooks/useDirectoryData';
 import { displayName, isUserActive } from '@/lib/roles';
 import { useToast } from '@/components/ui/use-toast';
@@ -49,7 +49,7 @@ export default function BulkTransferTool() {
 
   const recordsQuery = useQuery({
     queryKey: ['bulkTransferRecords', entityType],
-    queryFn: () => base44.entities[entityName].list('-created_date', 500),
+    queryFn: () => atlas.entities[entityName].list('-created_date', 500),
     initialData: []
   });
   const records = recordsQuery.data || [];
@@ -98,7 +98,7 @@ export default function BulkTransferTool() {
     setLoading(true); setResult(null);
     const operationId = (crypto.randomUUID?.() || `bulk-${Date.now()}`);
     try {
-      const res = await base44.functions.invoke('bulkTransferRecords', {
+      const res = await atlas.functions.invoke('bulkTransferRecords', {
         entity_type: entityType,
         record_ids: Array.from(selected),
         to_owner_user_id: destUserId,

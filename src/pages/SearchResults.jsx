@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, Link } from 'react-router-dom';
-import { base44 } from '@/api/base44Client';
+import { atlas } from '@/api/atlasClient';
 import { useQuery } from '@tanstack/react-query';
 import { createPageUrl } from '@/utils';
 import { useSettings } from '@/components/context/SettingsContext';
@@ -35,8 +35,8 @@ export default function SearchResultsPage() {
             
             // Parallel fetch of all data
             const [leads, opportunities] = await Promise.all([
-                base44.entities.Lead.list(),
-                base44.entities.Opportunity.list()
+                atlas.entities.Lead.list(),
+                atlas.entities.Opportunity.list()
             ]);
 
             const lowerTerm = searchTerm.toLowerCase().trim();

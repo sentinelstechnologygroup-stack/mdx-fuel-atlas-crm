@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { base44 } from '@/api/base44Client';
+import { atlas } from '@/api/atlasClient';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -68,7 +68,7 @@ export default function SalesAssistantChat() {
             try {
                 // Check for existing recent conversation or create new
                 // For simplicity in this demo, we'll create a new one or use a fixed ID logic if we had persistence
-                const newConv = await base44.agents.createConversation({
+                const newConv = await atlas.agents.createConversation({
                     agent_name: "SalesAssistant",
                     metadata: { name: "Sales Help" }
                 });
@@ -90,7 +90,7 @@ export default function SalesAssistantChat() {
     useEffect(() => {
         if (!conversation?.id) return;
 
-        const unsubscribe = base44.agents.subscribeToConversation(conversation.id, (data) => {
+        const unsubscribe = atlas.agents.subscribeToConversation(conversation.id, (data) => {
             if (data.messages && data.messages.length > 0) {
                  setMessages(data.messages);
             }
@@ -115,7 +115,7 @@ export default function SalesAssistantChat() {
         setIsLoading(true);
 
         try {
-            await base44.agents.addMessage(conversation, {
+            await atlas.agents.addMessage(conversation, {
                 role: "user",
                 content: userMsg
             });

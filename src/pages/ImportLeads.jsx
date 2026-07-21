@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { base44 } from "@/api/base44Client";
+import { atlas } from "@/api/atlasClient";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,7 +33,7 @@ export default function ImportLeadsPage() {
   // שליפת תגיות קיימות מהמערכת (סנכרון חכם)
   const { data: existingLeads = [] } = useQuery({
     queryKey: ['leads'],
-    queryFn: () => base44.entities.Lead.list(),
+    queryFn: () => atlas.entities.Lead.list(),
   });
 
   // חישוב רשימת תגיות ייחודיות קיימות
@@ -149,7 +149,7 @@ export default function ImportLeadsPage() {
                       ...leadData,
                       tags: selectedTags // שליחת מערך התגיות לשרת
                   };
-                  return base44.entities.Lead.create(finalLead);
+                  return atlas.entities.Lead.create(finalLead);
               }));
               
               completed += batch.length;

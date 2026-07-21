@@ -12,6 +12,15 @@ service cloud.firestore {
       allow list, create, update, delete: if false;
     }
 
+    // Phase 3 entity compatibility layer.
+    // This is intentionally limited to authenticated users and the
+    // /entities/{entityName}/records/{recordId} adapter path.
+    // Entity- and role-specific authorization will replace this rule
+    // before any production deployment.
+    match /entities/{entityName}/records/{recordId} {
+      allow read, create, update, delete: if isAuthenticated();
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }

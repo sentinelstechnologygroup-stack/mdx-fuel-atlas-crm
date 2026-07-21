@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { base44 } from '@/api/base44Client';
+import { atlas } from '@/api/atlasClient';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Loader2, Search } from "lucide-react";
@@ -16,7 +16,7 @@ export default function AuditLogSettings() {
     // In a real scenario, we would use backend filtering, but for now fetching all (usually limited by default)
     const { data: logs, isLoading } = useQuery({
         queryKey: ['audit_logs'],
-        queryFn: () => base44.entities.AuditLog.list('-timestamp', 50),
+        queryFn: () => atlas.entities.AuditLog.list('-timestamp', 50),
         initialData: []
     });
 

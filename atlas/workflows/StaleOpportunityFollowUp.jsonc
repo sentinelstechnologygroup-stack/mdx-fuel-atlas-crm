@@ -1,0 +1,71 @@
+{
+  "trigger": {
+    "condition": null,
+    "config": {
+      "trigger_type": "scheduled",
+      "events": [],
+      "schedule_mode": "recurring",
+      "cron_expression": "0 8 * * *",
+      "one_time_date": null,
+      "timezone": "America/Chicago",
+      "interval_value": null,
+      "interval_unit": null,
+      "interval_anchor": null,
+      "ends_type": "never",
+      "ends_on_date": null,
+      "ends_after_count": null
+    }
+  },
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "stale_opportunity_followup",
+      "version": "1.0",
+      "namespace": "atlas"
+    },
+    "do": [
+      {
+        "find_stale": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "findStaleOpportunities",
+            "args": {}
+          },
+          "then": "wait_three_days",
+          "x-atlas": {
+            "title": "Find stale opportunities",
+            "description": "No activity in 14d + notify owners"
+          }
+        }
+      },
+      {
+        "wait_three_days": {
+          "wait": "P3D",
+          "then": "recheck_followup",
+          "x-atlas": {
+            "title": "Wait 3 days",
+            "description": "Give the owner time to act"
+          }
+        }
+      },
+      {
+        "recheck_followup": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "recheckAndFollowUp",
+            "args": {
+              "opportunities": "${ .find_stale.opportunities }"
+            }
+          },
+          "then": "end",
+          "x-atlas": {
+            "title": "Recheck & follow up",
+            "description": "SalesAssistant summary + follow-up Task if still stale"
+          }
+        }
+      }
+    ]
+  },
+  "description": "Checks for Opportunities with no Activity in the last 14 days, sends a notification to the owner, waits 3 days, and if there is still no activity, uses the SalesAssistant to summarize recent interactions and creates a follow-up Task.",
+  "name": "Stale Opportunity Follow-up"
+}

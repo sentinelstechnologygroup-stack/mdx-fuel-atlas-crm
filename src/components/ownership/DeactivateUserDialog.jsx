@@ -5,7 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Loader2, AlertTriangle } from 'lucide-react';
-import { base44 } from '@/api/base44Client';
+import { atlas } from '@/api/atlasClient';
 import { useDirectoryData } from '@/components/hooks/useDirectoryData';
 import { displayName, isUserActive } from '@/lib/roles';
 import { useToast } from '@/components/ui/use-toast';
@@ -37,7 +37,7 @@ export default function DeactivateUserDialog({ user, open, onOpenChange, onDone 
     if (!open || !user) return;
     setReason(''); setOption('mark_inactive'); setDestinationUserId(''); setSelectedIds([]); setPreview(null);
     setLoadingPreview(true);
-    base44.functions.invoke('deactivateUserWithTransfer', { target_user_id: user.id, preview: true })
+    atlas.functions.invoke('deactivateUserWithTransfer', { target_user_id: user.id, preview: true })
       .then((res) => setPreview(res?.data || null))
       .catch((e) => toast({ title: 'Failed to load record counts', description: e.message, variant: 'destructive' }))
       .finally(() => setLoadingPreview(false));
@@ -51,7 +51,7 @@ export default function DeactivateUserDialog({ user, open, onOpenChange, onDone 
     if (option !== 'mark_inactive' && !destinationUserId) { toast({ title: 'Select a destination active user.', variant: 'destructive' }); return; }
     setSaving(true);
     try {
-      const res = await base44.functions.invoke('deactivateUserWithTransfer', {
+      const res = await atlas.functions.invoke('deactivateUserWithTransfer', {
         target_user_id: user.id,
         reason,
         transfer_option: option,

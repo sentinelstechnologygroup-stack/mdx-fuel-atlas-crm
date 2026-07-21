@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Search, User, Loader2, Check } from "lucide-react";
-import { base44 } from "@/api/base44Client";
+import { atlas } from "@/api/atlasClient";
 import { useQuery } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
 import { useSettings } from "@/components/context/SettingsContext";
@@ -21,10 +21,10 @@ export default function LeadSelector({ onSelect }) {
         queryKey: ['lead-search', debouncedSearch],
         queryFn: async () => {
             // If search is empty, return recent leads
-            if (!debouncedSearch) return base44.entities.Lead.list('created_date', 10);
+            if (!debouncedSearch) return atlas.entities.Lead.list('created_date', 10);
             
             // Filter locally if regex not supported or list all
-            const all = await base44.entities.Lead.list();
+            const all = await atlas.entities.Lead.list();
             return all.filter(l => 
                 l.full_name.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
                 l.phone_number?.includes(debouncedSearch)

@@ -1,6 +1,6 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { base44 } from '@/api/base44Client';
+import { atlas } from '@/api/atlasClient';
 import { Button } from "@/components/ui/button";
 import { Plus, Mail, MessageSquare, Edit2, Trash2, LayoutTemplate, Filter, User } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
@@ -54,12 +54,12 @@ export default function MarketingTemplates() {
 
     const { data: dbTemplates = [], isLoading } = useQuery({
         queryKey: ['marketing_templates'],
-        queryFn: () => base44.entities.MarketingTemplate.list(),
+        queryFn: () => atlas.entities.MarketingTemplate.list(),
     });
 
     const { data: users = [] } = useQuery({
         queryKey: ['users'],
-        queryFn: () => base44.entities.User.list(),
+        queryFn: () => atlas.entities.User.list(),
     });
 
     const templates = [...MOCK_TEMPLATES, ...dbTemplates].filter(t => {

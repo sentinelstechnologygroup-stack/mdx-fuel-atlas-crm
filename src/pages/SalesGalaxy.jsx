@@ -1,6 +1,6 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { base44 } from '@/api/base44Client';
+import { atlas } from '@/api/atlasClient';
 import GalaxyScene from '@/components/galaxy/GalaxyScene';
 import { Loader2, ArrowLeft } from 'lucide-react';
 import { Button } from "@/components/ui/button";
@@ -13,7 +13,7 @@ export default function SalesGalaxy() {
     
     const { data: opportunities, isLoading } = useQuery({
         queryKey: ['opportunities'],
-        queryFn: () => base44.entities.Opportunity.list(null, 1000),
+        queryFn: () => atlas.entities.Opportunity.list(null, 1000),
         initialData: []
     });
 

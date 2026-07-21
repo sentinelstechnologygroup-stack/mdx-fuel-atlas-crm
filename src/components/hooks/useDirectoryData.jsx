@@ -1,9 +1,9 @@
 import { useQuery } from '@tanstack/react-query';
-import { base44 } from '@/api/base44Client';
+import { atlas } from '@/api/atlasClient';
 import { usePermissions } from '@/components/hooks/usePermissions';
 
 // Fetches the employee directory (via the admin/supervisor backend function
-// so MDX administrators who are not Base44 platform admins can still read it)
+// so MDX administrators who are not ATLAS platform admins can still read it)
 // and the team list. Returns maps for quick owner/team lookups.
 
 export function useDirectoryData() {
@@ -12,7 +12,7 @@ export function useDirectoryData() {
   const usersQuery = useQuery({
     queryKey: ['directoryUsers'],
     queryFn: async () => {
-      const res = await base44.functions.invoke('listUsers', {});
+      const res = await atlas.functions.invoke('listUsers', {});
       return res?.data?.users || [];
     },
     enabled: isAdminTier || isSupervisor,
@@ -21,7 +21,7 @@ export function useDirectoryData() {
 
   const teamsQuery = useQuery({
     queryKey: ['directoryTeams'],
-    queryFn: async () => base44.entities.Team.list('-created_date', 200),
+    queryFn: async () => atlas.entities.Team.list('-created_date', 200),
     enabled: isAdminTier || isSupervisor,
     staleTime: 1000 * 60 * 2
   });

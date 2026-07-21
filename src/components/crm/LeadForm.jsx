@@ -10,7 +10,7 @@ import { Loader2, Activity, User, ClipboardList, FileText, Briefcase, Sparkles, 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { useQuery } from "@tanstack/react-query";
-import { base44 } from "@/api/base44Client";
+import { atlas } from "@/api/atlasClient";
 import { useSettings } from "@/components/context/SettingsContext";
 import ActivityLog from "./ActivityLog";
 import DiscoveryScript from "./DiscoveryScript";
@@ -51,7 +51,7 @@ export default function LeadForm({ lead, onSaveAndClose, onSaveAndStay, onCancel
   // Fetch users for assignment
   const { data: users } = useQuery({
     queryKey: ['users_list'],
-    queryFn: () => base44.entities.User.list('full_name', 50), // Added limit
+    queryFn: () => atlas.entities.User.list('full_name', 50), // Added limit
     initialData: []
   });
 
@@ -60,10 +60,10 @@ export default function LeadForm({ lead, onSaveAndClose, onSaveAndStay, onCancel
     if (lead?.full_name) {
       document.title = `${lead.full_name} | Lead File`;
     } else {
-      document.title = "New Lead | Base44 App";
+      document.title = "New Lead | MDX Fuel ATLAS CRM";
     }
     return () => {
-      document.title = "Base44 App"; // Reset on unmount
+      document.title = "MDX Fuel ATLAS CRM"; // Reset on unmount
     };
   }, [lead?.full_name]);
 
@@ -96,7 +96,7 @@ export default function LeadForm({ lead, onSaveAndClose, onSaveAndStay, onCancel
   const { data: customFields } = useQuery({
     queryKey: ['custom_fields_lead'],
     queryFn: async () => {
-        const fields = await base44.entities.CustomField.list();
+        const fields = await atlas.entities.CustomField.list();
         return fields.filter(f => f.entity_type === 'Lead');
     },
     initialData: []

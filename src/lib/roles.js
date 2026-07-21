@@ -1,5 +1,5 @@
 // Portable MDX role / account-status definitions.
-// Intentionally free of Base44 dependencies so this file can be reused
+// Intentionally free of legacy platform dependencies so this file can be reused
 // after the later independent migration.
 
 export const APPLICATION_ROLES = [
@@ -131,16 +131,10 @@ export function getInitials(user) {
 // can later move into the independent backend without rewriting call sites.
 // ---------------------------------------------------------------------------
 
-// Compute the effective MDX application role for a user, including the
-// temporary Base44 bootstrap fallback (Base44 admin with no explicit role
-// is treated as super_admin). This MUST stay in sync with the backend
-// function logic.
+// Resolve the persisted ATLAS application role.
 export function effectiveRole(user) {
   if (!user) return 'viewer_support';
-  const raw = user.application_role;
-  if (raw) return raw;
-  const isBootstrapAdmin = user.role === 'admin';
-  return isBootstrapAdmin ? 'super_admin' : 'viewer_support';
+  return user.application_role || 'viewer_support';
 }
 
 export function isEffectiveSuperAdmin(user) {
@@ -173,7 +167,7 @@ export function isUserActive(user) {
 }
 
 // Count active Super Administrators across a user list, evaluating the
-// effective role (so a bootstrap Base44 admin with no persisted role still
+// effective role (so a bootstrap legacy platform admin with no persisted role still
 // counts as the final super admin and cannot be locked out).
 export function activeSuperAdminCount(allUsers) {
   if (!Array.isArray(allUsers)) return 0;

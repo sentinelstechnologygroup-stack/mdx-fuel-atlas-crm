@@ -1,7 +1,7 @@
 import React from "react";
 import { useForm } from "react-hook-form";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { base44 } from "@/api/base44Client";
+import { atlas } from "@/api/atlasClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -17,7 +17,7 @@ export default function DiscoveryScript({ leadId }) {
   const { data: existingData, isLoading: isFetching } = useQuery({
     queryKey: ['discovery', leadId],
     queryFn: async () => {
-      const res = await base44.entities.DiscoveryData.filter({ lead_id: leadId });
+      const res = await atlas.entities.DiscoveryData.filter({ lead_id: leadId });
       return res[0] || null;
     },
     enabled: !!leadId
@@ -27,9 +27,9 @@ export default function DiscoveryScript({ leadId }) {
   const saveMutation = useMutation({
     mutationFn: async (data) => {
       if (existingData?.id) {
-        return base44.entities.DiscoveryData.update(existingData.id, data);
+        return atlas.entities.DiscoveryData.update(existingData.id, data);
       } else {
-        return base44.entities.DiscoveryData.create({ ...data, lead_id: leadId });
+        return atlas.entities.DiscoveryData.create({ ...data, lead_id: leadId });
       }
     },
     onSuccess: () => {

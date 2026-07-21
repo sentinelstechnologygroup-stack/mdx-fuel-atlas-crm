@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { base44 } from "@/api/base44Client";
+import { atlas } from "@/api/atlasClient";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -27,7 +27,7 @@ export default function ClientDetails({ client, open, onClose }) {
   const { data: freshClient } = useQuery({
       queryKey: ['client', client?.id],
       queryFn: async () => {
-          const res = await base44.entities.Client.filter({id: client.id});
+          const res = await atlas.entities.Client.filter({id: client.id});
           return res[0];
       },
       enabled: !!client,
@@ -39,7 +39,7 @@ export default function ClientDetails({ client, open, onClose }) {
   // Fetch related tasks and activities
   const { data: tasks } = useQuery({
     queryKey: ['tasks', activeClient?.id],
-    queryFn: () => base44.entities.Task.list(),
+    queryFn: () => atlas.entities.Task.list(),
     enabled: !!activeClient
   });
 
@@ -47,7 +47,7 @@ export default function ClientDetails({ client, open, onClose }) {
 
   const { data: activities } = useQuery({
     queryKey: ['activities', activeClient?.id],
-    queryFn: () => base44.entities.Activity.list(),
+    queryFn: () => atlas.entities.Activity.list(),
     enabled: !!activeClient
   });
 
@@ -61,11 +61,11 @@ export default function ClientDetails({ client, open, onClose }) {
     if (!file) return;
 
     try {
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      const { file_url } = await atlas.integrations.Core.UploadFile({ file });
       const newDoc = { name: file.name, url: file_url, type: file.type };
       const updatedDocs = [...(activeClient.documents || []), newDoc];
 
-      await base44.entities.Client.update(activeClient.id, { documents: updatedDocs });
+      await atlas.entities.Client.update(activeClient.id, { documents: updatedDocs });
       queryClient.invalidateQueries(['clients']);
       queryClient.invalidateQueries(['client', activeClient.id]);
     } catch (err) {
@@ -196,7 +196,7 @@ export default function ClientDetails({ client, open, onClose }) {
                             client={activeClient} 
                             isDark={isDark}
                             onUpdate={async (updates) => {
-                                await base44.entities.Client.update(activeClient.id, updates);
+                                await atlas.entities.Client.update(activeClient.id, updates);
                                 queryClient.invalidateQueries(['clients']);
                                 queryClient.invalidateQueries(['client', activeClient.id]);
                             }}

@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { useForm } from "react-hook-form";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { base44 } from "@/api/base44Client";
+import { atlas } from "@/api/atlasClient";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
@@ -19,7 +19,7 @@ export default function NotificationSettings() {
     React.useEffect(() => {
         async function getUser() {
             try {
-                const user = await base44.auth.me();
+                const user = await atlas.auth.me();
                 setCurrentUser(user);
             } catch (e) {
                 console.error("Not logged in");
@@ -32,7 +32,7 @@ export default function NotificationSettings() {
         queryKey: ['notification_settings', currentUser?.email],
         queryFn: async () => {
             if (!currentUser?.email) return null;
-            const res = await base44.entities.NotificationSettings.filter({ user_email: currentUser.email });
+            const res = await atlas.entities.NotificationSettings.filter({ user_email: currentUser.email });
             return res[0] || null;
         },
         enabled: !!currentUser
@@ -61,9 +61,9 @@ export default function NotificationSettings() {
         mutationFn: (data) => {
             const payload = { ...data, user_email: currentUser.email };
             if (settings?.id) {
-                return base44.entities.NotificationSettings.update(settings.id, payload);
+                return atlas.entities.NotificationSettings.update(settings.id, payload);
             } else {
-                return base44.entities.NotificationSettings.create(payload);
+                return atlas.entities.NotificationSettings.create(payload);
             }
         },
         onSuccess: () => {

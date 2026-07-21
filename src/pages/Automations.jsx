@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { base44 } from "@/api/base44Client";
+import { atlas } from "@/api/atlasClient";
 import { useSettings } from "@/components/context/SettingsContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -44,18 +44,18 @@ export default function AutomationsPage() {
 
   const { data: rules, isLoading } = useQuery({
     queryKey: ['automationRules'],
-    queryFn: () => base44.entities.AutomationRule.list(),
+    queryFn: () => atlas.entities.AutomationRule.list(),
     initialData: []
   });
 
   const { data: logs, isLoading: logsLoading } = useQuery({
     queryKey: ['automationLogs'],
-    queryFn: () => base44.entities.AutomationLog.list('-execution_time', 50),
+    queryFn: () => atlas.entities.AutomationLog.list('-execution_time', 50),
     initialData: []
   });
 
   const createRule = useMutation({
-    mutationFn: (data) => base44.entities.AutomationRule.create(data),
+    mutationFn: (data) => atlas.entities.AutomationRule.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries(['automationRules']);
       setIsDialogOpen(false);
@@ -64,12 +64,12 @@ export default function AutomationsPage() {
   });
 
   const deleteRule = useMutation({
-    mutationFn: (id) => base44.entities.AutomationRule.delete(id),
+    mutationFn: (id) => atlas.entities.AutomationRule.delete(id),
     onSuccess: () => queryClient.invalidateQueries(['automationRules'])
   });
 
   const toggleRule = useMutation({
-    mutationFn: ({ id, isActive }) => base44.entities.AutomationRule.update(id, { is_active: isActive }),
+    mutationFn: ({ id, isActive }) => atlas.entities.AutomationRule.update(id, { is_active: isActive }),
     onMutate: async ({ id, isActive }) => {
       await queryClient.cancelQueries(['automationRules']);
       const previousRules = queryClient.getQueryData(['automationRules']);
@@ -460,7 +460,7 @@ function RuleForm({ onSuccess, editingRule }) {
   const needsOperatorValue = formData.condition_operator !== 'is_empty' && formData.condition_operator !== 'is_not_empty';
 
   const createRule = useMutation({
-    mutationFn: (data) => base44.entities.AutomationRule.create(data),
+    mutationFn: (data) => atlas.entities.AutomationRule.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries(['automationRules']);
       onSuccess();
@@ -499,7 +499,7 @@ function RuleForm({ onSuccess, editingRule }) {
                 Output strictly valid JSON only.
             `;
 
-      const response = await base44.integrations.Core.InvokeLLM({
+      const response = await atlas.integrations.Core.InvokeLLM({
         prompt: systemPrompt,
         response_json_schema: {
           type: "object",

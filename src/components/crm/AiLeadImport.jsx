@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Loader2, Sparkles, Upload, FileImage, Type, Camera, CheckCircle2, Edit3, ArrowRight, X } from "lucide-react";
-import { base44 } from "@/api/base44Client";
+import { atlas } from "@/api/atlasClient";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
@@ -29,11 +29,11 @@ export default function AiLeadImport({ open, onOpenChange, onLeadCreated }) {
       // אם זו תמונה, נחלץ תחילה את הטקסט
       if (mode === "image" && selectedFile) {
         // העלאת התמונה
-        const uploadResult = await base44.integrations.Core.UploadFile({ file: selectedFile });
+        const uploadResult = await atlas.integrations.Core.UploadFile({ file: selectedFile });
         const fileUrl = uploadResult.file_url;
 
         // חילוץ מידע ישירות מהתמונה עם AI Vision
-        const visionResult = await base44.integrations.Core.InvokeLLM({
+        const visionResult = await atlas.integrations.Core.InvokeLLM({
           prompt: `CRM/Salesforce Screenshot Analysis (Phone photo):
 Please scan the image carefully and extract lead details. The image might be a screenshot of a CRM system.
 
@@ -96,7 +96,7 @@ Notes:
         required: ["full_name", "phone_number"]
       };
 
-      const aiResult = await base44.integrations.Core.InvokeLLM({
+      const aiResult = await atlas.integrations.Core.InvokeLLM({
         prompt: `Lead Text Analysis (Copy-Paste or Free Text):
 Extract the following details from the text:
 1. Full Name

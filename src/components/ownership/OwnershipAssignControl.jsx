@@ -5,7 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { UserCog, Loader2, Lock } from 'lucide-react';
-import { base44 } from '@/api/base44Client';
+import { atlas } from '@/api/atlasClient';
 import { usePermissions } from '@/components/hooks/usePermissions';
 import { useDirectoryData } from '@/components/hooks/useDirectoryData';
 import { canReassignRecord, isUserActive, displayName } from '@/lib/roles';
@@ -60,7 +60,7 @@ export default function OwnershipAssignControl({ entityType, record, onUpdated }
     setSaving(true);
     const operationId = (crypto.randomUUID?.() || `reassign-${Date.now()}`);
     try {
-      const res = await base44.functions.invoke('reassignRecord', {
+      const res = await atlas.functions.invoke('reassignRecord', {
         entity_type: entityType,
         entity_id: record.id,
         to_owner_user_id: ownerId,

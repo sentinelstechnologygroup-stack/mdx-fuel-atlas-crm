@@ -1,6 +1,6 @@
 import React from "react";
 import { useQuery } from "@tanstack/react-query";
-import { base44 } from "@/api/base44Client";
+import { atlas } from "@/api/atlasClient";
 import { Briefcase } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useSettings } from "@/components/context/SettingsContext";
@@ -8,7 +8,7 @@ import { useSettings } from "@/components/context/SettingsContext";
 export default function LeadOpportunities({ lead, theme }) {
     const { data: opportunities } = useQuery({
         queryKey: ['lead_opportunities', lead?.id],
-        queryFn: () => base44.entities.Opportunity.filter({ lead_id: lead.id }, '-created_date', 50),
+        queryFn: () => atlas.entities.Opportunity.filter({ lead_id: lead.id }, '-created_date', 50),
         enabled: !!lead?.id
     });
 

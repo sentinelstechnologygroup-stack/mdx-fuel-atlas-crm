@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { base44 } from '@/api/base44Client';
+import { atlas } from '@/api/atlasClient';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -23,12 +23,12 @@ export default function CustomDashboard() {
 
     const { data: widgets, isLoading } = useQuery({
         queryKey: ['dashboard_widgets'],
-        queryFn: () => base44.entities.ReportConfig.filter({ type: { $in: ['bar_chart', 'pie_chart', 'line_chart', 'kpi_card'] } }),
+        queryFn: () => atlas.entities.ReportConfig.filter({ type: { $in: ['bar_chart', 'pie_chart', 'line_chart', 'kpi_card'] } }),
         initialData: []
     });
 
     const deleteMutation = useMutation({
-        mutationFn: (id) => base44.entities.ReportConfig.delete(id),
+        mutationFn: (id) => atlas.entities.ReportConfig.delete(id),
         onSuccess: () => queryClient.invalidateQueries(['dashboard_widgets'])
     });
 
@@ -93,9 +93,9 @@ function WidgetBuilder({ onSave, onCancel }) {
         async function fetchSchema() {
             try {
                 let s = null;
-                try { s = await base44.entities[config.entity_type].schema(); } catch (err) {}
+                try { s = await atlas.entities[config.entity_type].schema(); } catch (err) {}
                 if (!s || !s.properties) {
-                     const items = await base44.entities[config.entity_type].list(1);
+                     const items = await atlas.entities[config.entity_type].list(1);
                      if (items && items.length > 0) {
                          const props = {};
                          Object.keys(items[0]).forEach(key => { props[key] = { description: key }; });
@@ -109,7 +109,7 @@ function WidgetBuilder({ onSave, onCancel }) {
     }, [config.entity_type]);
 
     const saveMutation = useMutation({
-        mutationFn: (data) => base44.entities.ReportConfig.create(data),
+        mutationFn: (data) => atlas.entities.ReportConfig.create(data),
         onSuccess: onSave
     });
 
@@ -181,7 +181,7 @@ function DashboardWidget({ config, onDelete }) {
     const { data, isLoading } = useQuery({
         queryKey: ['widget_data', config.id],
         queryFn: async () => {
-            const items = await base44.entities[config.entity_type].list();
+            const items = await atlas.entities[config.entity_type].list();
             const groupBy = config.config.groupBy;
             const groups = {};
             items.forEach(item => {

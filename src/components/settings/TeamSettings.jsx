@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { base44 } from '@/api/base44Client';
+import { atlas } from '@/api/atlasClient';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,7 +27,7 @@ export default function TeamSettings() {
 
     const { data: invites = [] } = useQuery({
         queryKey: ['invites'],
-        queryFn: () => base44.entities.Invite.list(),
+        queryFn: () => atlas.entities.Invite.list(),
         initialData: []
     });
 
@@ -96,7 +96,7 @@ export default function TeamSettings() {
                                             <TableCell><Badge className="bg-amber-100 text-amber-700">Pending</Badge></TableCell>
                                             <TableCell className="text-right">
                                                 <Button variant="ghost" size="sm" className="text-red-500 hover:text-red-700 hover:bg-red-50"
-                                                    onClick={() => { if (confirm('Revoke invitation?')) base44.entities.Invite.delete(invite.id).then(() => queryClient.invalidateQueries(['invites'])); }}>
+                                                    onClick={() => { if (confirm('Revoke invitation?')) atlas.entities.Invite.delete(invite.id).then(() => queryClient.invalidateQueries(['invites'])); }}>
                                                     <Trash2 className="w-4 h-4" />
                                                 </Button>
                                             </TableCell>
@@ -133,8 +133,8 @@ function InviteUserDialog({ open, onOpenChange, canInviteSuperAdmin }) {
         }
         setIsLoading(true);
         try {
-            const me = await base44.auth.me();
-            await base44.entities.Invite.create({
+            const me = await atlas.auth.me();
+            await atlas.entities.Invite.create({
                 email,
                 role: canInviteSuperAdmin ? role : (role === 'super_admin' ? 'administrator' : role),
                 status: 'pending',

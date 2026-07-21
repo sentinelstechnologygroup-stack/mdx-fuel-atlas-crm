@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { base44 } from '@/api/base44Client';
+import { atlas } from '@/api/atlasClient';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -23,22 +23,22 @@ export default function TerritoryManagement() {
 
   const { data: territories = [], isLoading } = useQuery({
     queryKey: ['territories_mgmt'],
-    queryFn: () => base44.entities.Territory.list(),
+    queryFn: () => atlas.entities.Territory.list(),
     initialData: []
   });
   const { data: teams = [] } = useQuery({
     queryKey: ['teams_for_territories'],
-    queryFn: () => base44.entities.Team.list(),
+    queryFn: () => atlas.entities.Team.list(),
     initialData: []
   });
   const { data: users = [] } = useQuery({
     queryKey: ['users_for_territories'],
-    queryFn: () => base44.entities.User.list(),
+    queryFn: () => atlas.entities.User.list(),
     initialData: []
   });
 
   const saveMutation = useMutation({
-    mutationFn: ({ id, data }) => id ? base44.entities.Territory.update(id, data) : base44.entities.Territory.create(data),
+    mutationFn: ({ id, data }) => id ? atlas.entities.Territory.update(id, data) : atlas.entities.Territory.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries(['territories_mgmt']);
       queryClient.invalidateQueries(['territories_directory']);
@@ -46,7 +46,7 @@ export default function TerritoryManagement() {
     }
   });
   const statusMutation = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.Territory.update(id, data),
+    mutationFn: ({ id, data }) => atlas.entities.Territory.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries(['territories_mgmt']);
       queryClient.invalidateQueries(['territories_directory']);

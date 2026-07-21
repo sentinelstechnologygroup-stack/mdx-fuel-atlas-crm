@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from "react";
-import { base44 } from "@/api/base44Client";
+import { atlas } from "@/api/atlasClient";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,11 +29,11 @@ export default function TasksPage() {
 
   const { data: tasks = [], isLoading } = useQuery({
     queryKey: ['tasks'],
-    queryFn: () => base44.entities.Task.list()
+    queryFn: () => atlas.entities.Task.list()
   });
 
   const createTask = useMutation({
-    mutationFn: (data) => base44.entities.Task.create(data),
+    mutationFn: (data) => atlas.entities.Task.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries(['tasks']);
       setShowTaskForm(false);
@@ -42,7 +42,7 @@ export default function TasksPage() {
   });
 
   const updateTask = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.Task.update(id, data),
+    mutationFn: ({ id, data }) => atlas.entities.Task.update(id, data),
     onMutate: async ({ id, data }) => {
       await queryClient.cancelQueries(['tasks']);
       const previousTasks = queryClient.getQueryData(['tasks']);
@@ -64,7 +64,7 @@ export default function TasksPage() {
   });
 
   const deleteTask = useMutation({
-    mutationFn: (id) => base44.entities.Task.delete(id),
+    mutationFn: (id) => atlas.entities.Task.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries(['tasks']);
     }

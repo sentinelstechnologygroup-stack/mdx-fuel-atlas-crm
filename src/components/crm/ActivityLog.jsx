@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { base44 } from "@/api/base44Client";
+import { atlas } from "@/api/atlasClient";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -42,14 +42,14 @@ export default function ActivityLog({ leadId, opportunityId }) {
   // Fetch Activities
   const { data: activities, isLoading } = useQuery({
     queryKey: ['activities', leadId],
-    queryFn: () => base44.entities.Activity.filter({ lead_id: leadId }),
+    queryFn: () => atlas.entities.Activity.filter({ lead_id: leadId }),
     enabled: !!leadId
   });
 
   // Fetch all users for display names
   const { data: users } = useQuery({
     queryKey: ['users'],
-    queryFn: () => base44.entities.User.list()
+    queryFn: () => atlas.entities.User.list()
   });
 
   const getUserDisplayName = (email) => {
@@ -60,7 +60,7 @@ export default function ActivityLog({ leadId, opportunityId }) {
 
   // Create Activity Mutation
   const createActivity = useMutation({
-    mutationFn: (data) => base44.entities.Activity.create({
+    mutationFn: (data) => atlas.entities.Activity.create({
       ...data,
       lead_id: leadId,
       opportunity_id: opportunityId,
@@ -75,7 +75,7 @@ export default function ActivityLog({ leadId, opportunityId }) {
 
   // Update Activity Mutation
   const updateActivity = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.Activity.update(id, {
+    mutationFn: ({ id, data }) => atlas.entities.Activity.update(id, {
       ...data,
       date: new Date(data.date).toISOString()
     }),

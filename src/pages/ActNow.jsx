@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { base44 } from '@/api/base44Client';
+import { atlas } from '@/api/atlasClient';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useActNow } from "@/components/context/ActNowContext";
 import { Loader2 } from "lucide-react";
@@ -26,13 +26,13 @@ export default function ActNowPage() {
     // Fetch data for analysis
     const { data: leads } = useQuery({ 
         queryKey: ['leads-act-now'], 
-        queryFn: () => base44.entities.Lead.list(),
+        queryFn: () => atlas.entities.Lead.list(),
         staleTime: 1000 * 60 * 5
     });
 
     const { data: opportunities } = useQuery({ 
         queryKey: ['opportunities-act-now'], 
-        queryFn: () => base44.entities.Opportunity.list(),
+        queryFn: () => atlas.entities.Opportunity.list(),
         staleTime: 1000 * 60 * 5
     });
 
@@ -50,7 +50,7 @@ export default function ActNowPage() {
 
     const handleTaskSubmit = async (data) => {
         try {
-            await base44.entities.Task.create(data);
+            await atlas.entities.Task.create(data);
             queryClient.invalidateQueries(['tasks']);
             alert("Task created successfully!");
             setShowTaskForm(false);
@@ -114,7 +114,7 @@ export default function ActNowPage() {
                 Data: ${JSON.stringify(contextData)}
             `;
 
-            const res = await base44.integrations.Core.InvokeLLM({
+            const res = await atlas.integrations.Core.InvokeLLM({
                 prompt: prompt,
                 response_json_schema: {
                     type: "object",

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { base44 } from '@/api/base44Client';
+import { atlas } from '@/api/atlasClient';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,12 +20,12 @@ export default function CustomFieldSettings() {
 
     const { data: fields, isLoading } = useQuery({
         queryKey: ['custom_fields'],
-        queryFn: () => base44.entities.CustomField.list(),
+        queryFn: () => atlas.entities.CustomField.list(),
         initialData: []
     });
 
     const deleteMutation = useMutation({
-        mutationFn: (id) => base44.entities.CustomField.delete(id),
+        mutationFn: (id) => atlas.entities.CustomField.delete(id),
         onSuccess: () => queryClient.invalidateQueries(['custom_fields'])
     });
 
@@ -147,9 +147,9 @@ function CustomFieldDialog({ open, onOpenChange, field, onSuccess }) {
             };
 
             if (field.id) {
-                await base44.entities.CustomField.update(field.id, dataToSave);
+                await atlas.entities.CustomField.update(field.id, dataToSave);
             } else {
-                await base44.entities.CustomField.create(dataToSave);
+                await atlas.entities.CustomField.create(dataToSave);
             }
 
             onSuccess();

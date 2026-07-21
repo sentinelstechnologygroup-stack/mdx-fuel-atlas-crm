@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { base44 } from '@/api/base44Client';
+import { atlas } from '@/api/atlasClient';
 import { Loader2 } from "lucide-react";
 
 const SettingsContext = createContext();
@@ -61,8 +61,8 @@ export const defaultPipelineStages = [
 ];
 
 export const defaultBranding = {
-  companyName: "MDX Fuel Sales CRM",
-  logoUrl: "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/69360168d7acf9f690aed166/e39b37d5e_Gemini_Generated_Image_lcefpdlcefpdlcef.png", 
+  companyName: "MDX Fuel ATLAS CRM",
+  logoUrl: "/images/mdx-fuel-atlas-logo.png", 
   primaryColor: "red",
   currency: "$"
 };
@@ -75,7 +75,7 @@ export function SettingsProvider({ children }) {
     queryKey: ['organization_settings'],
     queryFn: async () => {
       // Optimized: Limit to 1
-      const res = await base44.entities.OrganizationSettings.list('-updated_date', 1);
+      const res = await atlas.entities.OrganizationSettings.list('-updated_date', 1);
       if (res && res.length > 0) return res[0];
       
       // If no settings exist, create default
@@ -90,7 +90,7 @@ export function SettingsProvider({ children }) {
       };
       
       try {
-        const newSettings = await base44.entities.OrganizationSettings.create(defaultSettings);
+        const newSettings = await atlas.entities.OrganizationSettings.create(defaultSettings);
         return newSettings;
       } catch (e) {
         console.error("Failed to init settings", e);
@@ -104,7 +104,7 @@ export function SettingsProvider({ children }) {
   const updateSettingsMutation = useMutation({
     mutationFn: async (newData) => {
         if (orgSettings?.id) {
-            return base44.entities.OrganizationSettings.update(orgSettings.id, newData);
+            return atlas.entities.OrganizationSettings.update(orgSettings.id, newData);
         }
         return null;
     },
