@@ -12,7 +12,9 @@
     "preview": "vite preview",
     "test:rules": "vitest run tests/firestore.rules.test.js",
     "test:rules:emulator": "firebase emulators:exec --only firestore \"npm run test:rules\"",
-    "seed:emulators": "npm --prefix functions run seed:emulators"
+    "seed:emulators": "npm --prefix functions run seed:emulators",
+    "test:entities": "vitest run tests/entityAdapter.emulator.test.js",
+    "test:firebase": "npm run test:rules && npm run test:entities"
   },
   "dependencies": {
     "@hello-pangea/dnd": "^17.0.0",

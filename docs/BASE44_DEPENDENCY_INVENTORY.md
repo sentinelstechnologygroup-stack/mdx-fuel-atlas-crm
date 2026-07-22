@@ -103,7 +103,7 @@ Detailed acceptance criteria are in `WORKFLOW_PARITY_MATRIX.md`:
 - `base44/agents/SalesAssistant.jsonc`: single legacy agent definition.
 - `src/components/ai/SalesAssistantChat.jsx`: conversation create/subscribe/message path.
 - `src/components/ai/atlasConfig.js`: approved public ATLAS branding and legacy identifier boundary.
-- InvokeLLM call sites support lead analysis/import, opportunity strategy/objections, report insights, automation assistance, email editing, and Act Now guidance.
+- InvokeLLM call sites support lead analysis/import, opportunity strategy/objections, report insights, automation assistance, email editing, and ATLAS guidance.
 - Backend/workflow AI paths include lead scoring, stale follow-up summaries, activity summarization, and report generation.
 
 All independent replacements require server-side provider keys, permission-filtered context, provider neutrality, token/cost usage records, rate limits, redaction, and failure behavior.

@@ -199,7 +199,7 @@ export default function Dashboard() {
                             : 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-indigo-200'
                         }`}>
                             <Activity className="w-5 h-5 mr-2" />
-                            Start "Act Now" Engine
+                            Start "Atlas" AI Engine
                         </Button>
                     </Link>
                     <Link to={`${createPageUrl('Leads')}?view=new`} className={`flex items-center gap-4 px-6 py-3 rounded-2xl border backdrop-blur-md hover:scale-105 transition-transform cursor-pointer ${

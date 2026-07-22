@@ -75,7 +75,7 @@ export default function CommandPalette() {
                         </CommandItem>
                         <CommandItem onSelect={() => runCommand(() => navigate(createPageUrl('ActNow')))}>
                             <Brain className="mr-2 h-4 w-4" />
-                            <span>Act Now Engine</span>
+                            <span>Atlas AI Engine</span>
                         </CommandItem>
                         <CommandItem onSelect={() => runCommand(() => navigate(createPageUrl('Settings')))}>
                             <Settings className="mr-2 h-4 w-4" />

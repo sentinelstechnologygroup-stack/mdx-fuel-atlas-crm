@@ -85,7 +85,7 @@ export default function MobileBottomNav({ activePage }) {
                                  ? 'text-cyan-400 hover:bg-cyan-500/10' 
                                  : 'text-cyan-600 hover:bg-cyan-50'
                              }`}>
-                                <Brain className="w-5 h-5" /> Act Now Engine
+                                <Brain className="w-5 h-5" /> Atlas AI Engine
                              </Link>
                         </DropdownMenuItem>
                         

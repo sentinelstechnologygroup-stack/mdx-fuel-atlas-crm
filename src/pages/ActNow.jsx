@@ -38,7 +38,7 @@ export default function ActNowPage() {
 
     const handleCreateTask = (item) => {
         setTaskDefaults({
-            title: `Act now task: ${item.target}`,
+            title: `Atlas task: ${item.target}`,
             description: item.how,
             priority: (item.priority === 'Critical' || item.priority === 'High') ? 'high' : 'medium',
             due_date: new Date().toISOString().split('T')[0],
@@ -197,7 +197,7 @@ export default function ActNowPage() {
                 <h1 className={`text-4xl md:text-5xl font-extrabold tracking-tight ${
                     theme === 'dark' ? 'text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-400' : 'text-slate-900'
                 }`}>
-                    Act Now Engine
+                    Atlas AI Engine
                 </h1>
                 <p className={`text-xl max-w-2xl mx-auto ${theme === 'dark' ? 'text-slate-400' : 'text-slate-600'}`}>
                     Press the magic button to let AI analyze your pipeline and tell you exactly who to contact, why, and how to close them today.
@@ -224,7 +224,7 @@ export default function ActNowPage() {
                         ) : (
                             <div className="flex items-center gap-3">
                                 <Sparkles className="w-6 h-6 animate-pulse" />
-                                ACTIVATE AI ENGINE
+                                ATLAS AI ENGINE
                             </div>
                         )}
                     </Button>

@@ -33,7 +33,7 @@ function LayoutContent({ children, currentPageName }) {
         { name: 'Dashboard', path: 'Dashboard', icon: LayoutDashboard, color: 'cyan' },
         { name: 'Leads', path: 'Leads', icon: Users, color: 'purple' },
         { name: 'Opportunities', path: 'Opportunities', icon: Briefcase, color: 'pink' },
-        { name: 'Act Now', path: 'ActNow', icon: Brain, color: 'orange' },
+        { name: 'Atlas', path: 'ActNow', icon: Brain, color: 'orange' },
         { name: 'Tasks', path: 'Tasks', icon: CheckSquare, color: 'red' },
         { name: 'Reports', path: 'Reports', icon: BarChart3, color: 'emerald' },
         { name: 'Automations', path: 'Automations', icon: Zap, color: 'indigo' },

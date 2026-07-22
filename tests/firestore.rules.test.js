@@ -205,3 +205,122 @@ describe('userProfiles default-deny rules', () => {
     );
   });
 });
+
+describe('Phase 3 entity compatibility rules', () => {
+  function leadDocument(database, recordId = 'lead-001') {
+    return doc(database, 'entities', 'Lead', 'records', recordId);
+  }
+
+  function leadCollection(database) {
+    return collection(database, 'entities', 'Lead', 'records');
+  }
+
+  it('denies anonymous entity reads, lists, and writes', async () => {
+    const anonymousFirestore = testEnvironment
+      .unauthenticatedContext()
+      .firestore();
+
+    await assertFails(getDoc(leadDocument(anonymousFirestore)));
+    await assertFails(getDocs(leadCollection(anonymousFirestore)));
+    await assertFails(
+      setDoc(leadDocument(anonymousFirestore), {
+        name: 'Blocked Lead',
+        ownerId: 'anonymous-user',
+      })
+    );
+  });
+
+  it.each(ACTIVE_ROLES)(
+    'allows an authenticated %s account to perform entity CRUD',
+    async (role) => {
+      const uid = `${role}-user`;
+      const roleFirestore = authenticatedFirestore(uid, role);
+      const recordReference = leadDocument(
+        roleFirestore,
+        `${role}-lead`
+      );
+
+      await assertSucceeds(
+        setDoc(recordReference, {
+          name: `${role} Test Lead`,
+          ownerId: uid,
+          status: 'new',
+        })
+      );
+
+      const createdSnapshot = await assertSucceeds(
+        getDoc(recordReference)
+      );
+
+      expect(createdSnapshot.exists()).toBe(true);
+      expect(createdSnapshot.data().ownerId).toBe(uid);
+
+      await assertSucceeds(
+        updateDoc(recordReference, {
+          status: 'qualified',
+        })
+      );
+
+      const updatedSnapshot = await assertSucceeds(
+        getDoc(recordReference)
+      );
+
+      expect(updatedSnapshot.data().status).toBe('qualified');
+
+      await assertSucceeds(deleteDoc(recordReference));
+
+      const deletedSnapshot = await assertSucceeds(
+        getDoc(recordReference)
+      );
+
+      expect(deletedSnapshot.exists()).toBe(false);
+    }
+  );
+
+  it.each(ACTIVE_ROLES)(
+    'allows an authenticated %s account to list entity records',
+    async (role) => {
+      const uid = `${role}-user`;
+      const roleFirestore = authenticatedFirestore(uid, role);
+
+      await assertSucceeds(
+        setDoc(leadDocument(roleFirestore, `${role}-list-lead`), {
+          name: `${role} List Lead`,
+          ownerId: uid,
+        })
+      );
+
+      const snapshot = await assertSucceeds(
+        getDocs(leadCollection(roleFirestore))
+      );
+
+      expect(snapshot.docs.some(
+        (recordSnapshot) =>
+          recordSnapshot.id === `${role}-list-lead`
+      )).toBe(true);
+    }
+  );
+
+  it('temporarily allows an authenticated inactive account to access entities', async () => {
+    const inactiveFirestore = authenticatedFirestore(
+      'inactive-user',
+      'salesperson',
+      'inactive'
+    );
+
+    const recordReference = leadDocument(
+      inactiveFirestore,
+      'inactive-user-lead'
+    );
+
+    await assertSucceeds(
+      setDoc(recordReference, {
+        name: 'Inactive User Compatibility Lead',
+        ownerId: 'inactive-user',
+      })
+    );
+
+    await assertSucceeds(getDoc(recordReference));
+    await assertSucceeds(deleteDoc(recordReference));
+  });
+});

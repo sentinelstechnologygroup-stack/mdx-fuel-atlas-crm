@@ -36,7 +36,7 @@ export default function QuickActions() {
             onClick: () => openAssistant() 
         },
         { 
-            label: 'Act Now Engine', 
+            label: 'Atlas AI Engine',
             icon: Brain, 
             // Neon Violet - Super Bright
             neonClass: 'text-violet-300 drop-shadow-[0_0_10px_rgba(167,139,250,1)] filter',
