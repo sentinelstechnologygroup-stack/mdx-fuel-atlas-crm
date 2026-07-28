@@ -107,6 +107,61 @@ service cloud.firestore {
       ];
     }
 
+    function isSharedConfigurationEntity(entityName) {
+      return entityName in [
+        'OrganizationSettings',
+        'CustomField',
+        'Team',
+        'Territory'
+      ];
+    }
+
+    function isPrivilegedConfigurationEntity(entityName) {
+      return entityName in [
+        'RoleDefinition',
+        'ModulePermission',
+        'UserPermissionOverride'
+      ];
+    }
+
+    function isConfigurationEntity(entityName) {
+      return isSharedConfigurationEntity(entityName) ||
+        isPrivilegedConfigurationEntity(entityName);
+    }
+
+    function isAdminTier() {
+      return isSuperAdmin() || isAdministrator();
+    }
+
+    function canReadConfigurationEntity(entityName) {
+      return isActive() &&
+        (
+          isSharedConfigurationEntity(entityName) ||
+          (
+            isPrivilegedConfigurationEntity(entityName) &&
+            isAdminTier()
+          )
+        );
+    }
+
+    function canCreateConfigurationEntity(entityName) {
+      return isActive() &&
+        isAdminTier() &&
+        isSharedConfigurationEntity(entityName);
+    }
+
+    function canUpdateConfigurationEntity(entityName) {
+      return isActive() &&
+        isAdminTier() &&
+        isSharedConfigurationEntity(entityName);
+    }
+
+    function canDeleteConfigurationEntity(entityName) {
+      return isActive() &&
+        isAdminTier() &&
+        entityName == 'CustomField';
+    }
+
     function profileEmail() {
       return profile().keys().hasAll(['email'])
         ? profile().email
@@ -299,8 +354,13 @@ service cloud.firestore {
             isSelfOwned(resource.data)
           ) ||
           (
+            isConfigurationEntity(entityName) &&
+            canReadConfigurationEntity(entityName)
+          ) ||
+          (
             !isRecordScopedEntity(entityName) &&
             !isSelfOwnedEntity(entityName) &&
+            !isConfigurationEntity(entityName) &&
             isActive()
           )
         );
@@ -317,8 +377,13 @@ service cloud.firestore {
             validSelfOwnedCreate(request.resource.data)
           ) ||
           (
+            isConfigurationEntity(entityName) &&
+            canCreateConfigurationEntity(entityName)
+          ) ||
+          (
             !isRecordScopedEntity(entityName) &&
             !isSelfOwnedEntity(entityName) &&
+            !isConfigurationEntity(entityName) &&
             isActive()
           )
         );
@@ -335,8 +400,13 @@ service cloud.firestore {
             validSelfOwnedUpdate()
           ) ||
           (
+            isConfigurationEntity(entityName) &&
+            canUpdateConfigurationEntity(entityName)
+          ) ||
+          (
             !isRecordScopedEntity(entityName) &&
             !isSelfOwnedEntity(entityName) &&
+            !isConfigurationEntity(entityName) &&
             isActive()
           )
         );
@@ -355,8 +425,13 @@ service cloud.firestore {
             isSelfOwned(resource.data)
           ) ||
           (
+            isConfigurationEntity(entityName) &&
+            canDeleteConfigurationEntity(entityName)
+          ) ||
+          (
             !isRecordScopedEntity(entityName) &&
             !isSelfOwnedEntity(entityName) &&
+            !isConfigurationEntity(entityName) &&
             isActive()
           )
         );

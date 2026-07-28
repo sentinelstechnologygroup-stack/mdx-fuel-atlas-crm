@@ -22,7 +22,9 @@
     "test:user-accounts:functions": "vitest run --no-file-parallelism --testTimeout=30000 tests/functions.updateUserAccount.emulator.test.js",
     "test:employee-lookup:functions": "vitest run --no-file-parallelism --testTimeout=30000 tests/functions.listEmployeeLookup.emulator.test.js",
     "test:user-directory:unit": "vitest run --no-file-parallelism tests/userDirectoryService.test.js",
-    "test:user-entity:rules": "vitest run --no-file-parallelism tests/firestore.userEntity.rules.test.js"
+    "test:user-entity:rules": "vitest run --no-file-parallelism tests/firestore.userEntity.rules.test.js",
+    "test:configuration:rules": "vitest run --no-file-parallelism tests/firestore.configuration.rules.test.js",
+    "test:phase5": "npm run test:phase4 && npm run test:configuration:rules && npm run seed:emulators"
   },
   "dependencies": {
     "@hello-pangea/dnd": "^17.0.0",
