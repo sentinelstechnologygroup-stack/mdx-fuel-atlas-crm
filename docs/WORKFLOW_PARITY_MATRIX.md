@@ -14,24 +14,24 @@ Status values: `Legacy`, `In progress`, `Verified`, `Approved for cutover`, `Ret
 - Firebase email/password authentication and own-profile lookup were verified against local emulators.
 - Active and inactive employee-profile behavior is covered by deterministic fixtures.
 - Firestore profile rules passed 33 automated tests.
-- The Firebase-authenticated dashboard is not approved for cutover because CRM entities still use Base44.
-- No Base44 authentication or entity path is retired by the Phase 2 checkpoint.
+- The Firebase-authenticated dashboard is not approved for cutover because CRM entities still use legacy provider.
+- No legacy provider authentication or entity path is retired by the Phase 2 checkpoint.
 - Full application functionality must remain available until each replacement row reaches verified parity and receives cutover approval.
 
 ## Integration parity register
 
 | Capability | Observed legacy API | Replacement phase | Status |
 |---|---|---:|---|
-| Authentication/session | `base44.auth.*` | 2 | In progress — Firebase Auth and own-profile lookup verified locally in shadow mode; cutover blocked by legacy entity dependencies |
-| Entity CRUD/query/schema | `base44.entities.*` | 3–8 | Legacy |
-| Privileged functions | `base44.functions.invoke` | 2–10 | Legacy |
+| Authentication/session | `legacy_provider.auth.*` | 2 | In progress — Firebase Auth and own-profile lookup verified locally in shadow mode; cutover blocked by legacy entity dependencies |
+| Entity CRUD/query/schema | `legacy_provider.entities.*` | 3–8 | Legacy |
+| Privileged functions | `legacy_provider.functions.invoke` | 2–10 | Legacy |
 | File upload | `Core.UploadFile` | 9 | Legacy |
 | Structured file extraction | `Core.ExtractDataFromUploadedFile` | 9/11 | Legacy |
 | Email | `Core.SendEmail` | 9 | Legacy |
 | SMS | `Core.SendSMS` | 9 or approved scope decision | Legacy |
 | General AI | `Core.InvokeLLM` | 11 | Legacy |
 | Image generation | `Core.GenerateImage` | 11 or approved retirement | Legacy |
-| Conversation agent | `base44.agents.*` / `SalesAssistant` | 11 | Legacy |
-| App usage logging | `base44.appLogs.*` | 1/8 | Legacy |
+| Conversation agent | `legacy_provider.agents.*` / `SalesAssistant` | 11 | Legacy |
+| App usage logging | `legacy_provider.appLogs.*` | 1/8 | Legacy |
 
 No row may be marked Verified without linked test evidence and permission checks.

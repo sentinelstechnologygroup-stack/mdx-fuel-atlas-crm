@@ -6,16 +6,33 @@ import {
   doc,
   getDoc,
   getDocs,
+  query,
   serverTimestamp,
   setDoc,
+  where,
   writeBatch,
 } from 'firebase/firestore';
 
-import { firestore } from './client';
+import { USER_ROLES } from '@/auth/constants';
+import { getUserProfile } from '@/auth/firebaseAuthService';
+import { firebaseAuth, firestore } from './client';
 
 const ENTITY_ROOT_COLLECTION = 'entities';
 const DEFAULT_LIST_LIMIT = 500;
 const MAX_BULK_WRITE_SIZE = 450;
+
+const RECORD_SCOPED_ENTITIES = new Set([
+  'Activity',
+  'Client',
+  'Lead',
+  'Opportunity',
+  'Task',
+]);
+
+const SELF_OWNED_ENTITIES = new Set([
+  'Notification',
+  'NotificationSettings',
+]);
 
 const schemaRegistry = new Map();
 
@@ -280,13 +297,236 @@ function parseFilterArguments(filter, sortOrLimit, maybeLimit) {
   };
 }
 
-async function readAllRecords(entityName) {
-  const snapshot = await getDocs(getEntityCollection(entityName));
+async function getCurrentAuthorizationProfile(entityName) {
+  const requiresAuthorization =
+    RECORD_SCOPED_ENTITIES.has(entityName) ||
+    SELF_OWNED_ENTITIES.has(entityName);
 
+  if (!requiresAuthorization) {
+    return null;
+  }
+
+  const currentUser = firebaseAuth.currentUser;
+
+  if (!currentUser) {
+    throw new Error(
+      `An authenticated Firebase user is required to access ${entityName} records.`
+    );
+  }
+
+  return getUserProfile(currentUser.uid);
+}
+
+function recordsFromSnapshot(snapshot) {
   return snapshot.docs.map((recordSnapshot) => ({
     id: recordSnapshot.id,
     ...recordSnapshot.data(),
   }));
+}
+
+function mergeRecordSets(recordSets) {
+  const recordsById = new Map();
+
+  recordSets.flat().forEach((record) => {
+    recordsById.set(record.id, record);
+  });
+
+  return [...recordsById.values()];
+}
+
+function buildScopedReadQueries(entityName, profile) {
+  const entityCollection = getEntityCollection(entityName);
+
+  if (!profile) {
+    return [entityCollection];
+  }
+
+  if (SELF_OWNED_ENTITIES.has(entityName)) {
+    const selfOwnedQueries = [
+      query(
+        entityCollection,
+        where('user_id', '==', profile.uid)
+      ),
+    ];
+
+    if (
+      typeof profile.email === 'string' &&
+      profile.email.trim() !== ''
+    ) {
+      selfOwnedQueries.push(
+        query(
+          entityCollection,
+          where('user_email', '==', profile.email.trim())
+        )
+      );
+    }
+
+    return selfOwnedQueries;
+  }
+
+  switch (profile.application_role) {
+    case USER_ROLES.SUPER_ADMIN:
+    case USER_ROLES.ADMINISTRATOR:
+      return [entityCollection];
+
+    case USER_ROLES.SALESPERSON:
+      return [
+        query(
+          entityCollection,
+          where('owner_user_id', '==', profile.uid)
+        ),
+      ];
+
+    case USER_ROLES.SUPERVISOR: {
+      const scopedQueries = [
+        query(
+          entityCollection,
+          where('owner_user_id', '==', profile.uid)
+        ),
+        query(
+          entityCollection,
+          where('assigned_supervisor_user_id', '==', profile.uid)
+        ),
+      ];
+
+      if (profile.team_id) {
+        scopedQueries.push(
+          query(
+            entityCollection,
+            where('assigned_team_id', '==', profile.team_id)
+          )
+        );
+      }
+
+      return scopedQueries;
+    }
+
+    case USER_ROLES.VIEWER_SUPPORT:
+      return [];
+
+    default:
+      throw new Error(
+        `Role "${profile.application_role}" cannot list ${entityName} records.`
+      );
+  }
+}
+
+function defaultTerritoryId(profile) {
+  return Array.isArray(profile?.territory_ids) &&
+    profile.territory_ids.length === 1
+    ? profile.territory_ids[0]
+    : null;
+}
+
+function applyCreateAuthorizationFields(entityName, data, profile) {
+  if (!profile) {
+    return data;
+  }
+
+  if (SELF_OWNED_ENTITIES.has(entityName)) {
+    if (
+      typeof profile.email !== 'string' ||
+      profile.email.trim() === ''
+    ) {
+      throw new Error(
+        `An employee email is required to create ${entityName} records.`
+      );
+    }
+
+    return {
+      ...data,
+      user_id: profile.uid,
+      user_email: profile.email.trim(),
+      created_by_user_id: profile.uid,
+      last_modified_by_user_id: profile.uid,
+    };
+  }
+
+  if (!RECORD_SCOPED_ENTITIES.has(entityName)) {
+    return data;
+  }
+
+  const requestedTerritoryId = data.territory_id ?? null;
+  const territoryId =
+    defaultTerritoryId(profile) ??
+    requestedTerritoryId;
+
+  const auditFields = {
+    created_by_user_id: profile.uid,
+    last_modified_by_user_id: profile.uid,
+  };
+
+  switch (profile.application_role) {
+    case USER_ROLES.SALESPERSON:
+      return {
+        ...data,
+        owner_user_id: profile.uid,
+        assigned_team_id: profile.team_id ?? null,
+        assigned_supervisor_user_id:
+          profile.supervisor_user_id ?? null,
+        territory_id: territoryId,
+        ownership_status: 'assigned',
+        ...auditFields,
+      };
+
+    case USER_ROLES.SUPERVISOR: {
+      const requestedOwnerId =
+        typeof data.owner_user_id === 'string' &&
+        data.owner_user_id.trim() !== ''
+          ? data.owner_user_id.trim()
+          : profile.uid;
+
+      return {
+        ...data,
+        owner_user_id: requestedOwnerId,
+        assigned_team_id: profile.team_id ?? null,
+        assigned_supervisor_user_id: profile.uid,
+        territory_id: territoryId,
+        ownership_status: 'assigned',
+        ...auditFields,
+      };
+    }
+
+    case USER_ROLES.ADMINISTRATOR:
+    case USER_ROLES.SUPER_ADMIN: {
+      const ownerUserId = data.owner_user_id ?? null;
+
+      return {
+        ...data,
+        ownership_status:
+          data.ownership_status ??
+          (ownerUserId ? 'assigned' : 'unassigned'),
+        ...auditFields,
+      };
+    }
+
+    case USER_ROLES.VIEWER_SUPPORT:
+      throw new Error(
+        `Viewer Support cannot create ${entityName} records.`
+      );
+
+    default:
+      throw new Error(
+        `Role "${profile.application_role}" cannot create ${entityName} records.`
+      );
+  }
+}
+
+async function readAllRecords(entityName) {
+  const profile = await getCurrentAuthorizationProfile(entityName);
+  const scopedQueries = buildScopedReadQueries(entityName, profile);
+
+  if (scopedQueries.length === 0) {
+    return [];
+  }
+
+  const snapshots = await Promise.all(
+    scopedQueries.map((scopedQuery) => getDocs(scopedQuery))
+  );
+
+  return mergeRecordSets(
+    snapshots.map((snapshot) => recordsFromSnapshot(snapshot))
+  );
 }
 
 async function listRecords(entityName, firstArgument, secondArgument) {
@@ -336,28 +576,66 @@ async function readRecord(entityName, reference) {
 
 async function createRecord(entityName, data = {}) {
   const cleanedData = removeUndefinedValues(data) ?? {};
+  const authorizationProfile =
+    await getCurrentAuthorizationProfile(entityName);
+  const authorizedData = applyCreateAuthorizationFields(
+    entityName,
+    cleanedData,
+    authorizationProfile
+  );
   const now = serverTimestamp();
 
   const documentReference = await addDoc(getEntityCollection(entityName), {
-    ...cleanedData,
-    created_date: cleanedData.created_date ?? now,
+    ...authorizedData,
+    created_date: authorizedData.created_date ?? now,
     updated_date: now,
   });
 
   return {
     id: documentReference.id,
-    ...cleanedData,
+    ...authorizedData,
   };
 }
 
 async function updateRecord(entityName, recordId, data = {}) {
   const cleanedData = removeUndefinedValues(data) ?? {};
+  const authorizationProfile =
+    await getCurrentAuthorizationProfile(entityName);
+
+  let writeData = cleanedData;
+
+  if (
+    authorizationProfile &&
+    SELF_OWNED_ENTITIES.has(entityName)
+  ) {
+    if (
+      typeof authorizationProfile.email !== 'string' ||
+      authorizationProfile.email.trim() === ''
+    ) {
+      throw new Error(
+        `An employee email is required to update ${entityName} records.`
+      );
+    }
+
+    writeData = {
+      ...cleanedData,
+      user_id: authorizationProfile.uid,
+      user_email: authorizationProfile.email.trim(),
+      last_modified_by_user_id: authorizationProfile.uid,
+    };
+  } else if (authorizationProfile) {
+    writeData = {
+      ...cleanedData,
+      last_modified_by_user_id: authorizationProfile.uid,
+    };
+  }
+
   const documentReference = getEntityDocument(entityName, recordId);
 
   await setDoc(
     documentReference,
     {
-      ...cleanedData,
+      ...writeData,
       updated_date: serverTimestamp(),
     },
     { merge: true }
@@ -386,6 +664,8 @@ async function bulkCreateRecords(entityName, records = []) {
     return [];
   }
 
+  const authorizationProfile =
+    await getCurrentAuthorizationProfile(entityName);
   const createdRecords = [];
 
   for (
@@ -403,18 +683,23 @@ async function bulkCreateRecords(entityName, records = []) {
 
     currentChunk.forEach((record) => {
       const cleanedData = removeUndefinedValues(record) ?? {};
+      const authorizedData = applyCreateAuthorizationFields(
+        entityName,
+        cleanedData,
+        authorizationProfile
+      );
       const documentReference = doc(getEntityCollection(entityName));
       const now = serverTimestamp();
 
       batch.set(documentReference, {
-        ...cleanedData,
-        created_date: cleanedData.created_date ?? now,
+        ...authorizedData,
+        created_date: authorizedData.created_date ?? now,
         updated_date: now,
       });
 
       chunkResults.push({
         id: documentReference.id,
-        ...cleanedData,
+        ...authorizedData,
       });
     });
 

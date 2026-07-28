@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { usePermissions } from '@/components/hooks/usePermissions';
 import { useSettings } from '@/components/context/SettingsContext';
-import { roleLabel, displayName } from '@/lib/roles';
+import { roleLabel } from '@/lib/roles';
 
 export default function ProfileSettings() {
     const [user, setUser] = useState(null);
@@ -25,8 +25,15 @@ export default function ProfileSettings() {
         if (!user) return;
         setRequestLoading(true);
         try {
-            await atlas.entities.User.update(user.id, { requested_access_upgrade: true });
-            setUser(prev => ({ ...prev, requested_access_upgrade: true }));
+            const response = await atlas.functions.invoke(
+                'requestAccessUpgrade',
+                {}
+            );
+            setUser(prev => ({
+                ...prev,
+                ...(response?.data?.user || {}),
+                requested_access_upgrade: true
+            }));
             alert("Your request has been sent to the system admin");
         } catch (e) {
             console.error(e);

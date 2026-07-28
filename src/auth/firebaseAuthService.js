@@ -12,6 +12,7 @@ import {
   isKnownAccountStatus,
   isKnownUserRole,
 } from '@/auth/constants';
+import { normalizeFirebaseProfile } from '@/auth/normalizeFirebaseProfile';
 
 export class FirebaseAuthServiceError extends Error {
   constructor(code, message, cause = null) {
@@ -32,26 +33,26 @@ export async function getUserProfile(uid) {
     );
   }
 
-  const profile = {
-    id: profileSnapshot.id,
-    ...profileSnapshot.data(),
-  };
+  const profile = normalizeFirebaseProfile(
+    profileSnapshot.id,
+    profileSnapshot.data()
+  );
 
-  if (!isKnownUserRole(profile.role)) {
+  if (!isKnownUserRole(profile.application_role)) {
     throw new FirebaseAuthServiceError(
       'invalid_role',
       'This employee profile has an invalid role assignment.'
     );
   }
 
-  if (!isKnownAccountStatus(profile.status)) {
+  if (!isKnownAccountStatus(profile.account_status)) {
     throw new FirebaseAuthServiceError(
       'invalid_status',
       'This employee profile has an invalid account status.'
     );
   }
 
-  if (profile.status !== ACCOUNT_STATUSES.ACTIVE) {
+  if (profile.account_status !== ACCOUNT_STATUSES.ACTIVE) {
     throw new FirebaseAuthServiceError(
       'account_inactive',
       'This employee account is inactive.'

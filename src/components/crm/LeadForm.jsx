@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { useQuery } from "@tanstack/react-query";
 import { atlas } from "@/api/atlasClient";
+import { listEmployeeLookup } from '@/api/userDirectoryService';
 import { useSettings } from "@/components/context/SettingsContext";
 import ActivityLog from "./ActivityLog";
 import DiscoveryScript from "./DiscoveryScript";
@@ -51,7 +52,7 @@ export default function LeadForm({ lead, onSaveAndClose, onSaveAndStay, onCancel
   // Fetch users for assignment
   const { data: users } = useQuery({
     queryKey: ['users_list'],
-    queryFn: () => atlas.entities.User.list('full_name', 50), // Added limit
+    queryFn: listEmployeeLookup, // Added limit
     initialData: []
   });
 

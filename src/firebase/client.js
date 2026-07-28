@@ -2,6 +2,10 @@
 import { getApp, getApps, initializeApp } from 'firebase/app';
 import { connectAuthEmulator, getAuth } from 'firebase/auth';
 import { connectFirestoreEmulator, getFirestore } from 'firebase/firestore';
+import {
+  connectFunctionsEmulator,
+  getFunctions,
+} from 'firebase/functions';
 import { connectStorageEmulator, getStorage } from 'firebase/storage';
 
 const firebaseConfig = {
@@ -29,6 +33,7 @@ export const firebaseApp = getApps().length > 0
 
 export const firebaseAuth = getAuth(firebaseApp);
 export const firestore = getFirestore(firebaseApp);
+export const firebaseFunctions = getFunctions(firebaseApp);
 export const firebaseStorage = getStorage(firebaseApp);
 
 const shouldUseEmulators =
@@ -40,6 +45,7 @@ if (shouldUseEmulators && !globalThis.__MDX_FIREBASE_EMULATORS_CONNECTED__) {
     disableWarnings: true,
   });
   connectFirestoreEmulator(firestore, '127.0.0.1', 8080);
+  connectFunctionsEmulator(firebaseFunctions, '127.0.0.1', 5001);
   connectStorageEmulator(firebaseStorage, '127.0.0.1', 9199);
   globalThis.__MDX_FIREBASE_EMULATORS_CONNECTED__ = true;
 }

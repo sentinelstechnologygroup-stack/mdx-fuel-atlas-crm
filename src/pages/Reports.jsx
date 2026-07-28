@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { atlas } from '@/api/atlasClient';
+import { listEmployeeLookup } from '@/api/userDirectoryService';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -51,7 +52,7 @@ export default function ReportsPage() {
 
   const { data: users } = useQuery({
     queryKey: ['users'],
-    queryFn: () => atlas.entities.User.list(),
+    queryFn: listEmployeeLookup,
     initialData: []
   });
 

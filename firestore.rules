@@ -7,18 +7,359 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    function profileExists() {
+      return isAuthenticated() &&
+        exists(
+          /databases/$(database)/documents/userProfiles/$(request.auth.uid)
+        );
+    }
+
+    function profile() {
+      return get(
+        /databases/$(database)/documents/userProfiles/$(request.auth.uid)
+      ).data;
+    }
+
+    function applicationRole() {
+      return profile().keys().hasAll(['application_role'])
+        ? profile().application_role
+        : (
+            profile().keys().hasAll(['role'])
+              ? (
+                  profile().role == 'admin'
+                    ? 'administrator'
+                    : profile().role
+                )
+              : null
+          );
+    }
+
+    function accountStatus() {
+      return profile().keys().hasAll(['account_status'])
+        ? profile().account_status
+        : (
+            profile().keys().hasAll(['status'])
+              ? profile().status
+              : null
+          );
+    }
+
+    function profileTeamId() {
+      return profile().keys().hasAll(['team_id'])
+        ? profile().team_id
+        : (
+            profile().keys().hasAll(['teamId'])
+              ? profile().teamId
+              : null
+          );
+    }
+
+    function profileSupervisorId() {
+      return profile().keys().hasAll(['supervisor_user_id'])
+        ? profile().supervisor_user_id
+        : (
+            profile().keys().hasAll(['supervisorId'])
+              ? profile().supervisorId
+              : null
+          );
+    }
+
+    function profileTerritoryIds() {
+      return profile().keys().hasAll(['territory_ids'])
+        ? profile().territory_ids
+        : [];
+    }
+
+    function isActive() {
+      return profileExists() && accountStatus() == 'active';
+    }
+
+    function isSuperAdmin() {
+      return applicationRole() == 'super_admin';
+    }
+
+    function isAdministrator() {
+      return applicationRole() == 'administrator';
+    }
+
+    function isSupervisor() {
+      return applicationRole() == 'supervisor';
+    }
+
+    function isSalesperson() {
+      return applicationRole() == 'salesperson';
+    }
+
+    function isRecordScopedEntity(entityName) {
+      return entityName in [
+        'Activity',
+        'Client',
+        'Lead',
+        'Opportunity',
+        'Task'
+      ];
+    }
+
+    function isSelfOwnedEntity(entityName) {
+      return entityName in [
+        'Notification',
+        'NotificationSettings'
+      ];
+    }
+
+    function profileEmail() {
+      return profile().keys().hasAll(['email'])
+        ? profile().email
+        : null;
+    }
+
+    function selfOwnerUserId(data) {
+      return data.keys().hasAll(['user_id'])
+        ? data.user_id
+        : (
+            data.keys().hasAll(['userId'])
+              ? data.userId
+              : null
+          );
+    }
+
+    function selfOwnerEmail(data) {
+      return data.keys().hasAll(['user_email'])
+        ? data.user_email
+        : (
+            data.keys().hasAll(['userEmail'])
+              ? data.userEmail
+              : null
+          );
+    }
+
+    function isSelfOwned(data) {
+      return selfOwnerUserId(data) == request.auth.uid ||
+        (
+          profileEmail() != null &&
+          selfOwnerEmail(data) == profileEmail()
+        );
+    }
+
+    function validSelfOwnedCreate(data) {
+      return isActive() &&
+        profileEmail() != null &&
+        selfOwnerUserId(data) == request.auth.uid &&
+        selfOwnerEmail(data) == profileEmail();
+    }
+
+    function validSelfOwnedUpdate() {
+      return isActive() &&
+        isSelfOwned(resource.data) &&
+        profileEmail() != null &&
+        selfOwnerUserId(request.resource.data) == request.auth.uid &&
+        selfOwnerEmail(request.resource.data) == profileEmail();
+    }
+
+    function recordOwnerId(data) {
+      return data.keys().hasAll(['owner_user_id'])
+        ? data.owner_user_id
+        : (
+            data.keys().hasAll(['ownerId'])
+              ? data.ownerId
+              : null
+          );
+    }
+
+    function recordTeamId(data) {
+      return data.keys().hasAll(['assigned_team_id'])
+        ? data.assigned_team_id
+        : (
+            data.keys().hasAll(['teamId'])
+              ? data.teamId
+              : null
+          );
+    }
+
+    function recordSupervisorId(data) {
+      return data.keys().hasAll(['assigned_supervisor_user_id'])
+        ? data.assigned_supervisor_user_id
+        : (
+            data.keys().hasAll(['supervisorId'])
+              ? data.supervisorId
+              : null
+          );
+    }
+
+    function recordTerritoryId(data) {
+      return data.keys().hasAll(['territory_id'])
+        ? data.territory_id
+        : (
+            data.keys().hasAll(['territoryId'])
+              ? data.territoryId
+              : null
+          );
+    }
+
+    function isOwnRecord(data) {
+      return recordOwnerId(data) == request.auth.uid;
+    }
+
+    function isManagedTeamRecord(data) {
+      return isOwnRecord(data) ||
+        recordTeamId(data) == profileTeamId() ||
+        recordSupervisorId(data) == request.auth.uid;
+    }
+
+    function territoryIsAuthorized(data) {
+      return recordTerritoryId(data) == null ||
+        profileTerritoryIds().hasAny([recordTerritoryId(data)]);
+    }
+
+    function assignmentFieldsUnchanged() {
+      return recordOwnerId(request.resource.data) ==
+          recordOwnerId(resource.data) &&
+        recordTeamId(request.resource.data) ==
+          recordTeamId(resource.data) &&
+        recordSupervisorId(request.resource.data) ==
+          recordSupervisorId(resource.data) &&
+        recordTerritoryId(request.resource.data) ==
+          recordTerritoryId(resource.data);
+    }
+
+    function canReadScopedRecord(data) {
+      return isActive() &&
+        (
+          isSuperAdmin() ||
+          isAdministrator() ||
+          (isSupervisor() && isManagedTeamRecord(data)) ||
+          (isSalesperson() && isOwnRecord(data))
+        );
+    }
+
+    function validSalespersonCreate(data) {
+      return recordOwnerId(data) == request.auth.uid &&
+        recordTeamId(data) == profileTeamId() &&
+        recordSupervisorId(data) == profileSupervisorId() &&
+        territoryIsAuthorized(data);
+    }
+
+    function validSupervisorCreate(data) {
+      return recordTeamId(data) == profileTeamId() &&
+        recordSupervisorId(data) == request.auth.uid &&
+        territoryIsAuthorized(data);
+    }
+
+    function canCreateScopedRecord(data) {
+      return isActive() &&
+        (
+          isSuperAdmin() ||
+          isAdministrator() ||
+          (isSupervisor() && validSupervisorCreate(data)) ||
+          (isSalesperson() && validSalespersonCreate(data))
+        );
+    }
+
+    function canUpdateScopedRecord() {
+      return isActive() &&
+        (
+          isSuperAdmin() ||
+          (
+            isAdministrator() &&
+            assignmentFieldsUnchanged()
+          ) ||
+          (
+            isSupervisor() &&
+            isManagedTeamRecord(resource.data) &&
+            assignmentFieldsUnchanged()
+          ) ||
+          (
+            isSalesperson() &&
+            isOwnRecord(resource.data) &&
+            assignmentFieldsUnchanged()
+          )
+        );
+    }
+
     match /userProfiles/{userId} {
       allow get: if isAuthenticated() && request.auth.uid == userId;
       allow list, create, update, delete: if false;
     }
 
-    // Phase 3 entity compatibility layer.
-    // This is intentionally limited to authenticated users and the
-    // /entities/{entityName}/records/{recordId} adapter path.
-    // Entity- and role-specific authorization will replace this rule
-    // before any production deployment.
+    match /entities/User/records/{recordId} {
+      allow get, list, create, update, delete: if false;
+    }
+
     match /entities/{entityName}/records/{recordId} {
-      allow read, create, update, delete: if isAuthenticated();
+      allow get, list: if
+        entityName != 'User' &&
+        (
+          (
+            isRecordScopedEntity(entityName) &&
+            canReadScopedRecord(resource.data)
+          ) ||
+          (
+            isSelfOwnedEntity(entityName) &&
+            isActive() &&
+            isSelfOwned(resource.data)
+          ) ||
+          (
+            !isRecordScopedEntity(entityName) &&
+            !isSelfOwnedEntity(entityName) &&
+            isActive()
+          )
+        );
+
+      allow create: if
+        entityName != 'User' &&
+        (
+          (
+            isRecordScopedEntity(entityName) &&
+            canCreateScopedRecord(request.resource.data)
+          ) ||
+          (
+            isSelfOwnedEntity(entityName) &&
+            validSelfOwnedCreate(request.resource.data)
+          ) ||
+          (
+            !isRecordScopedEntity(entityName) &&
+            !isSelfOwnedEntity(entityName) &&
+            isActive()
+          )
+        );
+
+      allow update: if
+        entityName != 'User' &&
+        (
+          (
+            isRecordScopedEntity(entityName) &&
+            canUpdateScopedRecord()
+          ) ||
+          (
+            isSelfOwnedEntity(entityName) &&
+            validSelfOwnedUpdate()
+          ) ||
+          (
+            !isRecordScopedEntity(entityName) &&
+            !isSelfOwnedEntity(entityName) &&
+            isActive()
+          )
+        );
+
+      allow delete: if
+        entityName != 'User' &&
+        (
+          (
+            isRecordScopedEntity(entityName) &&
+            isActive() &&
+            isSuperAdmin()
+          ) ||
+          (
+            isSelfOwnedEntity(entityName) &&
+            isActive() &&
+            isSelfOwned(resource.data)
+          ) ||
+          (
+            !isRecordScopedEntity(entityName) &&
+            !isSelfOwnedEntity(entityName) &&
+            isActive()
+          )
+        );
     }
 
     match /{document=**} {

@@ -1,8 +1,7 @@
-import React from "react";
 import { Clock, User as UserIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useQuery } from "@tanstack/react-query";
-import { atlas } from "@/api/atlasClient";
+import { listEmployeeLookup } from '@/api/userDirectoryService';
 import { useSettings } from "@/components/context/SettingsContext";
 import moment from "moment";
 
@@ -12,7 +11,7 @@ export default function LastTouchInfo({ entity, entityType = "Lead" }) {
         queryKey: ['user', entity?.updated_by],
         queryFn: async () => {
             if (!entity?.updated_by) return null;
-            const users = await atlas.entities.User.list();
+            const users = await listEmployeeLookup();
             return users.find(u => u.email === entity.updated_by);
         },
         enabled: !!entity?.updated_by

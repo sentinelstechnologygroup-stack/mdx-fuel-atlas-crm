@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { atlas } from '@/api/atlasClient';
+import { listManagedUsers } from '@/api/userDirectoryService';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -31,7 +32,7 @@ export default function UserPermissionOverrides() {
 
   const { data: users = [], isLoading: usersLoading } = useQuery({
     queryKey: ['users_overrides'],
-    queryFn: () => atlas.entities.User.list(500),
+    queryFn: listManagedUsers,
     initialData: []
   });
 

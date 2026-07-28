@@ -17,10 +17,10 @@ firebase/
   firestore.indexes.json
   storage.rules
   emulator-tests/
-legacy/base44/          eventual reference-only location; not created/renamed yet
+legacy/retired-provider/          eventual reference-only location; not created/renamed yet
 ```
 
-The current `base44/` directory remains untouched while it is runtime/deployment reference. The proposed `legacy/base44/` move occurs only after path consumers are eliminated and verified; it must not be renamed to `atlas/`, because Base44 schemas and functions are not the ATLAS assistant.
+The current `retired-provider/` directory remains untouched while it is runtime/deployment reference. The proposed `legacy/retired-provider/` move occurs only after path consumers are eliminated and verified; it must not be renamed to `atlas/`, because legacy provider schemas and functions are not the ATLAS assistant.
 
 ## Runtime boundaries
 
@@ -54,4 +54,3 @@ Rules start with global denial and add narrow collection-specific grants. Querie
 ## Reliability and operations
 
 Use idempotency keys for workflow steps and external side effects, Cloud Scheduler for recurring jobs, Cloud Tasks for retryable/delayed work (including the three-day stale-opportunity recheck), structured logs with correlation IDs, dead-letter handling, and budget/usage alerts. Backups, point-in-time recovery where available, export schedules, retention, and restore drills are required before production cutover.
-

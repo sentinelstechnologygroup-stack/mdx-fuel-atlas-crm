@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { atlas } from "@/api/atlasClient";
+import { listEmployeeLookup } from '@/api/userDirectoryService';
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -49,7 +50,7 @@ export default function ActivityLog({ leadId, opportunityId }) {
   // Fetch all users for display names
   const { data: users } = useQuery({
     queryKey: ['users'],
-    queryFn: () => atlas.entities.User.list()
+    queryFn: listEmployeeLookup
   });
 
   const getUserDisplayName = (email) => {

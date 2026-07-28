@@ -16,6 +16,7 @@ const users = [
     status: "active",
     teamId: null,
     supervisorId: null,
+    territoryIds: [],
   },
   {
     uid: "admin-user",
@@ -25,6 +26,7 @@ const users = [
     status: "active",
     teamId: null,
     supervisorId: null,
+    territoryIds: [],
   },
   {
     uid: "supervisor-user",
@@ -34,6 +36,7 @@ const users = [
     status: "active",
     teamId: "team-alpha",
     supervisorId: null,
+    territoryIds: ["territory-alpha"],
   },
   {
     uid: "salesperson-user",
@@ -43,6 +46,7 @@ const users = [
     status: "active",
     teamId: "team-alpha",
     supervisorId: "supervisor-user",
+    territoryIds: ["territory-alpha"],
   },
   {
     uid: "viewer-support-user",
@@ -52,6 +56,7 @@ const users = [
     status: "active",
     teamId: "team-support",
     supervisorId: null,
+    territoryIds: ["territory-support"],
   },
   {
     uid: "inactive-user",
@@ -61,6 +66,7 @@ const users = [
     status: "inactive",
     teamId: "team-alpha",
     supervisorId: "supervisor-user",
+    territoryIds: ["territory-alpha"],
   },
 ];
 
@@ -79,6 +85,10 @@ function assertEmulatorSafety() {
       "Refusing to seed: FIRESTORE_EMULATOR_HOST must be 127.0.0.1:8080."
     );
   }
+}
+
+function canonicalApplicationRole(role) {
+  return role === "admin" ? "administrator" : role;
 }
 
 async function upsertAuthUser(auth, user) {
@@ -109,6 +119,11 @@ async function upsertAuthUser(auth, user) {
   await auth.setCustomUserClaims(user.uid, {
     role: user.role,
     status: user.status,
+    application_role: canonicalApplicationRole(user.role),
+    account_status: user.status,
+    team_id: user.teamId,
+    supervisor_user_id: user.supervisorId,
+    territory_ids: user.territoryIds,
   });
 }
 
@@ -135,6 +150,11 @@ async function main() {
       status: user.status,
       teamId: user.teamId,
       supervisorId: user.supervisorId,
+      application_role: canonicalApplicationRole(user.role),
+      account_status: user.status,
+      team_id: user.teamId,
+      supervisor_user_id: user.supervisorId,
+      territory_ids: user.territoryIds,
       permissionOverrides: {},
       createdAt: fixedTimestamp,
       updatedAt: fixedTimestamp,

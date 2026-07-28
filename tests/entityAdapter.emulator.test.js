@@ -21,6 +21,11 @@ beforeAll(async () => {
 
   expect(session.profile.role).toBe('salesperson');
   expect(session.profile.status).toBe('active');
+  expect(session.profile.application_role).toBe('salesperson');
+  expect(session.profile.account_status).toBe('active');
+  expect(session.profile.team_id).toBe('team-alpha');
+  expect(session.profile.supervisor_user_id).toBe('supervisor-user');
+  expect(session.profile.territory_ids).toEqual(['territory-alpha']);
 });
 
 afterAll(async () => {
@@ -63,7 +68,7 @@ describe('Firestore entity adapter emulator integration', () => {
     expect(stored).not.toHaveProperty('removable_value');
   });
 
-  it('updates and reads records using Base44-compatible read signatures', async () => {
+  it('updates and reads records using Firebase entity read signatures', async () => {
     const created = await entity.create({
       name: 'Adapter Update Test',
       status: 'new',

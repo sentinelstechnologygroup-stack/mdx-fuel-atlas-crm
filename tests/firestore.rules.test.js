@@ -19,7 +19,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 const PROJECT_ID = 'mdx-fuel-atlas-crm-dev';
 const ACTIVE_ROLES = [
   'super_admin',
-  'admin',
+  'administrator',
   'supervisor',
   'salesperson',
   'viewer_support',
@@ -27,23 +27,82 @@ const ACTIVE_ROLES = [
 
 let testEnvironment;
 
+function legacyRoleFor(role) {
+  return role === 'administrator' ? 'admin' : role;
+}
+
+function teamFor(role) {
+  if (role === 'supervisor' || role === 'salesperson') {
+    return 'team-alpha';
+  }
+
+  if (role === 'viewer_support') {
+    return 'team-support';
+  }
+
+  return null;
+}
+
+function supervisorFor(role) {
+  return role === 'salesperson' ? 'supervisor-user' : null;
+}
+
+function territoriesFor(role) {
+  if (role === 'supervisor' || role === 'salesperson') {
+    return ['territory-alpha'];
+  }
+
+  if (role === 'viewer_support') {
+    return ['territory-support'];
+  }
+
+  return [];
+}
+
 function profileFor(uid, role, status = 'active') {
+  const teamId = teamFor(role);
+  const supervisorId = supervisorFor(role);
+  const territoryIds = territoriesFor(role);
+
   return {
     uid,
     email: `${uid}@example.test`,
     displayName: `Test ${role}`,
-    role,
+    display_name: `Test ${role}`,
+
+    // Phase 3 compatibility fields.
+    role: legacyRoleFor(role),
     status,
-    teamId: role === 'salesperson' ? 'team-alpha' : null,
-    supervisorId: role === 'salesperson' ? 'supervisor-user' : null,
+    teamId,
+    supervisorId,
+
+    // Canonical Phase 4 authorization fields.
+    application_role: role,
+    account_status: status,
+    team_id: teamId,
+    supervisor_user_id: supervisorId,
+    territory_ids: territoryIds,
+
     createdAt: '2026-07-17T00:00:00.000Z',
     updatedAt: '2026-07-17T00:00:00.000Z',
   };
 }
 
 function authenticatedFirestore(uid, role, status = 'active') {
+  const teamId = teamFor(role);
+  const supervisorId = supervisorFor(role);
+  const territoryIds = territoriesFor(role);
+
   return testEnvironment
-    .authenticatedContext(uid, { role, status })
+    .authenticatedContext(uid, {
+      role: legacyRoleFor(role),
+      status,
+      application_role: role,
+      account_status: status,
+      team_id: teamId,
+      supervisor_user_id: supervisorId,
+      territory_ids: territoryIds,
+    })
     .firestore();
 }
 
@@ -104,8 +163,8 @@ describe('userProfiles default-deny rules', () => {
         getDoc(doc(roleFirestore, 'userProfiles', uid))
       );
 
-      expect(snapshot.data().role).toBe(role);
-      expect(snapshot.data().status).toBe('active');
+      expect(snapshot.data().application_role).toBe(role);
+      expect(snapshot.data().account_status).toBe('active');
     }
   );
 
@@ -132,7 +191,7 @@ describe('userProfiles default-deny rules', () => {
       getDoc(doc(inactiveFirestore, 'userProfiles', 'inactive-user'))
     );
 
-    expect(snapshot.data().status).toBe('inactive');
+    expect(snapshot.data().account_status).toBe('inactive');
   });
 
   it.each(ACTIVE_ROLES)(
@@ -206,13 +265,31 @@ describe('userProfiles default-deny rules', () => {
   });
 });
 
-describe('Phase 3 entity compatibility rules', () => {
+describe('Phase 4 entity authorization baseline', () => {
   function leadDocument(database, recordId = 'lead-001') {
     return doc(database, 'entities', 'Lead', 'records', recordId);
   }
 
   function leadCollection(database) {
     return collection(database, 'entities', 'Lead', 'records');
+  }
+
+  function leadData({
+    name,
+    ownerUserId,
+    teamId = null,
+    supervisorUserId = null,
+    territoryId = null,
+    status = 'new',
+  }) {
+    return {
+      name,
+      status,
+      owner_user_id: ownerUserId,
+      assigned_team_id: teamId,
+      assigned_supervisor_user_id: supervisorUserId,
+      territory_id: territoryId,
+    };
   }
 
   it('denies anonymous entity reads, lists, and writes', async () => {
@@ -223,104 +300,164 @@ describe('Phase 3 entity compatibility rules', () => {
     await assertFails(getDoc(leadDocument(anonymousFirestore)));
     await assertFails(getDocs(leadCollection(anonymousFirestore)));
     await assertFails(
-      setDoc(leadDocument(anonymousFirestore), {
-        name: 'Blocked Lead',
-        ownerId: 'anonymous-user',
-      })
+      setDoc(
+        leadDocument(anonymousFirestore),
+        leadData({
+          name: 'Blocked Lead',
+          ownerUserId: 'anonymous-user',
+        })
+      )
     );
   });
 
-  it.each(ACTIVE_ROLES)(
-    'allows an authenticated %s account to perform entity CRUD',
-    async (role) => {
-      const uid = `${role}-user`;
-      const roleFirestore = authenticatedFirestore(uid, role);
-      const recordReference = leadDocument(
-        roleFirestore,
-        `${role}-lead`
-      );
+  it('allows the Super Administrator full entity CRUD', async () => {
+    const database = authenticatedFirestore(
+      'super_admin-user',
+      'super_admin'
+    );
+    const recordReference = leadDocument(
+      database,
+      'super-admin-lead'
+    );
 
-      await assertSucceeds(
-        setDoc(recordReference, {
-          name: `${role} Test Lead`,
-          ownerId: uid,
-          status: 'new',
+    await assertSucceeds(
+      setDoc(
+        recordReference,
+        leadData({
+          name: 'Super Administrator Lead',
+          ownerUserId: 'salesperson-user',
+          teamId: 'team-alpha',
+          supervisorUserId: 'supervisor-user',
+          territoryId: 'territory-alpha',
         })
-      );
+      )
+    );
 
-      const createdSnapshot = await assertSucceeds(
-        getDoc(recordReference)
-      );
+    await assertSucceeds(getDoc(recordReference));
 
-      expect(createdSnapshot.exists()).toBe(true);
-      expect(createdSnapshot.data().ownerId).toBe(uid);
+    await assertSucceeds(
+      updateDoc(recordReference, {
+        status: 'qualified',
+      })
+    );
 
-      await assertSucceeds(
-        updateDoc(recordReference, {
-          status: 'qualified',
+    await assertSucceeds(deleteDoc(recordReference));
+  });
+
+  it('allows the Administrator operational CRUD except direct deletion', async () => {
+    const database = authenticatedFirestore(
+      'administrator-user',
+      'administrator'
+    );
+    const recordReference = leadDocument(
+      database,
+      'administrator-lead'
+    );
+
+    await assertSucceeds(
+      setDoc(
+        recordReference,
+        leadData({
+          name: 'Administrator Lead',
+          ownerUserId: 'salesperson-user',
+          teamId: 'team-alpha',
+          supervisorUserId: 'supervisor-user',
+          territoryId: 'territory-alpha',
         })
-      );
+      )
+    );
 
-      const updatedSnapshot = await assertSucceeds(
-        getDoc(recordReference)
-      );
+    await assertSucceeds(getDoc(recordReference));
 
-      expect(updatedSnapshot.data().status).toBe('qualified');
+    await assertSucceeds(
+      updateDoc(recordReference, {
+        status: 'qualified',
+      })
+    );
 
-      await assertSucceeds(deleteDoc(recordReference));
+    await assertFails(deleteDoc(recordReference));
+  });
 
-      const deletedSnapshot = await assertSucceeds(
-        getDoc(recordReference)
-      );
+  it('allows a salesperson to manage an owned record without deleting it', async () => {
+    const database = authenticatedFirestore(
+      'salesperson-user',
+      'salesperson'
+    );
+    const recordReference = leadDocument(
+      database,
+      'salesperson-owned-lead'
+    );
 
-      expect(deletedSnapshot.exists()).toBe(false);
-    }
-  );
-
-  it.each(ACTIVE_ROLES)(
-    'allows an authenticated %s account to list entity records',
-    async (role) => {
-      const uid = `${role}-user`;
-      const roleFirestore = authenticatedFirestore(uid, role);
-
-      await assertSucceeds(
-        setDoc(leadDocument(roleFirestore, `${role}-list-lead`), {
-          name: `${role} List Lead`,
-          ownerId: uid,
+    await assertSucceeds(
+      setDoc(
+        recordReference,
+        leadData({
+          name: 'Salesperson Owned Lead',
+          ownerUserId: 'salesperson-user',
+          teamId: 'team-alpha',
+          supervisorUserId: 'supervisor-user',
+          territoryId: 'territory-alpha',
         })
-      );
+      )
+    );
 
-      const snapshot = await assertSucceeds(
-        getDocs(leadCollection(roleFirestore))
-      );
+    await assertSucceeds(getDoc(recordReference));
 
-      expect(snapshot.docs.some(
-        (recordSnapshot) =>
-          recordSnapshot.id === `${role}-list-lead`
-      )).toBe(true);
-    }
-  );
+    await assertSucceeds(
+      updateDoc(recordReference, {
+        status: 'qualified',
+      })
+    );
 
-  it('temporarily allows an authenticated inactive account to access entities', async () => {
-    const inactiveFirestore = authenticatedFirestore(
+    await assertFails(deleteDoc(recordReference));
+  });
+
+  it('denies Viewer Support access to protected CRM records', async () => {
+    const database = authenticatedFirestore(
+      'viewer_support-user',
+      'viewer_support'
+    );
+
+    await assertFails(
+      setDoc(
+        leadDocument(database, 'viewer-support-lead'),
+        leadData({
+          name: 'Viewer Support Lead',
+          ownerUserId: 'viewer_support-user',
+          teamId: 'team-support',
+          territoryId: 'territory-support',
+        })
+      )
+    );
+
+    await assertFails(getDocs(leadCollection(database)));
+  });
+
+  it('denies inactive accounts access to CRM entities', async () => {
+    const database = authenticatedFirestore(
       'inactive-user',
       'salesperson',
       'inactive'
     );
-
     const recordReference = leadDocument(
-      inactiveFirestore,
+      database,
       'inactive-user-lead'
     );
 
-    await assertSucceeds(
-      setDoc(recordReference, {
-        name: 'Inactive User Compatibility Lead',
-        ownerId: 'inactive-user',
-      })
+    await assertFails(
+      setDoc(
+        recordReference,
+        leadData({
+          name: 'Inactive User Lead',
+          ownerUserId: 'inactive-user',
+          teamId: 'team-alpha',
+          supervisorUserId: 'supervisor-user',
+          territoryId: 'territory-alpha',
+        })
+      )
     );
 
-    await assertSucceeds(getDoc(recordReference));
-    await assertSucceeds(deleteDoc(recordReference));
+    await assertFails(getDoc(recordReference));
+    await assertFails(getDocs(leadCollection(database)));
   });
 });

@@ -1,6 +1,7 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { atlas } from '@/api/atlasClient';
+import { listEmployeeLookup } from '@/api/userDirectoryService';
 import { Button } from "@/components/ui/button";
 import { Plus, Mail, MessageSquare, Edit2, Trash2, LayoutTemplate, Filter, User } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
@@ -59,7 +60,7 @@ export default function MarketingTemplates() {
 
     const { data: users = [] } = useQuery({
         queryKey: ['users'],
-        queryFn: () => atlas.entities.User.list(),
+        queryFn: listEmployeeLookup,
     });
 
     const templates = [...MOCK_TEMPLATES, ...dbTemplates].filter(t => {

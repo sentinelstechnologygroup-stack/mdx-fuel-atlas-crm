@@ -6,7 +6,7 @@ There is exactly one user-facing assistant:
 
 - Name: **ATLAS**
 - Attribution: **Powered by Aurora Intelligence Systems**
-- Legacy Base44 identifier: `SalesAssistant` (reference only during migration)
+- Legacy legacy provider identifier: `SalesAssistant` (reference only during migration)
 
 No independent migration component may introduce a second assistant or expose `SalesAssistant` in user-facing text.
 
@@ -26,5 +26,4 @@ Every request writes an immutable server-side usage event with user ID, provider
 
 ## Migration mapping
 
-Current AI paths include the Base44 conversation agent, lead scoring/analysis, activity summaries, stale follow-up summaries, report insights, import extraction/vision, email drafting, automation generation, and opportunity coaching. Each path remains Base44-backed until its independent equivalent passes permission, quality, cost-logging, failure, and UI parity tests.
-
+Current AI paths include the legacy provider conversation agent, lead scoring/analysis, activity summaries, stale follow-up summaries, report insights, import extraction/vision, email drafting, automation generation, and opportunity coaching. Each path remains legacy provider-backed until its independent equivalent passes permission, quality, cost-logging, failure, and UI parity tests.

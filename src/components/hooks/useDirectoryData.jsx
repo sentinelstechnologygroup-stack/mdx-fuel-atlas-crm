@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { atlas } from '@/api/atlasClient';
+import { listManagedUsers } from '@/api/userDirectoryService';
 import { usePermissions } from '@/components/hooks/usePermissions';
 
 // Fetches the employee directory (via the admin/supervisor backend function
@@ -11,10 +12,7 @@ export function useDirectoryData() {
 
   const usersQuery = useQuery({
     queryKey: ['directoryUsers'],
-    queryFn: async () => {
-      const res = await atlas.functions.invoke('listUsers', {});
-      return res?.data?.users || [];
-    },
+    queryFn: listManagedUsers,
     enabled: isAdminTier || isSupervisor,
     staleTime: 1000 * 60 * 2
   });

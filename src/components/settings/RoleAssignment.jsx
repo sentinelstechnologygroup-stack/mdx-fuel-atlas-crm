@@ -1,6 +1,9 @@
-import React, { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { atlas } from '@/api/atlasClient';
+import {
+  listManagedUsers,
+  updateManagedUserRole,
+} from '@/api/userDirectoryService';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
@@ -18,7 +21,7 @@ export default function RoleAssignment() {
 
   const { data: users = [], isLoading } = useQuery({
     queryKey: ['users_role_assignment'],
-    queryFn: () => atlas.entities.User.list(),
+    queryFn: listManagedUsers,
     initialData: []
   });
 
@@ -28,7 +31,11 @@ export default function RoleAssignment() {
   );
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }) => atlas.entities.User.update(id, data),
+    mutationFn: ({ id, data }) =>
+      updateManagedUserRole(
+        id,
+        data.application_role
+      ),
     onSuccess: () => {
       queryClient.invalidateQueries(['users_role_assignment']);
       queryClient.invalidateQueries(['users_directory']);

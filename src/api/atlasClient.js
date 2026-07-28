@@ -1,5 +1,5 @@
 // src/api/atlasClient.js
-import { doc, serverTimestamp, setDoc } from 'firebase/firestore';
+import { httpsCallable } from 'firebase/functions';
 
 import {
   getUserProfile,
@@ -7,7 +7,7 @@ import {
 } from '@/auth/firebaseAuthService';
 import {
   firebaseAuth,
-  firestore,
+  firebaseFunctions,
 } from '@/firebase/client';
 import { firestoreEntities } from '@/firebase/entityAdapter';
 
@@ -27,18 +27,16 @@ async function getCurrentProfile() {
 }
 
 async function updateCurrentProfile(data = {}) {
-  const currentUser = requireCurrentFirebaseUser();
+  requireCurrentFirebaseUser();
 
-  await setDoc(
-    doc(firestore, 'userProfiles', currentUser.uid),
-    {
-      ...data,
-      updated_at: serverTimestamp(),
-    },
-    { merge: true }
+  const callable = httpsCallable(
+    firebaseFunctions,
+    'updateCurrentProfile'
   );
 
-  return getUserProfile(currentUser.uid);
+  const response = await callable(data);
+
+  return response?.data?.user || getCurrentProfile();
 }
 
 function createUnsupportedOperation(category, operationName) {
@@ -93,10 +91,20 @@ export const atlas = Object.freeze({
   }),
 
   functions: Object.freeze({
-    invoke: async (functionName) => {
-      throw new Error(
-        `ATLAS function "${functionName}" has not yet been migrated to Firebase Functions.`
+    invoke: async (functionName, data = {}) => {
+      if (
+        typeof functionName !== 'string' ||
+        functionName.trim().length === 0
+      ) {
+        throw new Error('A Firebase callable function name is required.');
+      }
+
+      const callable = httpsCallable(
+        firebaseFunctions,
+        functionName.trim()
       );
+
+      return callable(data);
     },
   }),
 
@@ -114,4 +122,3 @@ export const atlas = Object.freeze({
     }),
   }),
 });
-

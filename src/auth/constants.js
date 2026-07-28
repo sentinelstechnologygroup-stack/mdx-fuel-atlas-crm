@@ -1,7 +1,7 @@
 // src/auth/constants.js
 export const USER_ROLES = Object.freeze({
   SUPER_ADMIN: 'super_admin',
-  ADMIN: 'admin',
+  ADMINISTRATOR: 'administrator',
   SUPERVISOR: 'supervisor',
   SALESPERSON: 'salesperson',
   VIEWER_SUPPORT: 'viewer_support',
@@ -10,8 +10,10 @@ export const USER_ROLES = Object.freeze({
 export const USER_ROLE_VALUES = Object.freeze(Object.values(USER_ROLES));
 
 export const ACCOUNT_STATUSES = Object.freeze({
+  INVITED: 'invited',
   ACTIVE: 'active',
   INACTIVE: 'inactive',
+  SUSPENDED: 'suspended',
 });
 
 export const ACCOUNT_STATUS_VALUES = Object.freeze(
