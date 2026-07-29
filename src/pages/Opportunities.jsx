@@ -216,40 +216,94 @@ export default function OpportunitiesPage() {
     }
   });
 
-  const executeStageChange = (opp, newStage, additionalData = {}) => {
-      // Merge custom_data if it exists in additionalData to avoid overwriting
-      const updatedCustomData = { 
-          ...(opp.custom_data || {}), 
-          ...(additionalData.custom_data || {}) 
-      };
-      
-      const finalData = { 
-          ...opp, 
-          deal_stage: newStage, 
-          ...additionalData,
-          custom_data: updatedCustomData
-      };
+  const executeStageChange = async (
+    opp,
+    newStage,
+    additionalData = {}
+  ) => {
+    const updatedCustomData = {
+      ...(opp.custom_data || {}),
+      ...(additionalData.custom_data || {})
+    };
 
-      updateOppMutation.mutate({
+    const finalData = {
+      ...opp,
+      deal_stage: newStage,
+      ...additionalData,
+      custom_data: updatedCustomData
+    };
+
+    try {
+      await updateOppMutation.mutateAsync({
         id: opp.id,
         data: finalData
       });
+    } catch {
+      return;
+    }
 
-      if (newStage.includes('Closed Won')) {
-          // Trigger Automation
-          atlas.functions.invoke('convertOpportunityToClient', { opportunityId: opp.id });
-          
-          triggerConfetti();
-          // Custom Toast Logic
-          const toastEl = document.createElement('div');
-          toastEl.className = "fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-neutral-900 text-white px-6 py-4 rounded-2xl shadow-2xl z-50 animate-in fade-in zoom-in duration-300 flex items-center gap-3";
-          toastEl.innerHTML = `<span class="text-2xl">🎉</span> <div><div class="font-bold">Congratulations!</div><div class="text-sm opacity-90">Another deal closed successfully!</div></div>`;
-          document.body.appendChild(toastEl);
-          setTimeout(() => {
-              toastEl.classList.add('opacity-0', 'transition-opacity');
-              setTimeout(() => document.body.removeChild(toastEl), 500);
-          }, 3000);
-      }
+    if (!newStage.includes('Closed Won')) {
+      return;
+    }
+
+    try {
+      await atlas.functions.invoke(
+        'convertOpportunityToClient',
+        {
+          opportunityId: opp.id
+        }
+      );
+
+      await Promise.all([
+        queryClient.invalidateQueries(['clients']),
+        queryClient.invalidateQueries(['leads']),
+        queryClient.invalidateQueries(['tasks']),
+        queryClient.invalidateQueries(['opportunities'])
+      ]);
+    } catch (error) {
+      console.error(
+        'Opportunity conversion failed:',
+        error
+      );
+
+      alert(
+        'The opportunity was closed, but the client conversion ' +
+        'did not complete. No duplicate client was created. ' +
+        'Please retry or contact an administrator.'
+      );
+
+      return;
+    }
+
+    triggerConfetti();
+
+    const toastEl = document.createElement('div');
+
+    toastEl.className =
+      'fixed top-1/2 left-1/2 transform -translate-x-1/2 ' +
+      '-translate-y-1/2 bg-neutral-900 text-white px-6 py-4 ' +
+      'rounded-2xl shadow-2xl z-50 animate-in fade-in ' +
+      'zoom-in duration-300 flex items-center gap-3';
+
+    toastEl.innerHTML =
+      '<span class="text-2xl">🎉</span> ' +
+      '<div><div class="font-bold">Congratulations!</div>' +
+      '<div class="text-sm opacity-90">' +
+      'Another deal closed successfully!</div></div>';
+
+    document.body.appendChild(toastEl);
+
+    setTimeout(() => {
+      toastEl.classList.add(
+        'opacity-0',
+        'transition-opacity'
+      );
+
+      setTimeout(
+        () => document.body.removeChild(toastEl),
+        500
+      );
+    }, 3000);
   };
 
   const onDragEnd = (result) => {

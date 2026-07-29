@@ -2306,3 +2306,468 @@ export const updateUserAccount = onCall(async (request) => {
     user: result,
   };
 });
+
+type EntityData = Record<string, unknown>;
+
+/**
+ * Determines whether an employee may modify a scoped record.
+ * @param {DirectoryUser} actor Authenticated employee.
+ * @param {EntityData} record Stored scoped record.
+ * @return {boolean} Whether conversion is authorized.
+ */
+function canModifyScopedRecord(
+  actor: DirectoryUser,
+  record: EntityData
+): boolean {
+  if (
+    actor.application_role === "super_admin" ||
+    actor.application_role === "administrator"
+  ) {
+    return true;
+  }
+
+  const ownerUserId = readString(
+    record,
+    "owner_user_id",
+    "ownerId"
+  );
+
+  if (actor.application_role === "salesperson") {
+    return ownerUserId === actor.id;
+  }
+
+  if (actor.application_role !== "supervisor") {
+    return false;
+  }
+
+  const assignedTeamId = readString(
+    record,
+    "assigned_team_id",
+    "teamId"
+  );
+  const assignedSupervisorId = readString(
+    record,
+    "assigned_supervisor_user_id",
+    "supervisorId"
+  );
+
+  return (
+    ownerUserId === actor.id ||
+    assignedSupervisorId === actor.id ||
+    (
+      actor.team_id !== null &&
+      assignedTeamId === actor.team_id
+    )
+  );
+}
+
+/**
+ * Merges document arrays and removes duplicate URLs.
+ * @param {...unknown} values Potential document arrays.
+ * @return {!Array<EntityData>} Unique document records.
+ */
+function mergeEntityDocuments(
+  ...values: unknown[]
+): EntityData[] {
+  const documents = values
+    .flatMap((value) => Array.isArray(value) ? value : [])
+    .filter(
+      (value): value is EntityData =>
+        value !== null &&
+        typeof value === "object" &&
+        !Array.isArray(value)
+    );
+
+  const seen = new Set<string>();
+
+  return documents.filter((document) => {
+    const url = readString(document, "url");
+    const key = url ?? JSON.stringify(document);
+
+    if (seen.has(key)) {
+      return false;
+    }
+
+    seen.add(key);
+    return true;
+  });
+}
+
+/**
+ * Converts an authorized Closed Won opportunity into a client.
+ */
+export const convertOpportunityToClient = onCall(
+  async (request) => {
+    const actor = await requireActiveActor(
+      request.auth?.uid
+    );
+
+    const payload =
+      request.data &&
+      typeof request.data === "object" &&
+      !Array.isArray(request.data) ?
+        request.data as EntityData :
+        {};
+
+    if (
+      Object.keys(payload).length !== 1 ||
+      !Object.prototype.hasOwnProperty.call(
+        payload,
+        "opportunityId"
+      )
+    ) {
+      throw new HttpsError(
+        "invalid-argument",
+        "Only an opportunityId may be supplied."
+      );
+    }
+
+    const opportunityId = readString(
+      payload,
+      "opportunityId"
+    );
+
+    if (
+      !opportunityId ||
+      opportunityId.includes("/") ||
+      opportunityId.length > 1200
+    ) {
+      throw new HttpsError(
+        "invalid-argument",
+        "A valid opportunity identifier is required."
+      );
+    }
+
+    const result = await firestore.runTransaction(
+      async (transaction) => {
+        const entitiesReference =
+          firestore.collection("entities");
+
+        const opportunityReference =
+          entitiesReference
+            .doc("Opportunity")
+            .collection("records")
+            .doc(opportunityId);
+
+        const opportunitySnapshot =
+          await transaction.get(opportunityReference);
+
+        if (!opportunitySnapshot.exists) {
+          throw new HttpsError(
+            "not-found",
+            "The opportunity was not found."
+          );
+        }
+
+        const opportunity =
+          opportunitySnapshot.data() as EntityData;
+
+        if (!canModifyScopedRecord(actor, opportunity)) {
+          throw new HttpsError(
+            "permission-denied",
+            "Opportunity conversion is not authorized."
+          );
+        }
+
+        const dealStage = readString(
+          opportunity,
+          "deal_stage",
+          "dealStage"
+        );
+
+        if (
+          !dealStage ||
+          !dealStage.toLowerCase().includes("closed won")
+        ) {
+          throw new HttpsError(
+            "failed-precondition",
+            "Only a Closed Won opportunity can be converted."
+          );
+        }
+
+        const existingClientId = readString(
+          opportunity,
+          "client_id",
+          "clientId"
+        );
+
+        if (existingClientId) {
+          return {
+            clientId: existingClientId,
+            created: false,
+          };
+        }
+
+        const leadId = readString(
+          opportunity,
+          "lead_id",
+          "leadId"
+        );
+
+        if (
+          !leadId ||
+          leadId.includes("/") ||
+          leadId.length > 1200
+        ) {
+          throw new HttpsError(
+            "failed-precondition",
+            "The opportunity does not have a valid related lead."
+          );
+        }
+
+        const leadReference =
+          entitiesReference
+            .doc("Lead")
+            .collection("records")
+            .doc(leadId);
+
+        const clientReference =
+          entitiesReference
+            .doc("Client")
+            .collection("records")
+            .doc(opportunityId);
+
+        const taskReference =
+          entitiesReference
+            .doc("Task")
+            .collection("records")
+            .doc(opportunityId);
+
+        const [
+          leadSnapshot,
+          existingClientSnapshot,
+        ] = await Promise.all([
+          transaction.get(leadReference),
+          transaction.get(clientReference),
+        ]);
+
+        if (!leadSnapshot.exists) {
+          throw new HttpsError(
+            "not-found",
+            "The related lead was not found."
+          );
+        }
+
+        if (existingClientSnapshot.exists) {
+          const existingClient =
+            existingClientSnapshot.data() as EntityData;
+
+          if (
+            readString(
+              existingClient,
+              "crm_opportunity_id"
+            ) !== opportunityId
+          ) {
+            throw new HttpsError(
+              "already-exists",
+              "The deterministic client identifier is in use."
+            );
+          }
+
+          transaction.update(opportunityReference, {
+            client_id: clientReference.id,
+            updated_date: new Date().toISOString(),
+          });
+
+          return {
+            clientId: clientReference.id,
+            created: false,
+          };
+        }
+
+        const lead = leadSnapshot.data() as EntityData;
+        const now = new Date();
+        const nowIso = now.toISOString();
+        const today = nowIso.slice(0, 10);
+        const renewal = new Date(now);
+
+        renewal.setUTCFullYear(
+          renewal.getUTCFullYear() + 1
+        );
+
+        const dueDate = new Date(now);
+
+        dueDate.setUTCDate(dueDate.getUTCDate() + 7);
+
+        const rawAmount =
+          opportunity.amount ??
+          opportunity.loan_amount_requested ??
+          0;
+
+        const amount =
+          typeof rawAmount === "number" &&
+          Number.isFinite(rawAmount) ?
+            rawAmount :
+            0;
+
+        const fullName =
+          readString(lead, "full_name", "fullName") ??
+          readString(
+            opportunity,
+            "lead_name",
+            "full_name"
+          ) ??
+          "New Client";
+
+        const ownerUserId = readString(
+          opportunity,
+          "owner_user_id",
+          "ownerId"
+        );
+        const assignedTeamId = readString(
+          opportunity,
+          "assigned_team_id",
+          "teamId"
+        );
+        const assignedSupervisorId = readString(
+          opportunity,
+          "assigned_supervisor_user_id",
+          "supervisorId"
+        );
+        const territoryId = readString(
+          opportunity,
+          "territory_id",
+          "territoryId"
+        );
+
+        const clientData: EntityData = {
+          crm_lead_id: leadId,
+          crm_opportunity_id: opportunityId,
+          full_name: fullName,
+          email:
+            readString(lead, "email") ??
+            readString(opportunity, "email"),
+          phone_number:
+            readString(
+              lead,
+              "phone_number",
+              "phone"
+            ) ??
+            readString(
+              opportunity,
+              "phone_number",
+              "phone"
+            ),
+          product_type: readString(
+            opportunity,
+            "product_type"
+          ),
+          initial_amount: amount,
+          contract_start_date: today,
+          onboarding_status: "Not Started",
+          customer_segment:
+            amount > 50000 ?
+              "Key Account" :
+              amount > 10000 ?
+                "Enterprise" :
+                "SMB",
+          health_score: 100,
+          last_engagement_date: nowIso,
+          renewal_date:
+            renewal.toISOString().slice(0, 10),
+          assigned_csm: actor.email,
+          documents: mergeEntityDocuments(
+            lead.documents,
+            opportunity.documents
+          ),
+          owner_user_id: ownerUserId,
+          assigned_team_id: assignedTeamId,
+          assigned_supervisor_user_id:
+            assignedSupervisorId,
+          territory_id: territoryId,
+          created_date: nowIso,
+          updated_date: nowIso,
+          created_by_user_id: actor.id,
+          last_modified_by_user_id: actor.id,
+        };
+
+        const taskData: EntityData = {
+          title: "Onboard new client: " + fullName,
+          description:
+            "Complete initial onboarding checklist for " +
+            fullName +
+            ". Source Opportunity: " +
+            (
+              readString(
+                opportunity,
+                "product_type"
+              ) ?? "Unspecified"
+            ),
+          status: "todo",
+          priority: "high",
+          assigned_to: actor.email,
+          related_client_id: clientReference.id,
+          owner_user_id: ownerUserId,
+          assigned_team_id: assignedTeamId,
+          assigned_supervisor_user_id:
+            assignedSupervisorId,
+          territory_id: territoryId,
+          due_date: dueDate.toISOString().slice(0, 10),
+          created_date: nowIso,
+          updated_date: nowIso,
+          created_by_user_id: actor.id,
+          last_modified_by_user_id: actor.id,
+        };
+
+        transaction.create(clientReference, clientData);
+        transaction.create(taskReference, taskData);
+
+        transaction.update(opportunityReference, {
+          client_id: clientReference.id,
+          converted_date: nowIso,
+          updated_date: nowIso,
+          last_modified_by_user_id: actor.id,
+        });
+
+        if (
+          readString(
+            lead,
+            "lead_status",
+            "leadStatus"
+          ) !== "Converted"
+        ) {
+          transaction.update(leadReference, {
+            lead_status: "Converted",
+            converted_date: nowIso,
+            updated_date: nowIso,
+            last_modified_by_user_id: actor.id,
+          });
+        }
+
+        const auditReference =
+          entitiesReference
+            .doc("AuditLog")
+            .collection("records")
+            .doc();
+
+        transaction.set(auditReference, {
+          action: "opportunity_converted_to_client",
+          actor_user_id: actor.id,
+          actor_email: actor.email,
+          opportunity_id: opportunityId,
+          lead_id: leadId,
+          client_id: clientReference.id,
+          task_id: taskReference.id,
+          created_date: nowIso,
+          updated_date: nowIso,
+        });
+
+        return {
+          clientId: clientReference.id,
+          created: true,
+          client: {
+            id: clientReference.id,
+            ...clientData,
+          },
+        };
+      }
+    );
+
+    return {
+      success: true,
+      clientId: result.clientId,
+      created: result.created,
+      client: result.client ?? null,
+    };
+  }
+);
