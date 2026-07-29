@@ -124,9 +124,18 @@ service cloud.firestore {
       ];
     }
 
+    function isAdministrativeConfigurationEntity(entityName) {
+      return entityName in [
+        'AuditLog',
+        'OnboardingTemplate',
+        'Query'
+      ];
+    }
+
     function isConfigurationEntity(entityName) {
       return isSharedConfigurationEntity(entityName) ||
-        isPrivilegedConfigurationEntity(entityName);
+        isPrivilegedConfigurationEntity(entityName) ||
+        isAdministrativeConfigurationEntity(entityName);
     }
 
     function isAdminTier() {
@@ -140,6 +149,13 @@ service cloud.firestore {
           (
             isPrivilegedConfigurationEntity(entityName) &&
             isAdminTier()
+          ) ||
+          (
+            entityName in [
+              'AuditLog',
+              'OnboardingTemplate'
+            ] &&
+            isAdminTier()
           )
         );
     }
@@ -147,19 +163,28 @@ service cloud.firestore {
     function canCreateConfigurationEntity(entityName) {
       return isActive() &&
         isAdminTier() &&
-        isSharedConfigurationEntity(entityName);
+        (
+          isSharedConfigurationEntity(entityName) ||
+          entityName == 'OnboardingTemplate'
+        );
     }
 
     function canUpdateConfigurationEntity(entityName) {
       return isActive() &&
         isAdminTier() &&
-        isSharedConfigurationEntity(entityName);
+        (
+          isSharedConfigurationEntity(entityName) ||
+          entityName == 'OnboardingTemplate'
+        );
     }
 
     function canDeleteConfigurationEntity(entityName) {
       return isActive() &&
         isAdminTier() &&
-        entityName == 'CustomField';
+        entityName in [
+          'CustomField',
+          'OnboardingTemplate'
+        ];
     }
 
     function profileEmail() {

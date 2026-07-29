@@ -37,6 +37,30 @@ const PRIVILEGED_CONFIGURATION_ENTITIES = [
   'UserPermissionOverride',
 ];
 
+const ADMINISTRATIVE_CONFIGURATION_ENTITIES = [
+  {
+    entityName: 'AuditLog',
+    canRead: isAdminTier,
+    canCreate: () => false,
+    canUpdate: () => false,
+    canDelete: () => false,
+  },
+  {
+    entityName: 'OnboardingTemplate',
+    canRead: isAdminTier,
+    canCreate: isAdminTier,
+    canUpdate: isAdminTier,
+    canDelete: isAdminTier,
+  },
+  {
+    entityName: 'Query',
+    canRead: () => false,
+    canCreate: () => false,
+    canUpdate: () => false,
+    canDelete: () => false,
+  },
+];
+
 const BROWSER_USERS = [
   {
     label: 'Super Administrator',
@@ -198,11 +222,40 @@ beforeAll(async () => {
       for (const entityName of [
         ...SHARED_CONFIGURATION_ENTITIES,
         ...PRIVILEGED_CONFIGURATION_ENTITIES,
+        ...ADMINISTRATIVE_CONFIGURATION_ENTITIES.map(
+          ({ entityName }) => entityName
+        ),
       ]) {
         await setDoc(
           entityRecord(database, entityName),
           payloadFor(entityName, 'seeded')
         );
+
+        for (const user of BROWSER_USERS) {
+          await setDoc(
+            entityRecord(
+              database,
+              entityName,
+              `update-${user.uid}`
+            ),
+            payloadFor(
+              entityName,
+              `update-${user.uid}`
+            )
+          );
+
+          await setDoc(
+            entityRecord(
+              database,
+              entityName,
+              `delete-${user.uid}`
+            ),
+            payloadFor(
+              entityName,
+              `delete-${user.uid}`
+            )
+          );
+        }
       }
     }
   );
@@ -474,6 +527,126 @@ describe(
                 entityRecord(
                   database,
                   entityName
+                )
+              )
+            );
+          }
+        );
+      }
+    }
+  }
+);
+
+describe(
+  'administrative configuration entity authorization',
+  () => {
+    for (
+      const {
+        entityName,
+        canRead,
+        canCreate,
+        canUpdate,
+        canDelete,
+      } of ADMINISTRATIVE_CONFIGURATION_ENTITIES
+    ) {
+      for (const user of BROWSER_USERS) {
+        it(
+          `${user.label} ${
+            canRead(user) ? 'can' : 'cannot'
+          } get ${entityName}`,
+          async () => {
+            const database = firestoreFor(user);
+
+            await expectPermission(
+              canRead(user),
+              getDoc(
+                entityRecord(database, entityName)
+              )
+            );
+          }
+        );
+
+        it(
+          `${user.label} ${
+            canRead(user) ? 'can' : 'cannot'
+          } list ${entityName}`,
+          async () => {
+            const database = firestoreFor(user);
+
+            await expectPermission(
+              canRead(user),
+              getDocs(
+                entityCollection(
+                  database,
+                  entityName
+                )
+              )
+            );
+          }
+        );
+
+        it(
+          `${user.label} ${
+            canCreate(user) ? 'can' : 'cannot'
+          } create ${entityName}`,
+          async () => {
+            const database = firestoreFor(user);
+
+            await expectPermission(
+              canCreate(user),
+              setDoc(
+                entityRecord(
+                  database,
+                  entityName,
+                  `created-${user.uid}`
+                ),
+                payloadFor(
+                  entityName,
+                  user.uid
+                )
+              )
+            );
+          }
+        );
+
+        it(
+          `${user.label} ${
+            canUpdate(user) ? 'can' : 'cannot'
+          } update ${entityName}`,
+          async () => {
+            const database = firestoreFor(user);
+
+            await expectPermission(
+              canUpdate(user),
+              updateDoc(
+                entityRecord(
+                  database,
+                  entityName,
+                  `update-${user.uid}`
+                ),
+                {
+                  description:
+                    `Updated by ${user.uid}`,
+                }
+              )
+            );
+          }
+        );
+
+        it(
+          `${user.label} ${
+            canDelete(user) ? 'can' : 'cannot'
+          } delete ${entityName}`,
+          async () => {
+            const database = firestoreFor(user);
+
+            await expectPermission(
+              canDelete(user),
+              deleteDoc(
+                entityRecord(
+                  database,
+                  entityName,
+                  `delete-${user.uid}`
                 )
               )
             );
