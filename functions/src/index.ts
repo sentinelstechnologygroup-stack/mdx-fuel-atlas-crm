@@ -1,3 +1,4 @@
+import ExcelJS from "exceljs";
 import {getApps, initializeApp} from "firebase-admin/app";
 import {FieldValue, getFirestore} from "firebase-admin/firestore";
 import {setGlobalOptions} from "firebase-functions";
@@ -1121,8 +1122,6 @@ export const initializePermissionModel = onCall(
               permissionRecordsReference.doc();
 
             transaction.create(permissionReference, {
-              role_definition_id:
-                roleDocumentIds.get(roleKey) || null,
               role_key: roleKey,
               module_key: moduleKey,
               ...matrix[moduleKey],
@@ -2392,6 +2391,598 @@ function mergeEntityDocuments(
     return true;
   });
 }
+
+/* eslint-disable require-jsdoc */
+
+const REPORT_TIME_RANGES = new Set([
+  "today",
+  "this_week",
+  "this_month",
+  "last_month",
+  "this_year",
+  "all",
+]);
+
+const REPORT_ENTITY_BY_ID: Record<string, string> = {
+  list: "Opportunity",
+  advanced: "Opportunity",
+  sales: "Opportunity",
+  forecast: "Opportunity",
+  conversion: "Lead",
+  sources: "Lead",
+  activity: "Activity",
+};
+
+type ReportCellValue = string | number | boolean;
+
+interface ReportDateRange {
+  start: number | null;
+  end: number | null;
+}
+
+interface ReportWorkbookData {
+  sheetName: string;
+  columns: Array<{
+    header: string;
+    key: string;
+    width: number;
+  }>;
+  rows: Array<Record<string, ReportCellValue>>;
+}
+
+function reportDateRange(
+  timeRange: string,
+  currentDate: Date
+): ReportDateRange {
+  const year = currentDate.getUTCFullYear();
+  const month = currentDate.getUTCMonth();
+  const day = currentDate.getUTCDate();
+
+  switch (timeRange) {
+  case "today":
+    return {
+      start: Date.UTC(year, month, day),
+      end: null,
+    };
+
+  case "this_week": {
+    const start = new Date(
+      Date.UTC(year, month, day)
+    );
+
+    start.setUTCDate(
+      start.getUTCDate() - start.getUTCDay()
+    );
+
+    return {
+      start: start.getTime(),
+      end: null,
+    };
+  }
+
+  case "this_month":
+    return {
+      start: Date.UTC(year, month, 1),
+      end: null,
+    };
+
+  case "last_month":
+    return {
+      start: Date.UTC(year, month - 1, 1),
+      end: Date.UTC(year, month, 1) - 1,
+    };
+
+  case "this_year":
+    return {
+      start: Date.UTC(year, 0, 1),
+      end: null,
+    };
+
+  default:
+    return {
+      start: null,
+      end: null,
+    };
+  }
+}
+
+function reportDateMillis(value: unknown): number | null {
+  if (value instanceof Date) {
+    return value.getTime();
+  }
+
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value;
+  }
+
+  if (typeof value === "string") {
+    const parsed = Date.parse(value);
+
+    return Number.isNaN(parsed) ? null : parsed;
+  }
+
+  if (
+    value !== null &&
+    typeof value === "object" &&
+    !Array.isArray(value)
+  ) {
+    const record = value as Record<string, unknown>;
+    const seconds =
+      typeof record.seconds === "number" ?
+        record.seconds :
+        typeof record._seconds === "number" ?
+          record._seconds :
+          null;
+
+    if (seconds !== null) {
+      return seconds * 1000;
+    }
+  }
+
+  return null;
+}
+
+function reportDateText(value: unknown): string {
+  const milliseconds = reportDateMillis(value);
+
+  if (milliseconds === null) {
+    return "";
+  }
+
+  return new Date(milliseconds).toISOString();
+}
+
+function reportCell(value: unknown): ReportCellValue {
+  if (
+    typeof value === "string" ||
+    typeof value === "number" ||
+    typeof value === "boolean"
+  ) {
+    return value;
+  }
+
+  if (value === null || value === undefined) {
+    return "";
+  }
+
+  const dateText = reportDateText(value);
+
+  if (dateText) {
+    return dateText;
+  }
+
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return String(value);
+  }
+}
+
+function reportRecordOwnerId(
+  record: EntityData
+): string | null {
+  return readString(
+    record,
+    "owner_user_id",
+    "ownerId",
+    "assigned_user_id",
+    "assigned_to_user_id",
+    "assigned_to",
+    "user_id",
+    "created_by_user_id"
+  );
+}
+
+function canViewReportRecord(
+  actor: DirectoryUser,
+  record: EntityData,
+  recordScope: string
+): boolean {
+  if (recordScope === "all") {
+    return true;
+  }
+
+  const ownerUserId = reportRecordOwnerId(record);
+  const ownsRecord = ownerUserId === actor.id;
+
+  if (recordScope === "own") {
+    return ownsRecord;
+  }
+
+  if (recordScope !== "team") {
+    return false;
+  }
+
+  const assignedTeamId = readString(
+    record,
+    "assigned_team_id",
+    "team_id",
+    "teamId"
+  );
+  const assignedSupervisorId = readString(
+    record,
+    "assigned_supervisor_user_id",
+    "supervisor_user_id",
+    "supervisorId"
+  );
+
+  return (
+    ownsRecord ||
+    assignedSupervisorId === actor.id ||
+    (
+      actor.team_id !== null &&
+      assignedTeamId === actor.team_id
+    )
+  );
+}
+
+async function resolveActorModulePermission(
+  actor: DirectoryUser,
+  moduleKey: string
+): Promise<EffectivePermission> {
+  if (actor.application_role === "super_admin") {
+    return protectedPermission(moduleKey);
+  }
+
+  const actorDocument = await firestore
+    .collection("userProfiles")
+    .doc(actor.id)
+    .get();
+
+  const actorData =
+    (actorDocument.data() || {}) as ProfileData;
+
+  const customRoleId = readString(
+    actorData,
+    "custom_role_id"
+  );
+
+  const [
+    moduleSnapshot,
+    overrideSnapshot,
+  ] = await Promise.all([
+    firestore
+      .collection("entities")
+      .doc("ModulePermission")
+      .collection("records")
+      .get(),
+    firestore
+      .collection("entities")
+      .doc("UserPermissionOverride")
+      .collection("records")
+      .get(),
+  ]);
+
+  const moduleRecords = moduleSnapshot.docs.map(
+    (document) => ({
+      id: document.id,
+      ...document.data(),
+    })
+  );
+
+  const overrideRecords = overrideSnapshot.docs.map(
+    (document) => ({
+      id: document.id,
+      ...document.data(),
+    })
+  );
+
+  const now = Date.now();
+
+  const basePermission = selectPermissionRecord(
+    moduleRecords,
+    (record) => {
+      const recordModule =
+        permissionString(record.module_key);
+      const recordRole =
+        permissionString(record.role_key) ||
+        permissionString(record.role_type) ||
+        permissionString(record.base_role_key);
+
+      return (
+        recordModule === moduleKey &&
+        recordRole === actor.application_role &&
+        !permissionString(record.custom_role_id) &&
+        !permissionString(record.role_definition_id)
+      );
+    },
+    now
+  );
+
+  const customPermission = customRoleId ?
+    selectPermissionRecord(
+      moduleRecords,
+      (record) => {
+        const recordModule =
+          permissionString(record.module_key);
+        const recordCustomRole =
+          permissionString(record.custom_role_id) ||
+          permissionString(record.role_definition_id);
+
+        return (
+          recordModule === moduleKey &&
+          recordCustomRole === customRoleId
+        );
+      },
+      now
+    ) :
+    undefined;
+
+  const userOverride = selectPermissionRecord(
+    overrideRecords,
+    (record) =>
+      permissionString(record.user_id) === actor.id &&
+      permissionString(record.module_key) === moduleKey,
+    now
+  );
+
+  return resolveEffectivePermission(
+    actor.application_role,
+    moduleKey,
+    basePermission,
+    customPermission,
+    userOverride,
+    now
+  );
+}
+
+function reportWorkbookData(
+  entityName: string,
+  records: EntityData[],
+  actor: DirectoryUser
+): ReportWorkbookData {
+  if (entityName === "Lead") {
+    return {
+      sheetName: "Leads",
+      columns: [
+        {header: "ID", key: "id", width: 24},
+        {header: "Name", key: "name", width: 30},
+        {header: "Email", key: "email", width: 32},
+        {header: "Phone", key: "phone", width: 20},
+        {header: "Status", key: "status", width: 18},
+        {header: "Source Year", key: "sourceYear", width: 14},
+        {header: "City", key: "city", width: 22},
+        {header: "Created Date", key: "createdDate", width: 26},
+      ],
+      rows: records.map((record) => ({
+        id: reportCell(record.id),
+        name: reportCell(record.full_name),
+        email: reportCell(record.email),
+        phone: reportCell(record.phone_number),
+        status: reportCell(record.lead_status),
+        sourceYear: reportCell(record.source_year),
+        city: reportCell(record.city),
+        createdDate: reportDateText(record.created_date),
+      })),
+    };
+  }
+
+  if (entityName === "Activity") {
+    return {
+      sheetName: "Activities",
+      columns: [
+        {header: "ID", key: "id", width: 24},
+        {header: "Type", key: "type", width: 18},
+        {header: "Status", key: "status", width: 18},
+        {header: "Date", key: "date", width: 26},
+        {header: "Summary", key: "summary", width: 45},
+        {header: "Lead ID", key: "leadId", width: 24},
+        {header: "Created Date", key: "createdDate", width: 26},
+      ],
+      rows: records.map((record) => ({
+        id: reportCell(record.id),
+        type: reportCell(record.type),
+        status: reportCell(record.status),
+        date: reportDateText(record.date),
+        summary: reportCell(record.summary),
+        leadId: reportCell(record.lead_id),
+        createdDate: reportDateText(record.created_date),
+      })),
+    };
+  }
+
+  return {
+    sheetName: "Opportunities",
+    columns: [
+      {header: "ID", key: "id", width: 24},
+      {header: "Lead Name", key: "leadName", width: 30},
+      {header: "Product", key: "product", width: 24},
+      {header: "Stage", key: "stage", width: 20},
+      {header: "Amount", key: "amount", width: 16},
+      {header: "Probability", key: "probability", width: 14},
+      {header: "Close Date", key: "closeDate", width: 26},
+      {header: "Created Date", key: "createdDate", width: 26},
+      {header: "Owner", key: "owner", width: 30},
+    ],
+    rows: records.map((record) => ({
+      id: reportCell(record.id),
+      leadName: reportCell(record.lead_name),
+      product: reportCell(record.product_type),
+      stage: reportCell(record.deal_stage),
+      amount: reportCell(record.amount),
+      probability: reportCell(record.probability),
+      closeDate: reportDateText(record.expected_close_date),
+      createdDate: reportDateText(record.created_date),
+      owner: reportCell(
+        readString(
+          record,
+          "owner",
+          "owner_name"
+        ) || actor.email || ""
+      ),
+    })),
+  };
+}
+
+/**
+ * Exports an authorized, record-scoped CRM report as an Excel workbook.
+ */
+export const exportReport = onCall(async (request) => {
+  const actor = await requireActiveActor(
+    request.auth?.uid
+  );
+
+  const payload =
+    request.data &&
+    typeof request.data === "object" &&
+    !Array.isArray(request.data) ?
+      request.data as EntityData :
+      {};
+
+  const reportId = readString(
+    payload,
+    "reportId",
+    "report_id"
+  );
+  const timeRange =
+    readString(
+      payload,
+      "timeRange",
+      "time_range"
+    ) || "all";
+
+  if (!reportId || !REPORT_ENTITY_BY_ID[reportId]) {
+    throw new HttpsError(
+      "invalid-argument",
+      "A supported report identifier is required."
+    );
+  }
+
+  if (!REPORT_TIME_RANGES.has(timeRange)) {
+    throw new HttpsError(
+      "invalid-argument",
+      "A supported report time range is required."
+    );
+  }
+
+  const permission =
+    await resolveActorModulePermission(
+      actor,
+      "reports"
+    );
+
+  if (
+    permission.can_view !== true ||
+    permission.can_export !== true ||
+    permission.record_scope === "none"
+  ) {
+    throw new HttpsError(
+      "permission-denied",
+      "Report export permission is required."
+    );
+  }
+
+  const entityName =
+    REPORT_ENTITY_BY_ID[reportId];
+
+  const snapshot = await firestore
+    .collection("entities")
+    .doc(entityName)
+    .collection("records")
+    .get();
+
+  const dateField =
+    entityName === "Activity" ?
+      "date" :
+      "created_date";
+
+  const range = reportDateRange(
+    timeRange,
+    new Date()
+  );
+
+  const visibleRecords = snapshot.docs
+    .map((document) => ({
+      id: document.id,
+      ...document.data(),
+    }))
+    .filter((record) =>
+      canViewReportRecord(
+        actor,
+        record,
+        permission.record_scope
+      )
+    )
+    .filter((record) => {
+      if (range.start === null) {
+        return true;
+      }
+
+      const recordDate =
+        reportDateMillis((record as EntityData)[dateField]);
+
+      if (recordDate === null) {
+        return false;
+      }
+
+      return (
+        recordDate >= range.start &&
+        (
+          range.end === null ||
+          recordDate <= range.end
+        )
+      );
+    });
+
+  const workbookData = reportWorkbookData(
+    entityName,
+    visibleRecords,
+    actor
+  );
+
+  const workbook = new ExcelJS.Workbook();
+
+  workbook.creator = "MDX Fuel ATLAS CRM";
+  workbook.created = new Date();
+
+  const worksheet = workbook.addWorksheet(
+    workbookData.sheetName
+  );
+
+  worksheet.columns = workbookData.columns;
+  worksheet.addRows(workbookData.rows);
+  worksheet.views = [
+    {
+      state: "frozen",
+      ySplit: 1,
+    },
+  ];
+
+  const headerRow = worksheet.getRow(1);
+
+  headerRow.font = {
+    bold: true,
+    color: {
+      argb: "FFFFFFFF",
+    },
+  };
+  headerRow.fill = {
+    type: "pattern",
+    pattern: "solid",
+    fgColor: {
+      argb: "FF1F2937",
+    },
+  };
+
+  const workbookBuffer =
+    await workbook.xlsx.writeBuffer();
+
+  if (workbookBuffer.byteLength > 7000000) {
+    throw new HttpsError(
+      "resource-exhausted",
+      "The report is too large to export in one workbook."
+    );
+  }
+
+  return {
+    file: Buffer.from(workbookBuffer).toString("base64"),
+    filename:
+      `${workbookData.sheetName}_${timeRange}.xlsx`,
+    row_count: workbookData.rows.length,
+  };
+});
+
+/* eslint-enable require-jsdoc */
 
 /**
  * Converts an authorized Closed Won opportunity into a client.
