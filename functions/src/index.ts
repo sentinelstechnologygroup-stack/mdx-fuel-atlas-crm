@@ -258,6 +258,1397 @@ async function requireActiveActor(
   return actor;
 }
 
+/* eslint-disable require-jsdoc */
+const PERMISSION_ACTION_FLAGS = [
+  "can_view",
+  "can_create",
+  "can_edit",
+  "can_delete",
+  "can_assign",
+  "can_export",
+  "can_approve",
+  "can_manage_configuration",
+] as const;
+
+const PERMISSION_MODULE_KEYS = [
+  "dashboard",
+  "leads",
+  "opportunities",
+  "tasks",
+  "activities",
+  "clients",
+  "reports",
+  "automations",
+  "sales_galaxy",
+  "atlas",
+  "marketing_sequences",
+  "marketing_templates",
+  "customer_success",
+  "imports",
+  "exports",
+  "duplicate_management",
+  "users",
+  "teams",
+  "territories",
+  "roles_permissions",
+  "pipeline_configuration",
+  "custom_fields",
+  "system_tags",
+  "workflow_configuration",
+  "organization_settings",
+  "audit_logs",
+  "integrations",
+  "security_settings",
+] as const;
+
+type PermissionRecord = Record<string, unknown>;
+
+type EffectivePermission = {
+  module_key: string;
+  record_scope: string;
+  source: string;
+  can_view: boolean;
+  can_create: boolean;
+  can_edit: boolean;
+  can_delete: boolean;
+  can_assign: boolean;
+  can_export: boolean;
+  can_approve: boolean;
+  can_manage_configuration: boolean;
+};
+
+function permissionString(value: unknown): string {
+  return typeof value === "string" ? value.trim() : "";
+}
+
+function permissionMillis(value: unknown): number | null {
+  if (typeof value === "number") {
+    return Number.isFinite(value) ? value : null;
+  }
+
+  if (typeof value === "string") {
+    const parsed = Date.parse(value);
+    return Number.isNaN(parsed) ? null : parsed;
+  }
+
+  if (value && typeof value === "object" && "toMillis" in value) {
+    const timestamp = value as {
+      toMillis?: () => number;
+    };
+
+    if (typeof timestamp.toMillis === "function") {
+      return timestamp.toMillis();
+    }
+  }
+
+  return null;
+}
+
+function permissionRecordIsActive(
+  record: PermissionRecord,
+  now: number,
+): boolean {
+  const status = permissionString(record.status);
+
+  if (status && status !== "active") {
+    return false;
+  }
+
+  const effective = permissionMillis(record.effective_date);
+
+  if (effective !== null && effective > now) {
+    return false;
+  }
+
+  const expiration = permissionMillis(record.expiration_date);
+
+  if (expiration !== null && expiration < now) {
+    return false;
+  }
+
+  return true;
+}
+
+function deniedPermission(moduleKey: string): EffectivePermission {
+  return {
+    module_key: moduleKey,
+    record_scope: "none",
+    source: "default_denial",
+    can_view: false,
+    can_create: false,
+    can_edit: false,
+    can_delete: false,
+    can_assign: false,
+    can_export: false,
+    can_approve: false,
+    can_manage_configuration: false,
+  };
+}
+
+function protectedPermission(moduleKey: string): EffectivePermission {
+  return {
+    module_key: moduleKey,
+    record_scope: "all",
+    source: "protected_super_admin",
+    can_view: true,
+    can_create: true,
+    can_edit: true,
+    can_delete: true,
+    can_assign: true,
+    can_export: true,
+    can_approve: true,
+    can_manage_configuration: true,
+  };
+}
+
+function permissionFromRecord(
+  record: PermissionRecord,
+  moduleKey: string,
+  source: string,
+): EffectivePermission {
+  const result = deniedPermission(moduleKey);
+
+  result.record_scope = permissionString(record.record_scope) || "none";
+  result.source = source;
+
+  for (const flag of PERMISSION_ACTION_FLAGS) {
+    result[flag] = record[flag] === true;
+  }
+
+  return result;
+}
+
+function permissionScopeRank(scope: string): number {
+  const ranks: Record<string, number> = {
+    none: 0,
+    own: 1,
+    team: 2,
+    all: 3,
+  };
+
+  return ranks[scope] ?? 0;
+}
+
+function restrictPermission(
+  base: EffectivePermission,
+  override: PermissionRecord,
+  moduleKey: string,
+): EffectivePermission {
+  const overrideScope = permissionString(override.record_scope) || "none";
+
+  const result: EffectivePermission = {
+    ...deniedPermission(moduleKey),
+    record_scope:
+      permissionScopeRank(base.record_scope) <=
+      permissionScopeRank(overrideScope) ?
+        base.record_scope :
+        overrideScope,
+    source: "user_override",
+  };
+
+  for (const flag of PERMISSION_ACTION_FLAGS) {
+    result[flag] = base[flag] === true && override[flag] === true;
+  }
+
+  return result;
+}
+
+function resolveEffectivePermission(
+  role: string,
+  moduleKey: string,
+  rolePermission: PermissionRecord | undefined,
+  customPermission: PermissionRecord | undefined,
+  override: PermissionRecord | undefined,
+  now: number,
+): EffectivePermission {
+  if (role === "super_admin") {
+    return protectedPermission(moduleKey);
+  }
+
+  let base = deniedPermission(moduleKey);
+
+  if (customPermission) {
+    base = permissionFromRecord(customPermission, moduleKey, "custom_role");
+  } else if (rolePermission) {
+    base = permissionFromRecord(rolePermission, moduleKey, "base_role");
+  }
+
+  if (!override || !permissionRecordIsActive(override, now)) {
+    return base;
+  }
+
+  const mode = permissionString(override.override_mode) || "restrict";
+
+  if (mode === "inherit") {
+    return base;
+  }
+
+  if (mode === "replace") {
+    return permissionFromRecord(override, moduleKey, "user_override");
+  }
+
+  return restrictPermission(base, override, moduleKey);
+}
+
+function selectPermissionRecord(
+  records: PermissionRecord[],
+  predicate: (record: PermissionRecord) => boolean,
+  now: number,
+): PermissionRecord | undefined {
+  return records
+    .filter(
+      (record) => predicate(record) && permissionRecordIsActive(record, now),
+    )
+    .sort((left, right) => {
+      const leftTime =
+        permissionMillis(left.updated_date) ??
+        permissionMillis(left.effective_date) ??
+        0;
+      const rightTime =
+        permissionMillis(right.updated_date) ??
+        permissionMillis(right.effective_date) ??
+        0;
+
+      return rightTime - leftTime;
+    })[0];
+}
+
+/* eslint-enable require-jsdoc */
+
+export const getEffectivePermissions = onCall(async (request) => {
+  const actorId = request.auth?.uid;
+
+  await requireActiveActor(actorId);
+
+  if (!actorId) {
+    throw new HttpsError("unauthenticated", "Authentication is required.");
+  }
+
+  const payload =
+    request.data && typeof request.data === "object" ?
+      (request.data as Record<string, unknown>) :
+      {};
+
+  const requestedTarget = permissionString(payload.target_user_id);
+
+  const targetUserId = requestedTarget || actorId;
+
+  const actorDocument = await firestore
+    .collection("userProfiles")
+    .doc(actorId)
+    .get();
+
+  const targetDocument =
+    targetUserId === actorId ?
+      actorDocument :
+      await firestore.collection("userProfiles").doc(targetUserId).get();
+
+  if (!targetDocument.exists) {
+    throw new HttpsError("not-found", "The requested employee was not found.");
+  }
+
+  const actorData = actorDocument.data() || {};
+  const targetData = targetDocument.data() || {};
+
+  const actorRole = normalizeRole(actorData);
+  const targetRole = normalizeRole(targetData);
+
+  if (
+    targetUserId !== actorId &&
+    actorRole !== "super_admin" &&
+    !(
+      actorRole === "administrator" &&
+      targetRole !== "super_admin" &&
+      targetRole !== "administrator"
+    )
+  ) {
+    throw new HttpsError(
+      "permission-denied",
+      "You cannot inspect this employee's permissions.",
+    );
+  }
+
+  const targetStatus =
+    permissionString(targetData.account_status) || "inactive";
+
+  if (targetStatus !== "active") {
+    throw new HttpsError(
+      "permission-denied",
+      "The requested employee account is inactive.",
+    );
+  }
+
+  const customRoleId = permissionString(targetData.custom_role_id);
+
+  const [moduleSnapshot, overrideSnapshot] = await Promise.all([
+    firestore
+      .collection("entities")
+      .doc("ModulePermission")
+      .collection("records")
+      .get(),
+    firestore
+      .collection("entities")
+      .doc("UserPermissionOverride")
+      .collection("records")
+      .get(),
+  ]);
+
+  const moduleRecords = moduleSnapshot.docs.map((document) => ({
+    id: document.id,
+    ...document.data(),
+  }));
+
+  const overrideRecords = overrideSnapshot.docs.map((document) => ({
+    id: document.id,
+    ...document.data(),
+  }));
+
+  const now = Date.now();
+  const permissions: Record<string, EffectivePermission> = {};
+
+  for (const moduleKey of PERMISSION_MODULE_KEYS) {
+    const basePermission = selectPermissionRecord(
+      moduleRecords,
+      (record) => {
+        const recordModule = permissionString(record.module_key);
+        const recordRole =
+          permissionString(record.role_key) ||
+          permissionString(record.role_type) ||
+          permissionString(record.base_role_key);
+
+        return (
+          recordModule === moduleKey &&
+          recordRole === targetRole &&
+          !permissionString(record.custom_role_id) &&
+          !permissionString(record.role_definition_id)
+        );
+      },
+      now,
+    );
+
+    const customPermission = customRoleId ?
+      selectPermissionRecord(
+        moduleRecords,
+        (record) => {
+          const recordModule = permissionString(record.module_key);
+          const recordCustomRole =
+              permissionString(record.custom_role_id) ||
+              permissionString(record.role_definition_id);
+
+          return (
+            recordModule === moduleKey && recordCustomRole === customRoleId
+          );
+        },
+        now,
+      ) :
+      undefined;
+
+    const userOverride = selectPermissionRecord(
+      overrideRecords,
+      (record) =>
+        permissionString(record.user_id) === targetUserId &&
+        permissionString(record.module_key) === moduleKey,
+      now,
+    );
+
+    permissions[moduleKey] = resolveEffectivePermission(
+      targetRole,
+      moduleKey,
+      basePermission,
+      customPermission,
+      userOverride,
+      now,
+    );
+  }
+
+  let customRoleName: string | null = null;
+
+  if (customRoleId) {
+    const roleDocument = await firestore
+      .collection("entities")
+      .doc("RoleDefinition")
+      .collection("records")
+      .doc(customRoleId)
+      .get();
+
+    if (roleDocument.exists) {
+      const roleData = roleDocument.data() || {};
+
+      customRoleName =
+        permissionString(roleData.name) ||
+        permissionString(roleData.role_name) ||
+        null;
+    }
+  }
+
+  return {
+    user_id: targetUserId,
+    role_key: targetRole,
+    custom_role_id: customRoleId || null,
+    custom_role_name: customRoleName,
+    permissions,
+  };
+});
+
+/* eslint-disable require-jsdoc */
+
+type PermissionSeed = {
+  record_scope: string;
+  can_view: boolean;
+  can_create: boolean;
+  can_edit: boolean;
+  can_delete: boolean;
+  can_assign: boolean;
+  can_export: boolean;
+  can_approve: boolean;
+  can_manage_configuration: boolean;
+};
+
+type PermissionSeedMap = Record<string, PermissionSeed>;
+
+const SYSTEM_ROLE_DEFINITIONS = [
+  {
+    role_key: "super_admin",
+    name: "Super Administrator",
+    description:
+      "Controls system ownership, administrators, security, and full " +
+      "audit access.",
+    hierarchy_level: 5,
+    is_protected: true,
+  },
+  {
+    role_key: "administrator",
+    name: "Administrator",
+    description:
+      "Controls users below Administrator, configuration, reports, imports, " +
+      "exports, and audit access.",
+    hierarchy_level: 4,
+    is_protected: true,
+  },
+  {
+    role_key: "supervisor",
+    name: "Supervisor / Sales Manager",
+    description:
+      "Manages assigned teams, assignments, pipelines, and team performance.",
+    hierarchy_level: 3,
+    is_protected: false,
+  },
+  {
+    role_key: "salesperson",
+    name: "Salesperson",
+    description:
+      "Manages assigned leads, opportunities, tasks, and personal pipeline.",
+    hierarchy_level: 2,
+    is_protected: false,
+  },
+  {
+    role_key: "viewer_support",
+    name: "Viewer / Support User",
+    description:
+      "Receives limited access based on configured module permissions.",
+    hierarchy_level: 1,
+    is_protected: false,
+  },
+] as const;
+
+function permissionSeed(
+  recordScope: string,
+  canView: boolean,
+  canCreate: boolean,
+  canEdit: boolean,
+  canDelete: boolean,
+  canAssign: boolean,
+  canExport: boolean,
+  canApprove: boolean,
+  canManageConfiguration: boolean,
+): PermissionSeed {
+  return {
+    record_scope: recordScope,
+    can_view: canView,
+    can_create: canCreate,
+    can_edit: canEdit,
+    can_delete: canDelete,
+    can_assign: canAssign,
+    can_export: canExport,
+    can_approve: canApprove,
+    can_manage_configuration: canManageConfiguration,
+  };
+}
+
+const NO_PERMISSION = permissionSeed(
+  "none",
+  false,
+  false,
+  false,
+  false,
+  false,
+  false,
+  false,
+  false,
+);
+
+function allPermission(): PermissionSeed {
+  return permissionSeed(
+    "all",
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+  );
+}
+
+function permissionSeedMap(
+  overrides: PermissionSeedMap,
+): PermissionSeedMap {
+  const permissions: PermissionSeedMap = {};
+
+  for (const moduleKey of PERMISSION_MODULE_KEYS) {
+    permissions[moduleKey] = {
+      ...NO_PERMISSION,
+    };
+  }
+
+  return {
+    ...permissions,
+    ...overrides,
+  };
+}
+
+const ADMINISTRATOR_PERMISSION_SEEDS = permissionSeedMap({
+  dashboard: permissionSeed(
+    "all", true, false, false, false, false, false, false, false
+  ),
+  leads: permissionSeed(
+    "all", true, true, true, false, true, true, false, false
+  ),
+  opportunities: permissionSeed(
+    "all", true, true, true, false, true, true, true, false
+  ),
+  tasks: permissionSeed(
+    "all", true, true, true, false, true, false, false, false
+  ),
+  activities: permissionSeed(
+    "all", true, true, true, false, false, false, false, false
+  ),
+  clients: permissionSeed(
+    "all", true, true, true, false, false, false, false, false
+  ),
+  reports: permissionSeed(
+    "all", true, false, false, false, false, true, false, false
+  ),
+  automations: permissionSeed(
+    "all", true, true, true, false, false, false, false, true
+  ),
+  sales_galaxy: permissionSeed(
+    "all", true, false, false, false, false, false, false, false
+  ),
+  atlas: permissionSeed(
+    "all", true, false, false, false, false, false, false, false
+  ),
+  marketing_sequences: permissionSeed(
+    "all", true, true, true, false, false, false, false, false
+  ),
+  marketing_templates: permissionSeed(
+    "all", true, true, true, false, false, false, false, false
+  ),
+  customer_success: permissionSeed(
+    "all", true, true, true, false, false, false, false, false
+  ),
+  imports: permissionSeed(
+    "all", true, true, false, false, false, false, false, false
+  ),
+  exports: permissionSeed(
+    "all", true, true, false, false, false, false, false, false
+  ),
+  duplicate_management: permissionSeed(
+    "all", true, true, true, false, false, false, false, false
+  ),
+  users: permissionSeed(
+    "all", true, true, true, false, false, false, false, true
+  ),
+  teams: permissionSeed(
+    "all", true, true, true, false, false, false, false, true
+  ),
+  territories: permissionSeed(
+    "all", true, true, true, false, false, false, false, true
+  ),
+  roles_permissions: permissionSeed(
+    "all", true, false, true, false, false, false, false, false
+  ),
+  pipeline_configuration: permissionSeed(
+    "all", true, false, true, false, false, false, false, true
+  ),
+  custom_fields: permissionSeed(
+    "all", true, false, true, false, false, false, false, true
+  ),
+  system_tags: permissionSeed(
+    "all", true, false, true, false, false, false, false, true
+  ),
+  workflow_configuration: permissionSeed(
+    "all", true, false, true, false, false, false, false, true
+  ),
+  organization_settings: permissionSeed(
+    "all", true, false, true, false, false, false, false, true
+  ),
+  audit_logs: permissionSeed(
+    "all", true, false, false, false, false, true, false, false
+  ),
+  integrations: permissionSeed(
+    "all", true, false, false, false, false, false, false, true
+  ),
+  security_settings: permissionSeed(
+    "none", false, false, false, false, false, false, false, false
+  ),
+});
+
+const SUPERVISOR_PERMISSION_SEEDS = permissionSeedMap({
+  dashboard: permissionSeed(
+    "team", true, false, false, false, false, false, false, false
+  ),
+  leads: permissionSeed(
+    "team", true, true, true, false, true, false, false, false
+  ),
+  opportunities: permissionSeed(
+    "team", true, true, true, false, true, false, true, false
+  ),
+  tasks: permissionSeed(
+    "team", true, true, true, false, true, false, false, false
+  ),
+  activities: permissionSeed(
+    "team", true, true, true, false, false, false, false, false
+  ),
+  clients: permissionSeed(
+    "team", true, false, true, false, false, false, false, false
+  ),
+  reports: permissionSeed(
+    "team", true, false, false, false, false, false, false, false
+  ),
+  sales_galaxy: permissionSeed(
+    "team", true, false, false, false, false, false, false, false
+  ),
+  atlas: permissionSeed(
+    "team", true, false, false, false, false, false, false, false
+  ),
+  customer_success: permissionSeed(
+    "team", true, false, true, false, false, false, false, false
+  ),
+  users: permissionSeed(
+    "team", true, false, false, false, false, false, false, false
+  ),
+  teams: permissionSeed(
+    "team", true, false, false, false, false, false, false, false
+  ),
+  territories: permissionSeed(
+    "team", true, false, false, false, false, false, false, false
+  ),
+});
+
+const SALESPERSON_PERMISSION_SEEDS = permissionSeedMap({
+  dashboard: permissionSeed(
+    "own", true, false, false, false, false, false, false, false
+  ),
+  leads: permissionSeed(
+    "own", true, true, true, false, false, false, false, false
+  ),
+  opportunities: permissionSeed(
+    "own", true, true, true, false, false, false, false, false
+  ),
+  tasks: permissionSeed(
+    "own", true, true, true, false, false, false, false, false
+  ),
+  activities: permissionSeed(
+    "own", true, true, true, false, false, false, false, false
+  ),
+  clients: permissionSeed(
+    "own", true, false, false, false, false, false, false, false
+  ),
+  reports: permissionSeed(
+    "own", true, false, false, false, false, false, false, false
+  ),
+  sales_galaxy: permissionSeed(
+    "own", true, false, false, false, false, false, false, false
+  ),
+  atlas: permissionSeed(
+    "own", true, false, false, false, false, false, false, false
+  ),
+});
+
+const DEFAULT_PERMISSION_SEEDS: Record<string, PermissionSeedMap> = {
+  super_admin: permissionSeedMap(
+    Object.fromEntries(
+      PERMISSION_MODULE_KEYS.map(
+        (moduleKey) => [moduleKey, allPermission()]
+      )
+    )
+  ),
+  administrator: ADMINISTRATOR_PERMISSION_SEEDS,
+  supervisor: SUPERVISOR_PERMISSION_SEEDS,
+  salesperson: SALESPERSON_PERMISSION_SEEDS,
+  viewer_support: permissionSeedMap({}),
+};
+
+export const initializePermissionModel = onCall(
+  async (request) => {
+    const actor = await requireActiveActor(
+      request.auth?.uid
+    );
+
+    if (
+      actor.application_role !== "super_admin" &&
+      actor.application_role !== "administrator"
+    ) {
+      throw new HttpsError(
+        "permission-denied",
+        "Only administrators may initialize the permission model."
+      );
+    }
+
+    const result = await firestore.runTransaction(
+      async (transaction) => {
+        const roleRecordsReference = firestore
+          .collection("entities")
+          .doc("RoleDefinition")
+          .collection("records");
+
+        const permissionRecordsReference = firestore
+          .collection("entities")
+          .doc("ModulePermission")
+          .collection("records");
+
+        const [
+          roleSnapshot,
+          permissionSnapshot,
+        ] = await Promise.all([
+          transaction.get(roleRecordsReference),
+          transaction.get(permissionRecordsReference),
+        ]);
+
+        const activeRoleDocuments = new Map(
+          roleSnapshot.docs
+            .filter(
+              (document) =>
+                permissionString(
+                  document.data().status
+                ) === "active"
+            )
+            .map(
+              (document) => [
+                permissionString(
+                  document.data().role_key
+                ),
+                document,
+              ]
+            )
+        );
+
+        const existingPermissionKeys = new Set(
+          permissionSnapshot.docs
+            .filter(
+              (document) =>
+                permissionString(
+                  document.data().status
+                ) === "active"
+            )
+            .map((document) => {
+              const data = document.data();
+
+              return (
+                permissionString(data.role_key) +
+                "|" +
+                permissionString(data.module_key)
+              );
+            })
+        );
+
+        const now = new Date().toISOString();
+        let rolesCreated = 0;
+        let permissionsCreated = 0;
+        const roleDocumentIds = new Map<string, string>();
+
+        for (const definition of SYSTEM_ROLE_DEFINITIONS) {
+          const existingDocument =
+            activeRoleDocuments.get(definition.role_key);
+
+          if (existingDocument) {
+            roleDocumentIds.set(
+              definition.role_key,
+              existingDocument.id
+            );
+            continue;
+          }
+
+          const roleReference =
+            roleRecordsReference.doc();
+
+          transaction.create(roleReference, {
+            ...definition,
+            role_type: "system",
+            base_role_key: null,
+            is_system_role: true,
+            status: "active",
+            created_by_user_id: actor.id,
+            last_modified_by_user_id: actor.id,
+            created_date: now,
+            modified_date: now,
+          });
+
+          roleDocumentIds.set(
+            definition.role_key,
+            roleReference.id
+          );
+          rolesCreated += 1;
+        }
+
+        for (
+          const [roleKey, matrix] of
+          Object.entries(DEFAULT_PERMISSION_SEEDS)
+        ) {
+          for (const moduleKey of PERMISSION_MODULE_KEYS) {
+            const compositeKey =
+              roleKey + "|" + moduleKey;
+
+            if (
+              existingPermissionKeys.has(compositeKey)
+            ) {
+              continue;
+            }
+
+            const permissionReference =
+              permissionRecordsReference.doc();
+
+            transaction.create(permissionReference, {
+              role_definition_id:
+                roleDocumentIds.get(roleKey) || null,
+              role_key: roleKey,
+              module_key: moduleKey,
+              ...matrix[moduleKey],
+              conditions: {},
+              status: "active",
+              created_by_user_id: actor.id,
+              last_modified_by_user_id: actor.id,
+              created_date: now,
+              modified_date: now,
+            });
+
+            permissionsCreated += 1;
+          }
+        }
+
+        const auditReference = firestore
+          .collection("entities")
+          .doc("AuditLog")
+          .collection("records")
+          .doc();
+
+        transaction.create(auditReference, {
+          action: "permission_model_init",
+          entity: "PermissionModel",
+          entity_id: null,
+          actor_user_id: actor.id,
+          actor_email: actor.email,
+          user_email: actor.email || "system",
+          details: JSON.stringify({
+            roles_created: rolesCreated,
+            permissions_created: permissionsCreated,
+            actor_role: actor.application_role,
+          }),
+          created_date: now,
+          updated_date: now,
+          timestamp: now,
+        });
+
+        return {
+          roles_created: rolesCreated,
+          permissions_created: permissionsCreated,
+        };
+      }
+    );
+
+    return {
+      status: "initialized",
+      ...result,
+      system_roles:
+        Object.keys(DEFAULT_PERMISSION_SEEDS),
+      active_modules: PERMISSION_MODULE_KEYS.length,
+    };
+  }
+);
+
+const PERMISSION_OVERRIDE_ACTIONS = new Set([
+  "upsert",
+  "deactivate",
+]);
+
+const PERMISSION_OVERRIDE_MODES = new Set([
+  "inherit",
+  "replace",
+  "restrict",
+]);
+
+const PERMISSION_OVERRIDE_SCOPES = new Set([
+  "none",
+  "own",
+  "team",
+  "all",
+]);
+
+function permissionOverrideDate(
+  value: unknown
+): string | null {
+  if (
+    value === null ||
+    value === undefined ||
+    value === ""
+  ) {
+    return null;
+  }
+
+  if (typeof value !== "string") {
+    throw new HttpsError(
+      "invalid-argument",
+      "The expiration date must be an ISO date or null."
+    );
+  }
+
+  const milliseconds = Date.parse(value);
+
+  if (!Number.isFinite(milliseconds)) {
+    throw new HttpsError(
+      "invalid-argument",
+      "The permission override expiration date is invalid."
+    );
+  }
+
+  return new Date(milliseconds).toISOString();
+}
+
+export const updateUserPermissionOverride = onCall(
+  async (request) => {
+    await requireActiveActor(request.auth?.uid);
+
+    const payload =
+      request.data &&
+      typeof request.data === "object" &&
+      !Array.isArray(request.data) ?
+        request.data as ProfileData :
+        {};
+
+    const action = readString(payload, "action");
+    const targetUserId = readString(
+      payload,
+      "target_user_id",
+      "targetUserId",
+      "user_id",
+      "userId"
+    );
+    const moduleKey = readString(
+      payload,
+      "module_key",
+      "moduleKey"
+    );
+    const reason = readString(payload, "reason");
+
+    if (
+      !action ||
+      !PERMISSION_OVERRIDE_ACTIONS.has(action)
+    ) {
+      throw new HttpsError(
+        "invalid-argument",
+        "A supported permission override action is required."
+      );
+    }
+
+    if (!targetUserId) {
+      throw new HttpsError(
+        "invalid-argument",
+        "A target employee user identifier is required."
+      );
+    }
+
+    if (!moduleKey) {
+      throw new HttpsError(
+        "invalid-argument",
+        "A permission module key is required."
+      );
+    }
+
+    if (
+      !PERMISSION_MODULE_KEYS.some(
+        (supportedKey) => supportedKey === moduleKey
+      )
+    ) {
+      throw new HttpsError(
+        "invalid-argument",
+        "The permission module key is not supported."
+      );
+    }
+
+    if (!reason) {
+      throw new HttpsError(
+        "invalid-argument",
+        "A reason for the permission change is required."
+      );
+    }
+
+    if (reason.length > 500) {
+      throw new HttpsError(
+        "invalid-argument",
+        "The permission change reason cannot exceed 500 characters."
+      );
+    }
+
+    let overrideMode: string | null = null;
+    let recordScope: string | null = null;
+    let expirationDate: string | null = null;
+    const permissionValues: ProfileData = {};
+
+    if (action === "upsert") {
+      overrideMode = readString(
+        payload,
+        "override_mode",
+        "overrideMode"
+      );
+      recordScope = readString(
+        payload,
+        "record_scope",
+        "recordScope"
+      );
+
+      if (
+        !overrideMode ||
+        !PERMISSION_OVERRIDE_MODES.has(overrideMode)
+      ) {
+        throw new HttpsError(
+          "invalid-argument",
+          "A supported permission override mode is required."
+        );
+      }
+
+      if (
+        !recordScope ||
+        !PERMISSION_OVERRIDE_SCOPES.has(recordScope)
+      ) {
+        throw new HttpsError(
+          "invalid-argument",
+          "A supported permission record scope is required."
+        );
+      }
+
+      for (const flag of PERMISSION_ACTION_FLAGS) {
+        const value = payload[flag];
+
+        if (
+          value !== undefined &&
+          typeof value !== "boolean"
+        ) {
+          throw new HttpsError(
+            "invalid-argument",
+            `Permission flag ${flag} must be boolean.`
+          );
+        }
+
+        permissionValues[flag] = value === true;
+      }
+
+      expirationDate = permissionOverrideDate(
+        payload.expiration_date ??
+        payload.expirationDate
+      );
+    }
+
+    const result = await firestore.runTransaction(
+      async (transaction) => {
+        const profilesReference =
+          firestore.collection("userProfiles");
+
+        const overrideRecordsReference = firestore
+          .collection("entities")
+          .doc("UserPermissionOverride")
+          .collection("records");
+
+        const [
+          profilesSnapshot,
+          overridesSnapshot,
+        ] = await Promise.all([
+          transaction.get(profilesReference),
+          transaction.get(overrideRecordsReference),
+        ]);
+
+        const users = profilesSnapshot.docs.map(
+          (document) =>
+            normalizeDirectoryUser(
+              document.id,
+              document.data() as ProfileData
+            )
+        );
+
+        const actor = users.find(
+          (user) => user.id === request.auth?.uid
+        );
+
+        if (
+          !actor ||
+          actor.account_status !== "active"
+        ) {
+          throw new HttpsError(
+            "permission-denied",
+            "An active ATLAS employee profile is required."
+          );
+        }
+
+        const actorIsSuperAdministrator =
+          actor.application_role === "super_admin";
+        const actorIsAdministrator =
+          actor.application_role === "administrator";
+
+        if (
+          !actorIsSuperAdministrator &&
+          !actorIsAdministrator
+        ) {
+          throw new HttpsError(
+            "permission-denied",
+            "Permission override administration is not authorized."
+          );
+        }
+
+        if (actor.id === targetUserId) {
+          throw new HttpsError(
+            "failed-precondition",
+            "Administrators cannot manage their own permission overrides."
+          );
+        }
+
+        const target = users.find(
+          (user) => user.id === targetUserId
+        );
+
+        if (!target) {
+          throw new HttpsError(
+            "not-found",
+            "The target employee profile was not found."
+          );
+        }
+
+        if (target.account_status !== "active") {
+          throw new HttpsError(
+            "failed-precondition",
+            "Permission overrides require an active target employee."
+          );
+        }
+
+        const targetIsAdministratorTier =
+          target.application_role === "super_admin" ||
+          target.application_role === "administrator";
+
+        if (
+          actorIsAdministrator &&
+          targetIsAdministratorTier
+        ) {
+          throw new HttpsError(
+            "permission-denied",
+            "Administrators cannot manage Administrator-tier accounts."
+          );
+        }
+
+        const matchingOverrides =
+          overridesSnapshot.docs.filter((document) => {
+            const data =
+              document.data() as ProfileData;
+
+            return (
+              readString(
+                data,
+                "user_id",
+                "userId",
+                "target_user_id",
+                "targetUserId"
+              ) === target.id &&
+              readString(
+                data,
+                "module_key",
+                "moduleKey"
+              ) === moduleKey
+            );
+          });
+
+        if (matchingOverrides.length > 1) {
+          throw new HttpsError(
+            "failed-precondition",
+            "Multiple permission overrides exist for this employee and module."
+          );
+        }
+
+        if (
+          action === "deactivate" &&
+          matchingOverrides.length === 0
+        ) {
+          throw new HttpsError(
+            "not-found",
+            "The permission override was not found."
+          );
+        }
+
+        const existingDocument =
+          matchingOverrides.length === 1 ?
+            matchingOverrides[0] :
+            null;
+
+        const overrideReference =
+          existingDocument ?
+            existingDocument.ref :
+            overrideRecordsReference.doc();
+
+        const existingData =
+          existingDocument ?
+            existingDocument.data() as ProfileData :
+            {};
+
+        const now = new Date().toISOString();
+
+        const overrideUpdate: ProfileData = {
+          user_id: target.id,
+          module_key: moduleKey,
+          reason,
+          updated_date: now,
+          last_modified_by_user_id: actor.id,
+        };
+
+        if (!existingDocument) {
+          overrideUpdate.created_date = now;
+          overrideUpdate.created_by_user_id = actor.id;
+        }
+
+        if (action === "upsert") {
+          overrideUpdate.override_mode = overrideMode;
+          overrideUpdate.record_scope = recordScope;
+          overrideUpdate.expiration_date = expirationDate;
+          overrideUpdate.effective_date =
+            readString(
+              existingData,
+              "effective_date"
+            ) || now;
+          overrideUpdate.status = "active";
+
+          if (existingDocument) {
+            overrideUpdate.deactivated_date =
+              FieldValue.delete();
+            overrideUpdate.deactivated_by_user_id =
+              FieldValue.delete();
+          }
+
+          for (const flag of PERMISSION_ACTION_FLAGS) {
+            overrideUpdate[flag] =
+              permissionValues[flag] === true;
+          }
+        } else {
+          overrideUpdate.status = "inactive";
+          overrideUpdate.deactivated_date = now;
+          overrideUpdate.deactivated_by_user_id =
+            actor.id;
+        }
+
+        transaction.set(
+          overrideReference,
+          overrideUpdate,
+          {
+            merge: true,
+          }
+        );
+
+        const auditReference = firestore
+          .collection("entities")
+          .doc("AuditLog")
+          .collection("records")
+          .doc();
+
+        transaction.set(auditReference, {
+          action:
+            `permission_override_${action}`,
+          actor_user_id: actor.id,
+          actor_email: actor.email,
+          target_user_id: target.id,
+          target_email: target.email,
+          module_key: moduleKey,
+          override_id: overrideReference.id,
+          reason,
+          requested_value:
+            action === "upsert" ?
+              {
+                override_mode: overrideMode,
+                record_scope: recordScope,
+                expiration_date: expirationDate,
+                ...permissionValues,
+              } :
+              {
+                status: "inactive",
+              },
+          created_date: now,
+          updated_date: now,
+        });
+
+        const responseOverride: ProfileData = {
+          id: overrideReference.id,
+          ...existingData,
+          user_id: target.id,
+          module_key: moduleKey,
+          reason,
+          updated_date: now,
+          last_modified_by_user_id: actor.id,
+          status:
+            action === "upsert" ?
+              "active" :
+              "inactive",
+        };
+
+        if (action === "upsert") {
+          responseOverride.override_mode =
+            overrideMode;
+          responseOverride.record_scope =
+            recordScope;
+          responseOverride.expiration_date =
+            expirationDate;
+          responseOverride.effective_date =
+            readString(
+              existingData,
+              "effective_date"
+            ) || now;
+
+          for (const flag of PERMISSION_ACTION_FLAGS) {
+            responseOverride[flag] =
+              permissionValues[flag] === true;
+          }
+        } else {
+          responseOverride.deactivated_date = now;
+          responseOverride.deactivated_by_user_id =
+            actor.id;
+        }
+
+        if (!existingDocument) {
+          responseOverride.created_date = now;
+          responseOverride.created_by_user_id =
+            actor.id;
+        }
+
+        return {
+          action,
+          override: responseOverride,
+        };
+      }
+    );
+
+    return {
+      success: true,
+      ...result,
+    };
+  }
+);
+
+/* eslint-enable require-jsdoc */
+
 export const updateCurrentProfile = onCall(
   async (request) => {
     const actor = await requireActiveActor(
