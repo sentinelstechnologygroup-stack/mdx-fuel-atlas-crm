@@ -2,17 +2,12 @@ import React, { useState, useMemo } from "react";
 import { atlas } from "@/api/atlasClient";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
-  Plus, Search, Phone, MoreHorizontal, ArrowLeft, Upload, Filter, User, MessageCircle, Users, Activity, CheckCircle2, Pencil, Briefcase, Tag, ArrowUp, ArrowDown, ArrowUpDown, Trash2, LayoutGrid, List as ListIcon, Sparkles, Eye 
+  Plus, Phone, MessageCircle, Users, Activity, CheckCircle2, Pencil, ArrowUp, ArrowDown, ArrowUpDown, Trash2, LayoutGrid, List as ListIcon, Sparkles, Eye
 } from "lucide-react";
 
-import {
-  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from
-"@/components/ui/dropdown-menu";
+
 import LeadForm from "@/components/crm/LeadForm";
 import LeadsKanban from "@/components/crm/LeadsKanban";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
@@ -20,7 +15,6 @@ import { processAutomation } from "@/components/automation/rulesEngine";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { InlineEdit } from "@/components/ui/InlineEdit";
-import { motion, AnimatePresence } from "framer-motion";
 import { useSettings } from "@/components/context/SettingsContext";
 import AiLeadImport from "@/components/crm/AiLeadImport";
 import { usePermissions } from '@/components/hooks/usePermissions';
@@ -33,7 +27,7 @@ export default function LeadsPage() {
   const { canCreate, canEdit, canDelete } = usePermissions();
   const { leadStatuses, theme } = useSettings();
   const location = useLocation();
-  
+
   // Custom statuses to match LeadForm exactly - with Neon support for Dark Mode
   const displayStatuses = useMemo(() => {
     if (theme === 'dark') {
@@ -55,15 +49,15 @@ export default function LeadsPage() {
       { value: "Lost / Unqualified", label: "Lost / Unqualified", color: "bg-slate-100 text-slate-500 border-slate-200" }
     ];
   }, [theme]);
-  
-  
+
+
   const [showLeadForm, setShowLeadForm] = useState(false);
   const [editingLead, setEditingLead] = useState(null);
   const [viewMode, setViewMode] = useState('kanban'); // Default to kanban view
-  
+
   // Smart Filters with URL Sync
-  const { view: activeView, setView: setActiveView, filters: activeFilters, setFilters: setActiveFilters, setViewState, search, setSearch } = useUrlFilters('all');
-  
+  const { view: activeView, filters: activeFilters, setFilters: setActiveFilters, setViewState, search, setSearch } = useUrlFilters('all');
+
   const [sortConfig, setSortConfig] = useState({ key: 'created_date', direction: 'desc' });
   const [showAiImport, setShowAiImport] = useState(false);
 
@@ -132,17 +126,17 @@ export default function LeadsPage() {
 
   // Schema for SmartFilterBar
   const filterSchema = useMemo(() => [
-    { 
-        key: 'status', 
-        label: 'Status', 
-        type: 'select', 
-        options: leadStatuses.map(s => ({ label: s.label, value: s.value })) 
+    {
+        key: 'status',
+        label: 'Status',
+        type: 'select',
+        options: leadStatuses.map(s => ({ label: s.label, value: s.value }))
     },
-    { 
-        key: 'tag', 
-        label: 'Tag', 
-        type: 'select', 
-        options: uniqueTags.map(t => ({ label: t, value: t })) 
+    {
+        key: 'tag',
+        label: 'Tag',
+        type: 'select',
+        options: uniqueTags.map(t => ({ label: t, value: t }))
     },
     {
         key: 'source_year',
@@ -163,7 +157,7 @@ export default function LeadsPage() {
       { id: 'my_leads', label: 'My Leads' },
       { id: 'requires_action', label: (
           <span className="flex items-center gap-2">
-             Action Required 
+             Action Required
              {actionRequiredCount > 0 && <span className="flex h-2 w-2 rounded-full bg-red-500" />}
           </span>
       ) },
@@ -174,7 +168,7 @@ export default function LeadsPage() {
       const newFilters = {};
       if (viewId === 'new') newFilters.status = 'New';
       if (viewId === 'requires_action') newFilters.status = 'Attempting Contact';
-      
+
       setViewState(viewId, newFilters);
   };
 
@@ -220,7 +214,7 @@ export default function LeadsPage() {
 
       // Optimistically update
       queryClient.setQueryData(['leads'], (old) => {
-        return old.map((lead) => 
+        return old.map((lead) =>
           lead.id === id ? { ...lead, ...data, updated_date: new Date().toISOString() } : lead
         );
       });
@@ -246,22 +240,46 @@ export default function LeadsPage() {
 
   const convertToOpportunity = useMutation({
     mutationFn: async (leadData) => {
-      await atlas.entities.Lead.update(leadData.id, { lead_status: "Converted" });
-      return await atlas.entities.Opportunity.create({
-        lead_id: leadData.id,
-        lead_name: leadData.full_name,
-        phone_number: leadData.phone_number,
-        email: leadData.email,
-        product_type: "Reverse Mortgage",
-        deal_stage: "New (חדש)",
-        probability: 10
-      });
+      const response = await atlas.functions.invoke(
+        'convertLeadToOpportunity',
+        {
+          leadId: leadData.id
+        }
+      );
+
+      return response?.data ?? {};
     },
-    onSuccess: (data) => {
-      queryClient.invalidateQueries(['opportunities']);
-      queryClient.invalidateQueries(['leads']);
-      processAutomation('Opportunity', 'create', data);
-      alert("🎉 הליד הפך להזדמנות בהצלחה!");
+    onSuccess: async (result) => {
+      await Promise.all([
+        queryClient.invalidateQueries(['opportunities']),
+        queryClient.invalidateQueries(['leads'])
+      ]);
+
+      if (result.created && result.opportunity) {
+        processAutomation(
+          'Opportunity',
+          'create',
+          result.opportunity
+        );
+      }
+
+      alert(
+        result.created
+          ? 'Lead converted to an opportunity successfully.'
+          : 'This lead is already connected to an opportunity.'
+      );
+    },
+    onError: (error) => {
+      console.error(
+        'Lead conversion failed:',
+        error
+      );
+
+      alert(
+        'The lead could not be converted. ' +
+        'No partial conversion was saved. ' +
+        'Please retry or contact an administrator.'
+      );
     }
   });
 
@@ -284,7 +302,7 @@ export default function LeadsPage() {
       }
       if (activeView === 'new') {
            // Simple "New" status check for now, ideally check created_date === today
-           // if (lead.lead_status !== 'New') return false; 
+           // if (lead.lead_status !== 'New') return false;
            // Better: Created Today
            const isToday = new Date(lead.created_date).toDateString() === new Date().toDateString();
            if (!isToday) return false;
@@ -327,10 +345,10 @@ export default function LeadsPage() {
 
   return (
     <div className={`flex flex-col transition-colors duration-300 ${viewMode === 'kanban' ? 'min-h-[calc(100dvh-100px)] md:h-[calc(100vh-140px)]' : 'min-h-full pb-24 md:pb-0'} ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>
-      
+
       {/* Smart Filter Bar & Actions */}
       <div className="mb-6 z-40 relative">
-        <SmartFilterBar 
+        <SmartFilterBar
             views={views}
             activeView={activeView}
             onViewChange={handleViewChange}
@@ -342,7 +360,7 @@ export default function LeadsPage() {
         >
             {canCreate && (
             <div className="flex gap-2">
-                <Button 
+                <Button
                     onClick={() => setShowAiImport(true)}
                     size="sm"
                     className={`h-8 rounded-lg border border-transparent bg-gradient-to-r from-purple-500/10 to-blue-500/10 text-purple-600 hover:from-purple-500/20 hover:to-blue-500/20 ${
@@ -353,8 +371,8 @@ export default function LeadsPage() {
                     <span className="hidden md:inline text-xs font-medium">AI Import</span>
                 </Button>
                 <Button size="sm" onClick={() => setShowLeadForm(true)} className={`h-8 rounded-lg shadow-lg shadow-indigo-500/20 ${
-                    theme === 'dark' 
-                    ? 'bg-indigo-600 hover:bg-indigo-500 text-white' 
+                    theme === 'dark'
+                    ? 'bg-indigo-600 hover:bg-indigo-500 text-white'
                     : 'bg-indigo-600 hover:bg-indigo-700 text-white'
                 }`}>
                     <Plus className="w-4 h-4 md:mr-1" />
@@ -398,12 +416,12 @@ export default function LeadsPage() {
              <div className={`p-1 rounded-xl border shadow-sm flex gap-1 h-fit transition-colors ${
                  theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-neutral-200'
              }`}>
-                 <Button variant="ghost" size="sm" onClick={() => setViewMode('kanban')} className={viewMode === 'kanban' 
+                 <Button variant="ghost" size="sm" onClick={() => setViewMode('kanban')} className={viewMode === 'kanban'
                      ? theme === 'dark' ? 'bg-slate-700 text-cyan-400 shadow-sm' : 'bg-neutral-100 text-neutral-900 shadow-sm'
                      : theme === 'dark' ? 'text-slate-400 hover:text-cyan-400' : 'text-neutral-500'}>
                      <LayoutGrid className="w-4 h-4 mr-2" /> Board
                  </Button>
-                 <Button variant="ghost" size="sm" onClick={() => setViewMode('list')} className={viewMode === 'list' 
+                 <Button variant="ghost" size="sm" onClick={() => setViewMode('list')} className={viewMode === 'list'
                      ? theme === 'dark' ? 'bg-slate-700 text-cyan-400 shadow-sm' : 'bg-neutral-100 text-neutral-900 shadow-sm'
                      : theme === 'dark' ? 'text-slate-400 hover:text-cyan-400' : 'text-neutral-500'}>
                      <ListIcon className="w-4 h-4 mr-2" /> List
@@ -415,8 +433,8 @@ export default function LeadsPage() {
       {/* --- תצוגת קאנבן --- */}
       {viewMode === 'kanban' && (
         <div className="h-[75vh] md:h-auto md:flex-1 md:min-h-0 w-full overflow-hidden">
-            <LeadsKanban 
-                leads={filteredLeads} 
+            <LeadsKanban
+                leads={filteredLeads}
                 statuses={displayStatuses}
                 activities={activities}
                 onStatusChange={(id, status) => updateLead.mutate({ id, data: { lead_status: status } })}
@@ -506,11 +524,11 @@ export default function LeadsPage() {
                     </div>
                     <div className={`col-span-2 text-sm flex items-center gap-2 ${theme === 'dark' ? 'text-slate-200' : 'text-slate-600'}`}>
                         <Phone className={`w-4 h-4 ${theme === 'dark' ? 'text-cyan-400' : 'text-slate-400'}`} />
-                        <InlineEdit 
-                          value={lead.phone_number} 
-                          type="tel" 
-                          className={`font-mono ${theme === 'dark' ? 'text-slate-100 font-medium' : 'text-slate-800'}`} 
-                          onSave={(v) => updateLead.mutate({ id: lead.id, data: { phone_number: v } })} 
+                        <InlineEdit
+                          value={lead.phone_number}
+                          type="tel"
+                          className={`font-mono ${theme === 'dark' ? 'text-slate-100 font-medium' : 'text-slate-800'}`}
+                          onSave={(v) => updateLead.mutate({ id: lead.id, data: { phone_number: v } })}
                         />
                         {lead.phone_number && <WhatsAppBtn phone={lead.phone_number} />}
                     </div>
@@ -604,11 +622,11 @@ export default function LeadsPage() {
                     <div className={`p-3 rounded-lg flex items-center justify-between border transition-colors ${
                       theme === 'dark' ? 'bg-slate-900 border-slate-700' : 'bg-slate-50 border-slate-100'
                     }`}>
-                     <InlineEdit 
-                        value={lead.phone_number} 
-                        type="tel" 
-                        className={`font-mono font-medium ${theme === 'dark' ? 'text-slate-100' : 'text-slate-700'}`} 
-                        onSave={(v) => updateLead.mutate({ id: lead.id, data: { phone_number: v } })} 
+                     <InlineEdit
+                        value={lead.phone_number}
+                        type="tel"
+                        className={`font-mono font-medium ${theme === 'dark' ? 'text-slate-100' : 'text-slate-700'}`}
+                        onSave={(v) => updateLead.mutate({ id: lead.id, data: { phone_number: v } })}
                      />
                      {lead.phone_number && <WhatsAppBtn phone={lead.phone_number} />}
                     </div>
@@ -639,7 +657,7 @@ export default function LeadsPage() {
             onSaveAndClose={(data) => {
               const wasConverted = editingLead?.lead_status === 'Converted';
               const isNowConverted = data.lead_status === 'Converted';
-              
+
               if (isNowConverted && !wasConverted) {
                 // המרה חדשה - צריך ליצור הזדמנות
                 if (editingLead) {
@@ -658,7 +676,7 @@ export default function LeadsPage() {
             onSaveAndStay={(data) => {
               const wasConverted = editingLead?.lead_status === 'Converted';
               const isNowConverted = data.lead_status === 'Converted';
-              
+
               if (isNowConverted && !wasConverted && editingLead) {
                 // המרה חדשה - צריך ליצור הזדמנות ולהישאר בתיק
                 convertToOpportunity.mutate({ ...editingLead, ...data });
@@ -674,7 +692,7 @@ export default function LeadsPage() {
       </Dialog>
 
       {/* דיאלוג ייבוא AI */}
-      <AiLeadImport 
+      <AiLeadImport
         open={showAiImport}
         onOpenChange={setShowAiImport}
         onLeadCreated={(leadData) => createLead.mutate(leadData)}
@@ -684,22 +702,6 @@ export default function LeadsPage() {
 }
 
 // קומפוננטות עזר קטנות
-function StatCard({ icon: Icon, label, value, color }) {
-  const { theme } = useSettings();
-  return (
-    <Card className={`border shadow-lg backdrop-blur-xl transition-colors overflow-hidden ${
-      theme === 'dark' ? 'bg-slate-800/60 border-slate-700/50' : 'bg-white/60 border-white/50'
-    }`}>
-            <CardContent className="p-4 flex flex-row items-center justify-start gap-4 text-left h-full">
-                <div className={`p-3 rounded-xl flex-shrink-0 ${color}`}><Icon className="w-5 h-5" /></div>
-                <div className="min-w-0">
-                    <p className={`text-xs md:text-sm font-medium truncate ${theme === 'dark' ? 'text-slate-400' : 'text-slate-500'}`}>{label}</p>
-                    <p className={`text-lg md:text-2xl font-bold truncate ${theme === 'dark' ? 'text-white' : 'text-slate-800'}`}>{value}</p>
-                </div>
-            </CardContent>
-        </Card>);
-}
-
 function WhatsAppBtn({ phone }) {
   const cleanNum = phone.replace(/\D/g, '').replace(/^0/, '');
   return (
@@ -730,25 +732,24 @@ function LeadAvatar({ lead, className }) {
   const { theme } = useSettings();
   const score = lead.ai_quality_score || 0;
   const temp = lead.lead_temperature || 'Cold';
-  
+
   const isHot = temp === 'Hot' || score >= 80;
   const isWarm = temp === 'Warm' || (score >= 50 && score < 80);
-  
+
   // Dynamic glow color
   const glowColor = isHot ? 'bg-red-500' : isWarm ? 'bg-amber-400' : 'bg-blue-400';
-  const ringColor = isHot ? 'ring-red-500' : isWarm ? 'ring-amber-400' : 'ring-blue-200';
-  
+
   return (
     <div className={`relative group ${className}`}>
       {/* Pulse Effect for Hot/Warm */}
       {(isHot || isWarm) && (
         <span className={`absolute -inset-1 rounded-full opacity-30 animate-pulse blur-sm ${glowColor}`}></span>
       )}
-      
+
       {/* Avatar Circle */}
       <div className={`w-full h-full rounded-full flex items-center justify-center font-bold text-sm relative z-10 transition-all border-2 ${
-        theme === 'dark' 
-          ? `bg-slate-800 text-white ${isHot ? 'border-red-500/50' : 'border-slate-700'}` 
+        theme === 'dark'
+          ? `bg-slate-800 text-white ${isHot ? 'border-red-500/50' : 'border-slate-700'}`
           : `bg-white text-slate-700 ${isHot ? 'border-red-200' : 'border-slate-200'}`
       }`}>
         {lead.full_name?.charAt(0)}
@@ -758,7 +759,7 @@ function LeadAvatar({ lead, className }) {
       <span className={`absolute bottom-0 right-0 w-3 h-3 border-2 rounded-full z-20 ${
           theme === 'dark' ? 'border-slate-900' : 'border-white'
       } ${glowColor}`}></span>
-      
+
       {/* Tooltip for AI Score (Optional) */}
       {score > 0 && (
           <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-black text-white text-[10px] px-1.5 py-0.5 rounded whitespace-nowrap z-30 pointer-events-none">

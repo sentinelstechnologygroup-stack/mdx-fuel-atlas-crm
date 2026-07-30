@@ -2985,6 +2985,325 @@ export const exportReport = onCall(async (request) => {
 /* eslint-enable require-jsdoc */
 
 /**
+ * Converts an authorized lead into one opportunity.
+ */
+export const convertLeadToOpportunity = onCall(
+  async (request) => {
+    const actor = await requireActiveActor(
+      request.auth?.uid
+    );
+
+    const payload =
+      request.data &&
+      typeof request.data === "object" &&
+      !Array.isArray(request.data) ?
+        request.data as EntityData :
+        {};
+
+    if (
+      Object.keys(payload).length !== 1 ||
+      !Object.prototype.hasOwnProperty.call(
+        payload,
+        "leadId"
+      )
+    ) {
+      throw new HttpsError(
+        "invalid-argument",
+        "Only a leadId may be supplied."
+      );
+    }
+
+    const leadId = readString(
+      payload,
+      "leadId"
+    );
+
+    if (
+      !leadId ||
+      leadId.includes("/") ||
+      leadId.length > 1200
+    ) {
+      throw new HttpsError(
+        "invalid-argument",
+        "A valid lead identifier is required."
+      );
+    }
+
+    const result = await firestore.runTransaction(
+      async (transaction) => {
+        const entitiesReference =
+          firestore.collection("entities");
+
+        const leadReference =
+          entitiesReference
+            .doc("Lead")
+            .collection("records")
+            .doc(leadId);
+
+        const opportunitiesReference =
+          entitiesReference
+            .doc("Opportunity")
+            .collection("records");
+
+        const deterministicOpportunityReference =
+          opportunitiesReference.doc(
+            "lead-" + leadId
+          );
+
+        const existingOpportunityQuery =
+          opportunitiesReference
+            .where("lead_id", "==", leadId)
+            .limit(2);
+
+        const [
+          leadSnapshot,
+          deterministicOpportunitySnapshot,
+          existingOpportunitySnapshot,
+        ] = await Promise.all([
+          transaction.get(leadReference),
+          transaction.get(
+            deterministicOpportunityReference
+          ),
+          transaction.get(existingOpportunityQuery),
+        ]);
+
+        if (!leadSnapshot.exists) {
+          throw new HttpsError(
+            "not-found",
+            "The lead was not found."
+          );
+        }
+
+        const lead =
+          leadSnapshot.data() as EntityData;
+
+        if (lead.is_deleted === true) {
+          throw new HttpsError(
+            "failed-precondition",
+            "An archived lead cannot be converted."
+          );
+        }
+
+        if (!canModifyScopedRecord(actor, lead)) {
+          throw new HttpsError(
+            "permission-denied",
+            "Lead conversion is not authorized."
+          );
+        }
+
+        const existingOpportunities =
+          new Map<string, EntityData>();
+
+        if (
+          deterministicOpportunitySnapshot.exists
+        ) {
+          existingOpportunities.set(
+            deterministicOpportunitySnapshot.id,
+            deterministicOpportunitySnapshot.data() as EntityData
+          );
+        }
+
+        for (
+          const document of
+          existingOpportunitySnapshot.docs
+        ) {
+          existingOpportunities.set(
+            document.id,
+            document.data() as EntityData
+          );
+        }
+
+        if (existingOpportunities.size > 1) {
+          throw new HttpsError(
+            "failed-precondition",
+            "Multiple opportunities already reference this lead."
+          );
+        }
+
+        const existingOpportunity =
+          Array.from(
+            existingOpportunities.entries()
+          )[0];
+
+        const nowIso = new Date().toISOString();
+
+        if (existingOpportunity) {
+          const [
+            existingOpportunityId,
+            existingOpportunityData,
+          ] = existingOpportunity;
+
+          if (
+            readString(
+              existingOpportunityData,
+              "lead_id",
+              "leadId"
+            ) !== leadId
+          ) {
+            throw new HttpsError(
+              "already-exists",
+              "The deterministic opportunity identifier is in use."
+            );
+          }
+
+          transaction.update(leadReference, {
+            lead_status: "Converted",
+            converted_opportunity_id:
+              existingOpportunityId,
+            converted_date:
+              readString(
+                lead,
+                "converted_date"
+              ) || nowIso,
+            updated_date: nowIso,
+            last_modified_by_user_id: actor.id,
+          });
+
+          return {
+            opportunityId:
+              existingOpportunityId,
+            created: false,
+            opportunity: {
+              id: existingOpportunityId,
+              ...existingOpportunityData,
+            },
+          };
+        }
+
+        const fullName =
+          readString(
+            lead,
+            "full_name",
+            "fullName"
+          ) || "Unnamed Lead";
+
+        const ownerUserId = readString(
+          lead,
+          "owner_user_id",
+          "ownerId"
+        );
+
+        const assignedTeamId = readString(
+          lead,
+          "assigned_team_id",
+          "teamId"
+        );
+
+        const assignedSupervisorId =
+          readString(
+            lead,
+            "assigned_supervisor_user_id",
+            "supervisorId"
+          );
+
+        const territoryId = readString(
+          lead,
+          "territory_id",
+          "territoryId"
+        );
+
+        const opportunityData: EntityData = {
+          lead_id: leadId,
+          lead_name: fullName,
+          phone_number: readString(
+            lead,
+            "phone_number",
+            "phone"
+          ),
+          email: readString(
+            lead,
+            "email"
+          ),
+          product_type:
+            readString(
+              lead,
+              "product_type",
+              "service_type"
+            ) || "Fuel Service",
+          deal_stage: "New (חדש)",
+          probability: 10,
+          owner_user_id: ownerUserId,
+          assigned_team_id: assignedTeamId,
+          assigned_supervisor_user_id:
+            assignedSupervisorId,
+          territory_id: territoryId,
+          ownership_status:
+            ownerUserId ?
+              "assigned" :
+              "unassigned",
+          assigned_by_user_id:
+            readString(
+              lead,
+              "assigned_by_user_id"
+            ) || actor.id,
+          assignment_date:
+            readString(
+              lead,
+              "assignment_date"
+            ) || nowIso,
+          last_activity_date:
+            readString(
+              lead,
+              "last_activity_date"
+            ),
+          created_date: nowIso,
+          updated_date: nowIso,
+          created_by_user_id: actor.id,
+          last_modified_by_user_id: actor.id,
+        };
+
+        transaction.create(
+          deterministicOpportunityReference,
+          opportunityData
+        );
+
+        transaction.update(leadReference, {
+          lead_status: "Converted",
+          converted_opportunity_id:
+            deterministicOpportunityReference.id,
+          converted_date: nowIso,
+          updated_date: nowIso,
+          last_modified_by_user_id: actor.id,
+        });
+
+        const auditReference =
+          entitiesReference
+            .doc("AuditLog")
+            .collection("records")
+            .doc();
+
+        transaction.set(auditReference, {
+          action:
+            "lead_converted_to_opportunity",
+          actor_user_id: actor.id,
+          actor_email: actor.email,
+          lead_id: leadId,
+          opportunity_id:
+            deterministicOpportunityReference.id,
+          created_date: nowIso,
+          updated_date: nowIso,
+        });
+
+        return {
+          opportunityId:
+            deterministicOpportunityReference.id,
+          created: true,
+          opportunity: {
+            id:
+              deterministicOpportunityReference.id,
+            ...opportunityData,
+          },
+        };
+      }
+    );
+
+    return {
+      success: true,
+      ...result,
+    };
+  }
+);
+/**
  * Converts an authorized Closed Won opportunity into a client.
  */
 export const convertOpportunityToClient = onCall(
