@@ -1,5 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
-import { atlas } from '@/api/atlasClient';
+import { useAuth } from '@/auth/AuthContext';
 import {
   effectiveRole,
   isEffectiveAdminTier,
@@ -10,12 +9,10 @@ import {
 } from '@/lib/roles';
 
 export function usePermissions() {
-  const { data: user, isLoading } = useQuery({
-    queryKey: ['currentUserPermissions'],
-    queryFn: () => atlas.auth.me(),
-    staleTime: 1000 * 60 * 5,
-    retry: false,
-  });
+  const {
+    profile: user,
+    isLoadingAuth,
+  } = useAuth();
 
   const applicationRole = effectiveRole(user);
   const isSuperAdmin = isEffectiveSuperAdmin(user);
@@ -28,7 +25,7 @@ export function usePermissions() {
 
   return {
     user,
-    isLoading,
+    isLoading: isLoadingAuth,
     applicationRole,
     rawApplicationRole: user?.application_role ?? null,
     isSuperAdmin,
