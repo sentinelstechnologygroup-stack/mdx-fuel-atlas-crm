@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, User, Briefcase, Loader2, X, CheckSquare, Activity, FileText } from 'lucide-react';
+import { Search, User, Briefcase, Loader2, X, CheckSquare, Activity } from 'lucide-react';
 import { atlas } from '@/api/atlasClient';
 import { createPageUrl } from '@/utils';
 import { useQuery } from '@tanstack/react-query';
@@ -51,7 +51,7 @@ export default function GlobalSearch() {
             fields.text.forEach(field => {
                 const value = item[field]?.toString().toLowerCase();
                 if (!value) return;
-                
+
                 if (value === lowerTerm) { score += 100; matched = true; } // Exact match
                 else if (value.startsWith(lowerTerm)) { score += 80; matched = true; } // Starts with
                 else if (value.includes(' ' + lowerTerm)) { score += 60; matched = true; } // Word start
@@ -79,7 +79,7 @@ export default function GlobalSearch() {
             .slice(0, 5);
       };
 
-      return { 
+      return {
         leads: processResults(leads, { text: ['full_name', 'email', 'city', 'notes'], phone: 'phone_number' }),
         opportunities: processResults(opportunities, { text: ['lead_name', 'product_type', 'deal_stage', 'main_pain_point'], phone: 'phone_number' }),
         tasks: processResults(tasks, { text: ['title', 'description', 'status'] }),
@@ -99,7 +99,7 @@ export default function GlobalSearch() {
   const handleKeyDown = (e) => {
     if (e.key === 'Enter' && searchTerm.length >= 2) {
         setIsOpen(false);
-        // Navigate will be handled by the Link or form submission normally, 
+        // Navigate will be handled by the Link or form submission normally,
         // but since this is a controlled input inside a div, we need to force navigation
         window.location.href = createPageUrl('SearchResults') + `?q=${encodeURIComponent(searchTerm)}`;
     }
@@ -116,21 +116,21 @@ export default function GlobalSearch() {
     <div className="relative w-full max-w-xl" ref={wrapperRef}>
       <div className="relative group">
         <Search className={`absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 transition-colors pointer-events-none ${
-          theme === 'dark' 
-            ? 'text-slate-500 group-focus-within:text-cyan-400' 
+          theme === 'dark'
+            ? 'text-slate-500 group-focus-within:text-cyan-400'
             : 'text-slate-400 group-focus-within:text-red-600'
         }`} />
         <input
           value={searchTerm}
           onChange={handleSearch}
           onKeyDown={handleKeyDown}
-          onFocus={() => searchTerm.length >= 2 && setIsOpen(true)} 
+          onFocus={() => searchTerm.length >= 2 && setIsOpen(true)}
           className={`pl-12 pr-10 py-3 text-base rounded-full border w-72 focus:w-96 transition-all shadow-sm ${
             theme === 'dark'
               ? 'bg-slate-800 text-white border-slate-700 focus:ring-4 focus:ring-cyan-900/20 focus:border-cyan-500/50 placeholder:text-slate-500'
               : 'bg-white text-slate-800 border-slate-200 focus:ring-4 focus:ring-red-100 focus:border-red-300 placeholder:text-slate-400'
           }`}
-          placeholder="Search leads, opportunities, tasks..." 
+          placeholder="Search leads, opportunities, tasks..."
         />
 
         {searchTerm &&
@@ -188,7 +188,7 @@ export default function GlobalSearch() {
               )}
                         </div>
             }
-                    
+
                     {searchResults?.opportunities?.length > 0 &&
             <div className="mb-2">
                             <div className={`px-4 py-1.5 text-xs font-semibold uppercase tracking-wider ${
@@ -211,7 +211,7 @@ export default function GlobalSearch() {
                                         <Briefcase className="w-4 h-4" />
                                     </div>
                                     <div className="flex-1 min-w-0">
-                                        <div className={`text-sm font-medium truncate ${theme === 'dark' ? 'text-slate-200' : 'text-slate-800'}`}>{opp.lead_name || 'עסקה ללא שם'}</div>
+                                        <div className={`text-sm font-medium truncate ${theme === 'dark' ? 'text-slate-200' : 'text-slate-800'}`}>{opp.lead_name || 'Unnamed Opportunity'}</div>
                                         <div className="text-xs text-slate-500 truncate">{opp.product_type} • {opp.deal_stage?.split('(')[0]}</div>
                                     </div>
                                 </Link>
@@ -236,8 +236,8 @@ export default function GlobalSearch() {
                 }`}>
 
                                     <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
-                                        task.status === 'done' ? (theme === 'dark' ? 'bg-emerald-900/30 text-emerald-400' : 'bg-emerald-100 text-emerald-600') : 
-                                        task.status === 'in_progress' ? (theme === 'dark' ? 'bg-amber-900/30 text-amber-400' : 'bg-amber-100 text-amber-600') : 
+                                        task.status === 'done' ? (theme === 'dark' ? 'bg-emerald-900/30 text-emerald-400' : 'bg-emerald-100 text-emerald-600') :
+                                        task.status === 'in_progress' ? (theme === 'dark' ? 'bg-amber-900/30 text-amber-400' : 'bg-amber-100 text-amber-600') :
                                         (theme === 'dark' ? 'bg-slate-800 text-slate-400' : 'bg-slate-100 text-slate-600')
                                     }`}>
                                         <CheckSquare className="w-4 h-4" />
@@ -287,12 +287,12 @@ export default function GlobalSearch() {
                 </div>
           }
               {/* Footer Link */}
-              <Link 
+              <Link
                   to={createPageUrl('SearchResults') + `?q=${encodeURIComponent(searchTerm)}`}
                   onClick={() => setIsOpen(false)}
                   className={`block p-3 text-center text-sm font-medium border-t transition-colors mt-1 ${
-                    theme === 'dark' 
-                      ? 'text-cyan-400 bg-slate-800 hover:bg-slate-700 border-slate-700' 
+                    theme === 'dark'
+                      ? 'text-cyan-400 bg-slate-800 hover:bg-slate-700 border-slate-700'
                       : 'text-red-600 bg-slate-50 hover:bg-red-50 border-slate-100'
                   }`}
               >

@@ -13,7 +13,7 @@ export default function SalesPerformance({ leads, opportunities, timeRange }) {
   const getStageColor = (stageName) => {
     const stage = pipelineStages?.find(s => s.label === stageName || s.id === stageName || s.label?.startsWith(stageName));
     const colorClass = stage?.color || 'bg-slate-400';
-    
+
     // Map Tailwind classes to Hex for Recharts
     const colorMap = {
       'bg-blue-400': '#22d3ee', // Neon Cyan
@@ -33,12 +33,12 @@ export default function SalesPerformance({ leads, opportunities, timeRange }) {
 
     return colorMap[colorClass] || '#8884d8';
   };
-  
+
   const stats = useMemo(() => {
-    const closedWon = opportunities.filter(o => o.deal_stage?.includes("Won") || o.deal_stage?.includes("בהצלחה"));
+    const closedWon = opportunities.filter(o => o.deal_stage?.includes("Won"));
     const totalGallons = closedWon.reduce((sum, o) => sum + getOpportunityGallons(o), 0);
     const avgGallons = closedWon.length > 0 ? totalGallons / closedWon.length : 0;
-    
+
     const pipelineGallons = opportunities
       .filter(o => !o.deal_stage?.includes("Won") && !o.deal_stage?.includes("Lost"))
       .reduce((sum, o) => sum + getOpportunityGallons(o), 0);
@@ -66,8 +66,8 @@ export default function SalesPerformance({ leads, opportunities, timeRange }) {
       const stageName = o.deal_stage?.split('(')[0]?.trim() || "Unknown";
       counts[stageName] = (counts[stageName] || 0) + 1;
     });
-    return Object.entries(counts).map(([name, value]) => ({ 
-      name, 
+    return Object.entries(counts).map(([name, value]) => ({
+      name,
       value,
       fill: getStageColor(name)
     }));

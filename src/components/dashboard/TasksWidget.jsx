@@ -4,7 +4,7 @@ import { atlas } from "@/api/atlasClient";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, Calendar, AlertCircle } from "lucide-react";
+import { CheckCircle2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import moment from "moment";
@@ -38,7 +38,7 @@ export default function TasksWidget({ className }) {
         // If only b has date, it comes first
         if (b.due_date) return 1;
         // If neither, keep order (or sort by creation if needed)
-        return 0; 
+        return 0;
       })
       .slice(0, 5);
   }, [tasks]);
@@ -76,10 +76,10 @@ export default function TasksWidget({ className }) {
                   key={task.id}
                   className={`p-4 rounded-2xl border transition-all duration-300 group ${
                     theme === 'dark'
-                      ? isDone 
-                        ? 'bg-slate-800/30 border-slate-700 opacity-50' 
-                        : isOverdue 
-                        ? 'bg-red-500/10 border-red-500/30' 
+                      ? isDone
+                        ? 'bg-slate-800/30 border-slate-700 opacity-50'
+                        : isOverdue
+                        ? 'bg-red-500/10 border-red-500/30'
                         : 'bg-slate-800/50 border-slate-700 hover:bg-slate-800 hover:border-indigo-500/50'
                       : isDone
                         ? 'bg-slate-50 border-slate-100 opacity-50'
@@ -110,8 +110,8 @@ export default function TasksWidget({ className }) {
                       <div className="flex justify-between items-start mb-1">
                         <h4
                           className={`font-medium text-sm line-clamp-1 ${
-                            isDone 
-                              ? 'line-through text-slate-400' 
+                            isDone
+                              ? 'line-through text-slate-400'
                               : theme === 'dark' ? 'text-white' : 'text-slate-900'
                           }`}
                         >
@@ -125,7 +125,7 @@ export default function TasksWidget({ className }) {
                           <Badge className="bg-orange-500 text-[10px] h-5 px-1.5">Today</Badge>
                         ) : (
                           <span className={`text-xs ${theme === 'dark' ? 'text-slate-400' : 'text-slate-500'}`}>
-                            {moment(task.due_date).format('DD/MM')}
+                            {moment(task.due_date).format('MM/DD')}
                           </span>
                         )}
                       </div>

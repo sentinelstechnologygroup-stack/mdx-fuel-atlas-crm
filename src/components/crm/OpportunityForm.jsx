@@ -18,13 +18,13 @@ import RelatedTasks from "./RelatedTasks";
 export default function OpportunityForm({ opportunity, initialLead, onSubmit, onCancel, isSubmitting, title }) {
   const { pipelineStages, theme } = useSettings();
   const [aiLoading, setAiLoading] = React.useState(false);
-  
+
   // Conversion State
   const [transferSettings, setTransferSettings] = React.useState({
     contactDetails: true,
     createTask: false
   });
-  
+
   const [selectedLead, setSelectedLead] = React.useState(initialLead || null);
 
   const { register, handleSubmit, setValue, watch, getValues, reset, formState: { errors } } = useForm({
@@ -52,7 +52,7 @@ export default function OpportunityForm({ opportunity, initialLead, onSubmit, on
 
   const currentStage = watch("deal_stage");
   const checklistCompleted = watch("checklist_completed") || [];
-  
+
   const activeStageConfig = pipelineStages?.find(s => s.id === currentStage);
   const stageChecklist = activeStageConfig?.checklist || [];
 
@@ -73,7 +73,7 @@ export default function OpportunityForm({ opportunity, initialLead, onSubmit, on
     queryFn: () => atlas.entities.Lead.list().then((leads) => leads.find((l) => l.id === leadId)),
     enabled: !!leadId
   });
-  
+
   // Handler for Lead Selection
   const handleLeadSelect = (lead) => {
       setSelectedLead(lead);
@@ -81,7 +81,7 @@ export default function OpportunityForm({ opportunity, initialLead, onSubmit, on
       setValue("lead_name", lead.full_name);
       setValue("phone_number", lead.phone_number);
       setValue("email", lead.email);
-      
+
   };
 
   // Update form values when checkboxes change
@@ -108,12 +108,11 @@ export default function OpportunityForm({ opportunity, initialLead, onSubmit, on
       const strategyPrompt = `
         Act as an expert sales consultant.
         Analyze this lead:
-        - Age: ${leadData.age || 'Unknown'}
         - Product Interest: ${values.product_type}
-        
+
         Rules:
         - Provide a general tailored strategy based on the data.
-        
+
         Output in English. Be concise.
       `;
 
@@ -121,9 +120,9 @@ export default function OpportunityForm({ opportunity, initialLead, onSubmit, on
       const objectionPrompt = `
         Act as an expert sales trainer.
         Handle this objection: "${values.current_objection}"
-        
+
         Context: General Sales.
-        
+
         Rules:
         - Provide a short, empathetic, professional counter-argument.
         - Output in English.
@@ -152,8 +151,8 @@ export default function OpportunityForm({ opportunity, initialLead, onSubmit, on
   };
 
   const inputClass = `h-11 rounded-xl transition-all ${
-    theme === 'dark' 
-      ? 'bg-slate-800/50 border-slate-700 text-white placeholder:text-slate-500 focus:ring-purple-500/50 focus:border-purple-500' 
+    theme === 'dark'
+      ? 'bg-slate-800/50 border-slate-700 text-white placeholder:text-slate-500 focus:ring-purple-500/50 focus:border-purple-500'
       : 'bg-white border-slate-200 text-slate-900 placeholder:text-slate-400 focus:ring-purple-200 focus:border-purple-400'
   }`;
   const labelClass = `text-xs font-semibold uppercase tracking-wider mb-1.5 block ${theme === 'dark' ? 'text-slate-400' : 'text-slate-500'}`;
@@ -196,20 +195,20 @@ export default function OpportunityForm({ opportunity, initialLead, onSubmit, on
           <X className="w-5 h-5" />
         </Button>
       </div>
-      
+
       <div className={`overflow-y-auto p-6 flex-1 custom-scrollbar ${theme === 'dark' ? 'bg-slate-900/50' : 'bg-slate-50/50'}`}>
-      
+
       {/* Lead Selector if no lead linked */}
       {!selectedLead && !opportunity?.lead_id && (
           <div className="mb-6">
             <LeadSelector onSelect={handleLeadSelect} />
           </div>
       )}
-      
+
       {/* Hidden validation input for lead_id */}
-      <input 
-          type="hidden" 
-          {...register("lead_id", { required: "Lead must be selected" })} 
+      <input
+          type="hidden"
+          {...register("lead_id", { required: "Lead must be selected" })}
       />
       {errors.lead_id && (
           <div className="bg-red-50 text-red-600 text-sm p-3 rounded-lg mb-4 flex items-center gap-2">
@@ -286,8 +285,8 @@ export default function OpportunityForm({ opportunity, initialLead, onSubmit, on
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                     {stageChecklist.map(item => {
                         const isChecked = checklistCompleted.includes(item.id);
-                        const checkedClass = theme === 'dark' 
-                          ? 'bg-slate-800 border-blue-500/50 text-blue-300' 
+                        const checkedClass = theme === 'dark'
+                          ? 'bg-slate-800 border-blue-500/50 text-blue-300'
                           : 'bg-white border-blue-200 text-slate-900 shadow-sm';
                         const uncheckedClass = theme === 'dark'
                           ? 'bg-transparent border-transparent hover:bg-slate-800/50'
@@ -296,14 +295,14 @@ export default function OpportunityForm({ opportunity, initialLead, onSubmit, on
                         return (
                             <label key={item.id} className={`flex items-center gap-3 p-2 rounded-lg transition-colors cursor-pointer border ${isChecked ? checkedClass : uncheckedClass}`}>
                                 <div className={`w-5 h-5 rounded flex items-center justify-center border transition-colors ${
-                                  isChecked 
-                                    ? 'bg-blue-600 border-blue-600 text-white' 
+                                  isChecked
+                                    ? 'bg-blue-600 border-blue-600 text-white'
                                     : theme === 'dark' ? 'bg-slate-800 border-slate-600' : 'bg-white border-slate-300'
                                 }`}>
                                     {isChecked && <CheckSquare className="w-3.5 h-3.5" />}
                                 </div>
-                                <input 
-                                    type="checkbox" 
+                                <input
+                                    type="checkbox"
                                     className="hidden"
                                     checked={isChecked}
                                     onChange={() => toggleChecklistItem(item.id)}
@@ -321,7 +320,7 @@ export default function OpportunityForm({ opportunity, initialLead, onSubmit, on
         )}
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          
+
           {/* Phone and Email removed as they appear in Original Lead Details */}
 
           <div className="space-y-2">
@@ -418,7 +417,7 @@ export default function OpportunityForm({ opportunity, initialLead, onSubmit, on
                             type="button"
                             onClick={() => setValue('deal_type', type)}
                             className={`flex items-center justify-center py-2 text-sm font-medium rounded-lg transition-all ${
-                                isSelected 
+                                isSelected
                                     ? (theme === 'dark' ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/20' : 'bg-white text-blue-700 shadow-sm border border-slate-100')
                                     : (theme === 'dark' ? 'text-slate-400 hover:text-slate-200' : 'text-slate-500 hover:text-slate-700')
                             }`}
@@ -487,8 +486,8 @@ export default function OpportunityForm({ opportunity, initialLead, onSubmit, on
                     variant="outline"
                     onClick={generateAiInsights}
                     disabled={aiLoading} className={`px-3 text-xs font-medium rounded-md inline-flex items-center justify-center gap-2 whitespace-nowrap transition-colors border shadow-sm w-full md:w-auto ${
-                      theme === 'dark' 
-                        ? 'bg-purple-900/20 text-purple-300 border-purple-800 hover:bg-purple-900/40' 
+                      theme === 'dark'
+                        ? 'bg-purple-900/20 text-purple-300 border-purple-800 hover:bg-purple-900/40'
                         : 'bg-slate-50 text-purple-600 border-purple-200 hover:bg-purple-50'
                     }`}>
 
@@ -506,8 +505,8 @@ export default function OpportunityForm({ opportunity, initialLead, onSubmit, on
                         readOnly
                         {...register("ai_sales_strategy")}
                         className={`w-full min-h-[80px] p-3 rounded-md border text-sm focus:outline-none resize-none ${
-                          theme === 'dark' 
-                            ? 'bg-slate-900/50 border-slate-700 text-slate-300 placeholder:text-slate-600' 
+                          theme === 'dark'
+                            ? 'bg-slate-900/50 border-slate-700 text-slate-300 placeholder:text-slate-600'
                             : 'bg-purple-50/50 border-slate-200 text-slate-900 placeholder:text-slate-400'
                         }`}
                         placeholder="Click 'Generate Insights' for strategy..." />
@@ -522,8 +521,8 @@ export default function OpportunityForm({ opportunity, initialLead, onSubmit, on
                         readOnly
                         {...register("ai_objection_handler")}
                         className={`w-full min-h-[80px] p-3 rounded-md border text-sm focus:outline-none resize-none ${
-                          theme === 'dark' 
-                            ? 'bg-slate-900/50 border-slate-700 text-slate-300 placeholder:text-slate-600' 
+                          theme === 'dark'
+                            ? 'bg-slate-900/50 border-slate-700 text-slate-300 placeholder:text-slate-600'
                             : 'bg-purple-50/50 border-slate-200 text-slate-900 placeholder:text-slate-400'
                         }`}
                         placeholder="Handler will appear here..." />
@@ -552,7 +551,7 @@ export default function OpportunityForm({ opportunity, initialLead, onSubmit, on
               label="Deal Documents" />
 
           </div>
-          
+
           <div className="flex justify-end gap-4 pt-4 border-t border-slate-200 dark:border-slate-700">
              <Button type="button" variant="outline" onClick={onCancel} className={theme === 'dark' ? 'border-slate-600 text-slate-300 hover:bg-slate-700' : ''}>Cancel</Button>
              <Button onClick={handleSubmit(handleFormSubmit)} className="bg-blue-600 hover:bg-blue-700" disabled={isSubmitting}>
@@ -579,12 +578,6 @@ export default function OpportunityForm({ opportunity, initialLead, onSubmit, on
             <div className="space-y-2">
                   <Label className={`text-xs ${theme === 'dark' ? 'text-slate-400' : 'text-neutral-600'}`}>Email</Label>
                   <p className={`font-medium ${theme === 'dark' ? 'text-white' : 'text-neutral-900'}`}>{originalLeadData.email}</p>
-                </div>
-            }
-              {originalLeadData.age &&
-            <div className="space-y-2">
-                  <Label className={`text-xs ${theme === 'dark' ? 'text-slate-400' : 'text-neutral-600'}`}>Age</Label>
-                  <p className={`font-medium ${theme === 'dark' ? 'text-white' : 'text-neutral-900'}`}>{originalLeadData.age}</p>
                 </div>
             }
               {originalLeadData.city &&
@@ -626,8 +619,8 @@ export default function OpportunityForm({ opportunity, initialLead, onSubmit, on
         </TabsContent>
 
         <TabsContent value="tasks" className="h-[600px]">
-           {opportunity?.id ? 
-              <RelatedTasks opportunityId={opportunity.id} leadId={opportunity.lead_id} /> : 
+           {opportunity?.id ?
+              <RelatedTasks opportunityId={opportunity.id} leadId={opportunity.lead_id} /> :
               <div className="text-center py-10 text-neutral-600">Save the opportunity first</div>
            }
         </TabsContent>

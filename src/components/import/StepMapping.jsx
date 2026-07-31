@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { ArrowRight, ArrowLeft, AlertCircle, Check, RefreshCw } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { ArrowRight, ArrowLeft, AlertCircle, Check } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
@@ -7,13 +7,17 @@ import { Input } from "@/components/ui/input";
 
 // CRM Fields Definition
 const CRM_FIELDS = [
-  { key: 'full_name', label: 'שם מלא', required: true },
-  { key: 'phone_number', label: 'טלפון', required: true },
-  { key: 'email', label: 'אימייל', required: false },
-  { key: 'city', label: 'עיר', required: false },
-  { key: 'age', label: 'גיל', required: false },
-  { key: 'estimated_property_value', label: 'שווי נכס', required: false },
-  { key: 'notes', label: 'הערות', required: false },
+  { key: 'full_name', label: 'Full Name', required: true },
+  { key: 'phone_number', label: 'Phone', required: true },
+  { key: 'email', label: 'Email', required: false },
+  { key: 'city', label: 'City', required: false },
+  { key: 'company_name', label: 'Company Name', required: false },
+  {
+    key: 'estimated_monthly_gallons',
+    label: 'Estimated Monthly Gallons',
+    required: false
+  },
+  { key: 'notes', label: 'Notes', required: false }
 ];
 
 // Fuzzy Matching Logic (Levenshtein Distance)
@@ -39,24 +43,64 @@ export const findBestMatch = (header, fields) => {
 
   // Aliases for smarter matching
   const aliases = {
-    'full_name': ['name', 'client', 'customer', 'שם', 'לקוח', 'שם הלקוח'],
-    'phone_number': ['phone', 'mobile', 'cell', 'tel', 'טלפון', 'נייד', 'טלפון 1', 'טלפון 2', 'Phone 1', 'Phone 2'],
-    'city': ['address', 'location', 'town', 'עיר', 'כתובת'],
-    'estimated_property_value': ['value', 'price', 'worth', 'property', 'שווי', 'נכס'],
-    'age': ['old', 'years', 'גיל'],
-    'email': ['mail', 'אימייל', 'דואר'],
-    'notes': ['comment', 'info', 'הערות', 'פרטים', 'remarks']
+    full_name: [
+      'name',
+      'full name',
+      'contact',
+      'customer',
+      'client'
+    ],
+    phone_number: [
+      'phone',
+      'phone number',
+      'mobile',
+      'cell',
+      'telephone',
+      'phone 1',
+      'phone 2'
+    ],
+    city: [
+      'city',
+      'town',
+      'location'
+    ],
+    company_name: [
+      'company',
+      'company name',
+      'business',
+      'business name',
+      'account'
+    ],
+    estimated_monthly_gallons: [
+      'estimated monthly gallons',
+      'monthly gallons',
+      'gallons',
+      'fuel volume',
+      'monthly fuel volume'
+    ],
+    email: [
+      'email',
+      'email address',
+      'mail'
+    ],
+    notes: [
+      'notes',
+      'comment',
+      'comments',
+      'details',
+      'remarks'
+    ]
   };
 
   fields.forEach(field => {
     // Check direct match or aliases
     const candidates = [field.label, field.key, ...(aliases[field.key] || [])];
-    
+
     candidates.forEach(candidate => {
         const distance = getLevenshteinDistance(header, candidate);
         // Threshold logic: if string is short, exact match matters more
         const threshold = Math.max(2, Math.floor(candidate.length / 2));
-        
+
         if (distance <= threshold && distance < minDistance) {
             minDistance = distance;
             bestMatch = field.key;
@@ -103,15 +147,15 @@ export default function StepMapping({ headers, onBack, onNext }) {
   const isMapped = (header) => !!mapping[header];
   const getMappedField = (header) => CRM_FIELDS.find(f => f.key === mapping[header]);
 
-  const canProceed = CRM_FIELDS.filter(f => f.required).every(reqField => 
+  const canProceed = CRM_FIELDS.filter(f => f.required).every(reqField =>
     Object.values(mapping).includes(reqField.key)
   );
 
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-xl font-bold text-slate-800">מיפוי עמודות</h2>
-        <p className="text-slate-500">התאם את עמודות הקובץ לשדות במערכת</p>
+        <h2 className="text-xl font-bold text-slate-800">Map Columns</h2>
+        <p className="text-slate-500">Match CSV columns to CRM fields.</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -119,7 +163,7 @@ export default function StepMapping({ headers, onBack, onNext }) {
         <div className="md:col-span-2 bg-blue-50 p-4 rounded-lg border border-blue-100 flex gap-4 items-center">
             <AlertCircle className="w-5 h-5 text-blue-600" />
             <div className="text-sm text-blue-800">
-                <span className="font-bold">שדות חובה: </span>
+                <span className="font-bold">Required fields: </span>
                 {CRM_FIELDS.filter(f => f.required).map(f => (
                     <span key={f.key} className={`inline-flex items-center ml-2 ${Object.values(mapping).includes(f.key) ? 'text-green-600' : 'text-red-500 font-bold'}`}>
                         {f.label} {Object.values(mapping).includes(f.key) ? <Check className="w-3 h-3" /> : '*'}
@@ -132,7 +176,7 @@ export default function StepMapping({ headers, onBack, onNext }) {
             {headers.map((header) => (
                 <div key={header} className="flex items-center gap-4 p-3 bg-white border rounded-lg shadow-sm hover:border-blue-300 transition-colors">
                     <div className="flex-1">
-                        <Label className="text-xs text-slate-400 mb-1">עמודה בקובץ</Label>
+                        <Label className="text-xs text-slate-400 mb-1">CSV Column</Label>
                         <div className="font-medium text-slate-700 flex items-center gap-2">
                             <FileSpreadsheet className="w-4 h-4 text-slate-400" />
                             {header}
@@ -142,22 +186,22 @@ export default function StepMapping({ headers, onBack, onNext }) {
                     <ArrowRight className={`w-4 h-4 ${isMapped(header) ? 'text-blue-500' : 'text-slate-300'}`} />
 
                     <div className="flex-1">
-                        <Label className="text-xs text-slate-400 mb-1">שדה במערכת</Label>
+                        <Label className="text-xs text-slate-400 mb-1">CRM Field</Label>
                         <div className="flex gap-2">
                             <div className="flex-1">
-                                <Select 
-                                    value={mapping[header] || "ignore"} 
+                                <Select
+                                    value={mapping[header] || "ignore"}
                                     onValueChange={(val) => handleMapChange(header, val)}
                                 >
                                     <SelectTrigger className={`${isMapped(header) ? 'border-green-200 bg-green-50 text-green-800' : ''}`}>
                                         <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="ignore" className="text-slate-400">-- התעלם מעמודה זו --</SelectItem>
+                                        <SelectItem value="ignore" className="text-slate-400">-- Ignore This Column --</SelectItem>
                                         {CRM_FIELDS.map(field => (
-                                            <SelectItem 
-                                            key={field.key} 
-                                            value={field.key} 
+                                            <SelectItem
+                                            key={field.key}
+                                            value={field.key}
                                             // Allow 'notes' to be selected multiple times, disable others if unique
                                             disabled={field.key !== 'notes' && Object.values(mapping).includes(field.key) && mapping[header] !== field.key}
                                             >
@@ -167,16 +211,16 @@ export default function StepMapping({ headers, onBack, onNext }) {
                                     </SelectContent>
                                 </Select>
                             </div>
-                            
+
                             {/* Custom Label Input for Notes */}
                             {mapping[header] === 'notes' && (
                                 <div className="flex-1">
-                                    <Input 
-                                        placeholder="שם השדה בהערות"
+                                    <Input
+                                        placeholder="Label for imported notes"
                                         value={customLabels[header] || header}
                                         onChange={(e) => setCustomLabels({...customLabels, [header]: e.target.value})}
                                         className="h-10 border-orange-200 bg-orange-50 text-orange-800 placeholder:text-orange-300"
-                                        title="השם שיופיע בתוך שדה ההערות"
+                                        title="Label shown inside the imported notes field"
                                     />
                                 </div>
                             )}
@@ -190,14 +234,14 @@ export default function StepMapping({ headers, onBack, onNext }) {
       <div className="flex justify-between pt-6 border-t">
         <Button variant="outline" onClick={onBack}>
             <ArrowRight className="w-4 h-4 ml-2" />
-            חזרה
+            Back
         </Button>
-        <Button 
-            onClick={() => onNext(mapping, customLabels)} 
+        <Button
+            onClick={() => onNext(mapping, customLabels)}
             disabled={!canProceed}
             className={canProceed ? "bg-blue-600 hover:bg-blue-700" : ""}
         >
-            המשך לאימות
+            Continue to Review
             <ArrowLeft className="w-4 h-4 mr-2" />
         </Button>
       </div>

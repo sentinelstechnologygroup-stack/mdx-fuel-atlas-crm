@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { atlas } from "@/api/atlasClient";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -6,10 +6,10 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  Plus, CheckCircle2, Calendar, Trash2, Archive, CheckSquare, AlertCircle, Filter, Briefcase, User, X
+  Plus, CheckCircle2, Calendar, Trash2, Archive, CheckSquare, AlertCircle, Filter, Briefcase, User
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
@@ -48,7 +48,7 @@ export default function TasksPage() {
       const previousTasks = queryClient.getQueryData(['tasks']);
 
       queryClient.setQueryData(['tasks'], (old) => {
-        return old.map((t) => 
+        return old.map((t) =>
           t.id === id ? { ...t, ...data, updated_date: new Date().toISOString() } : t
         );
       });
@@ -287,7 +287,7 @@ function TaskCard({ task, onToggle, onArchive, onEdit, onDelete, isArchived }) {
   const isOverdue = task.due_date && moment(task.due_date).isBefore(moment(), 'day') && task.status !== 'done';
   const isToday = task.due_date && moment(task.due_date).isSame(moment(), 'day');
   const isDone = task.status === 'done';
-  
+
   // Stale check: Not updated in > 14 days and not done/archived
   const isStale = !isDone && !isArchived && moment(task.updated_date).isBefore(moment().subtract(14, 'days'));
 
@@ -332,7 +332,7 @@ function TaskCard({ task, onToggle, onArchive, onEdit, onDelete, isArchived }) {
               {task.due_date && (
                 <span className={`text-xs flex items-center gap-1 ${theme === 'dark' ? 'text-slate-400' : 'text-slate-500'}`}>
                   <Calendar className="w-3 h-3" />
-                  {moment(task.due_date).format('DD/MM/YY')}
+                  {moment(task.due_date).format('MM/DD/YY')}
                 </span>
               )}
             </div>

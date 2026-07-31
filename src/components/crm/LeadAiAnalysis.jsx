@@ -18,7 +18,6 @@ export default function LeadAiAnalysis({ lead }) {
         // Prepare lead data for AI
         const leadData = JSON.stringify({
           name: lead.full_name,
-          age: lead.age,
           city: lead.city,
           status: lead.lead_status,
           notes: lead.notes,
@@ -35,12 +34,12 @@ export default function LeadAiAnalysis({ lead }) {
           2. Assign a quality score from 0 to 100.
           3. Provide a brief analysis (in English) of why you gave this score based on the available data points.
           4. Suggest 3 concrete next actions (in English) for the sales agent.
-          
-          Consider: 
+
+          Consider:
           - Completeness of data
           - Engagement level (last contact, notes)
           - Fit for the product/service based on available details
-          
+
           Return ONLY valid JSON matching this schema:
           {
             "classification": "Hot" | "Warm" | "Cold",
@@ -111,8 +110,8 @@ export default function LeadAiAnalysis({ lead }) {
               Get automated insights, quality scoring, and action recommendations for this lead using AI.
             </p>
           </div>
-          <Button 
-            onClick={() => analyzeMutation.mutate()} 
+          <Button
+            onClick={() => analyzeMutation.mutate()}
             disabled={isAnalyzing}
             className="bg-purple-600 hover:bg-purple-700 text-white"
           >
@@ -132,9 +131,9 @@ export default function LeadAiAnalysis({ lead }) {
             <Sparkles className="w-4 h-4 text-purple-600" />
             AI Analysis & Insights
           </CardTitle>
-          <Button 
-            variant="ghost" 
-            size="sm" 
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={() => analyzeMutation.mutate()}
             disabled={isAnalyzing}
             className="h-8 w-8 p-0 text-purple-400 hover:text-purple-700"
@@ -144,7 +143,7 @@ export default function LeadAiAnalysis({ lead }) {
         </div>
       </CardHeader>
       <CardContent className="p-4 space-y-5">
-        
+
         {/* Score and Classification */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div className="w-full sm:flex-1 space-y-1">
@@ -155,8 +154,8 @@ export default function LeadAiAnalysis({ lead }) {
             <Progress value={lead.ai_quality_score || 0} className="h-2" indicatorClassName={getScoreColor(lead.ai_quality_score || 0)} />
           </div>
           <Badge variant="outline" className={`px-3 py-1 text-sm font-bold border w-full sm:w-auto justify-center ${getClassColor(lead.ai_classification)}`}>
-            {lead.ai_classification === 'Hot' ? '🔥 Hot' : 
-             lead.ai_classification === 'Warm' ? '☀️ Warm' : 
+            {lead.ai_classification === 'Hot' ? '🔥 Hot' :
+             lead.ai_classification === 'Warm' ? '☀️ Warm' :
              lead.ai_classification === 'Cold' ? '❄️ Cold' : 'Unrated'}
           </Badge>
         </div>

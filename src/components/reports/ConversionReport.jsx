@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { FunnelChart, Funnel, LabelList, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { Users, ArrowLeftRight, Percent } from "lucide-react";
@@ -8,12 +8,12 @@ const COLORS = ['#ef4444', '#8b5cf6', '#10b981', '#f59e0b', '#ef4444'];
 
 export default function ConversionReport({ leads, opportunities, timeRange }) {
   const { theme } = useSettings();
-  
+
   const stats = useMemo(() => {
     const totalLeads = leads.length;
-    const convertedLeads = leads.filter(l => l.lead_status === 'Converted' || l.lead_status?.includes('הומר')).length;
+    const convertedLeads = leads.filter(l => l.lead_status === 'Converted').length;
     const totalOpps = opportunities.length;
-    const closedWon = opportunities.filter(o => o.deal_stage?.includes("Won") || o.deal_stage?.includes("בהצלחה")).length;
+    const closedWon = opportunities.filter(o => o.deal_stage?.includes("Won")).length;
 
     const conversionRate = totalLeads > 0 ? (convertedLeads / totalLeads) * 100 : 0;
     const winRate = totalOpps > 0 ? (closedWon / totalOpps) * 100 : 0;
@@ -59,7 +59,7 @@ export default function ConversionReport({ leads, opportunities, timeRange }) {
             <p className={`text-xs ${theme === 'dark' ? 'text-slate-400' : 'text-slate-500'}`}>{stats.closedWon} out of {stats.totalOpps} Opportunities</p>
           </CardContent>
         </Card>
-        
+
         <Card className={theme === 'dark' ? 'bg-slate-800 border-slate-700' : ''}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className={`text-sm font-medium ${theme === 'dark' ? 'text-purple-200' : ''}`}>Lead Quality</CardTitle>

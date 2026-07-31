@@ -1,11 +1,8 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { atlas } from "@/api/atlasClient";
 import { listEmployeeLookup } from '@/api/userDirectoryService';
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
@@ -18,20 +15,10 @@ import {
   FileCheck,
   Plus,
   Clock,
-  CheckCircle2,
-  XCircle,
-  Voicemail,
   User,
-  Sparkles,
-  Loader2,
-  Undo2,
-  Zap,
-  Flag,
-  Target,
   Pencil } from
 "lucide-react";
 import { toast } from "sonner";
-import { motion, AnimatePresence } from "framer-motion";
 import ActivityForm from "./ActivityForm";
 
 export default function ActivityLog({ leadId, opportunityId }) {
@@ -184,7 +171,7 @@ export default function ActivityLog({ leadId, opportunityId }) {
                     <p className="font-medium text-sm">{getTypeLabel(activity.type)}</p>
                     <div className="flex items-center gap-2">
                       <span className="text-xs text-slate-400">
-                        {format(new Date(activity.date), 'dd/MM/yy HH:mm')}
+                        {format(new Date(activity.date), 'MM/dd/yy h:mm a')}
                       </span>
                       <Button
                         variant="ghost"
@@ -195,7 +182,7 @@ export default function ActivityLog({ leadId, opportunityId }) {
                             const date = new Date(activity.date);
                             date.setMinutes(date.getMinutes() - date.getTimezoneOffset());
                             const formattedDate = date.toISOString().slice(0, 16);
-                            
+
                             setEditingActivity({ ...activity, date: formattedDate });
                             setIsAdding(false);
                         }}

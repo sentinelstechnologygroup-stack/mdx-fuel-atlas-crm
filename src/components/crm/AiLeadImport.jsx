@@ -26,13 +26,13 @@ export default function AiLeadImport({ open, onOpenChange, onLeadCreated }) {
     try {
       let textToAnalyze = input;
 
-      // אם זו תמונה, נחלץ תחילה את הטקסט
+      // AI lead import workflow
       if (mode === "image" && selectedFile) {
-        // העלאת התמונה
+        // AI lead import workflow
         const uploadResult = await atlas.integrations.Core.UploadFile({ file: selectedFile });
         const fileUrl = uploadResult.file_url;
 
-        // חילוץ מידע ישירות מהתמונה עם AI Vision
+        // AI lead import workflow
         const visionResult = await atlas.integrations.Core.InvokeLLM({
           prompt: `CRM/Salesforce Screenshot Analysis (Phone photo):
 Please scan the image carefully and extract lead details. The image might be a screenshot of a CRM system.
@@ -42,7 +42,7 @@ Extract accurately:
 2. Phone - In local format.
 3. Email.
 4. Customer Need - Look for description of what the client wants, loan purpose, or reason for contact.
-5. Notes - Summarize *all* other data visible on screen (address, ID, age, marital status, financial status, previous system notes, etc.) into one detailed text.
+5. Notes - Summarize relevant US business information, including company, service address, fuel requirements, delivery needs, and prior sales notes.
 
 Notes:
 - If blurry, try to decipher by context.
@@ -61,7 +61,7 @@ Notes:
           }
         });
 
-        // הכנת נתונים לתצוגה מקדימה
+        // AI lead import workflow
         const combinedNotes = [
           visionResult.customer_need ? `Customer Need: ${visionResult.customer_need}` : null,
           visionResult.additional_info
@@ -73,7 +73,6 @@ Notes:
           email: visionResult.email,
           notes: combinedNotes,
           lead_status: "New",
-          source_year: new Date().getFullYear().toString(),
           last_contact_date: new Date().toISOString().split('T')[0]
         };
 
@@ -83,7 +82,7 @@ Notes:
         return; // Skip text analysis
       }
 
-      // ניתוח הטקסט ע"י AI
+      // AI lead import workflow
       const leadSchema = {
         type: "object",
         properties: {
@@ -115,14 +114,13 @@ ${textToAnalyze}`,
         aiResult.additional_info
       ].filter(Boolean).join("\n\n---\nAdditional Info:\n");
 
-      // הכנת נתונים לתצוגה מקדימה
+      // AI lead import workflow
       const leadData = {
         full_name: aiResult.full_name,
         phone_number: aiResult.phone_number,
         email: aiResult.email,
         notes: combinedNotes,
         lead_status: "New",
-        source_year: new Date().getFullYear().toString(),
         last_contact_date: new Date().toISOString().split('T')[0]
       };
 
@@ -146,8 +144,8 @@ ${textToAnalyze}`,
       description: `${extractedData.full_name} • ${extractedData.phone_number}`,
       duration: 3000
     });
-    
-    // איפוס הטופס וסגירה
+
+    // AI lead import workflow
     setInput("");
     setSelectedFile(null);
     setPreviewMode(false);
@@ -240,7 +238,7 @@ Interested in regular commercial fuel delivery"
 
           <TabsContent value="image" className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* כפתור צילום ישיר */}
+              {/* AI lead import workflow */}
               <div className={`border-2 border-dashed rounded-xl p-6 text-center transition-colors ${theme === 'dark' ? 'border-slate-700 hover:border-purple-500/50 hover:bg-slate-800' : 'border-slate-200 hover:border-purple-300 hover:bg-purple-50/10'}`}>
                 <input
                   type="file"
@@ -258,7 +256,7 @@ Interested in regular commercial fuel delivery"
                 </label>
               </div>
 
-              {/* כפתור העלאת קובץ */}
+              {/* AI lead import workflow */}
               <div className={`border-2 border-dashed rounded-xl p-6 text-center transition-colors ${theme === 'dark' ? 'border-slate-700 hover:border-blue-500/50 hover:bg-slate-800' : 'border-slate-200 hover:border-purple-300 hover:bg-blue-50/10'}`}>
                 <input
                   type="file"
@@ -280,9 +278,9 @@ Interested in regular commercial fuel delivery"
               <div className={`border rounded-lg p-4 ${theme === 'dark' ? 'bg-emerald-950/20 border-emerald-800' : 'bg-green-50 border-green-200'}`}>
                 <div className="flex items-start gap-3">
                   <div className="flex-shrink-0">
-                    <img 
-                      src={URL.createObjectURL(selectedFile)} 
-                      alt="preview" 
+                    <img
+                      src={URL.createObjectURL(selectedFile)}
+                      alt="preview"
                       className={`w-20 h-20 rounded-lg object-cover border-2 ${theme === 'dark' ? 'border-emerald-700' : 'border-green-300'}`}
                     />
                   </div>
@@ -306,7 +304,7 @@ Interested in regular commercial fuel delivery"
         </Tabs>
 
         {isProcessing && (
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             className={`border rounded-xl p-6 text-center shadow-sm ${theme === 'dark' ? 'bg-slate-800 border-blue-900' : 'bg-gradient-to-br from-blue-50 to-purple-50 border-blue-200'}`}
@@ -409,25 +407,7 @@ Interested in regular commercial fuel delivery"
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className={`text-sm font-medium ${theme === 'dark' ? 'text-slate-300' : 'text-slate-700'}`}>Age</label>
-                  <Input
-                    type="number"
-                    value={extractedData?.age || ""}
-                    onChange={(e) => setExtractedData({...extractedData, age: parseInt(e.target.value)})}
-                    className={`${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white focus:border-purple-500' : 'border-purple-200 focus:border-purple-500'}`}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className={`text-sm font-medium ${theme === 'dark' ? 'text-slate-300' : 'text-slate-700'}`}>Marital Status</label>
-                  <Input
-                    value={extractedData?.marital_status || ""}
-                    onChange={(e) => setExtractedData({...extractedData, marital_status: e.target.value})}
-                    className={`${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white focus:border-purple-500' : 'border-purple-200 focus:border-purple-500'}`}
-                  />
-                </div>
-              </div>
+
 
               {extractedData?.notes && (
                 <div className="space-y-2">

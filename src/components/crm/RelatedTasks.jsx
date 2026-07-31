@@ -1,9 +1,9 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { atlas } from "@/api/atlasClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { CheckCircle2, Circle, Clock, Plus, Trash2, Calendar, X } from "lucide-react";
+import { CheckCircle2, Plus, Trash2, Calendar, X } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -19,7 +19,7 @@ export default function RelatedTasks({ leadId, opportunityId }) {
     queryKey,
     queryFn: async () => {
       let fetchedTasks = [];
-      
+
       if (leadId) {
         // 1. Fetch tasks directly linked to the lead
         const leadTasks = await atlas.entities.Task.filter({ related_lead_id: leadId });
@@ -30,7 +30,7 @@ export default function RelatedTasks({ leadId, opportunityId }) {
             const opportunities = await atlas.entities.Opportunity.filter({ lead_id: leadId });
             if (opportunities.length > 0) {
                 // Fetch tasks for each opportunity
-                const oppTasksPromises = opportunities.map(opp => 
+                const oppTasksPromises = opportunities.map(opp =>
                     atlas.entities.Task.filter({ related_opportunity_id: opp.id })
                     .then(tasks => tasks.map(t => ({ ...t, _opportunityContext: opp }))) // Tag for UI
                 );
@@ -46,10 +46,10 @@ export default function RelatedTasks({ leadId, opportunityId }) {
       }
 
       // Deduplicate by ID
-      const uniqueTasks = fetchedTasks.filter((task, index, self) => 
+      const uniqueTasks = fetchedTasks.filter((task, index, self) =>
         index === self.findIndex((t) => t.id === task.id)
       );
-      
+
       // Sort by due date (descending) or created_date
       return uniqueTasks.sort((a, b) => new Date(b.created_date) - new Date(a.created_date));
     },
@@ -111,19 +111,19 @@ export default function RelatedTasks({ leadId, opportunityId }) {
           tasks.map(task => (
             <div key={task.id} className="bg-white border rounded-lg p-3 hover:shadow-sm transition-shadow flex items-start gap-3 group">
               <button
-                onClick={() => updateTask.mutate({ 
-                  id: task.id, 
-                  data: { status: task.status === 'done' ? 'todo' : 'done' } 
+                onClick={() => updateTask.mutate({
+                  id: task.id,
+                  data: { status: task.status === 'done' ? 'todo' : 'done' }
                 })}
                 className={`mt-1 w-5 h-5 rounded-full border flex items-center justify-center transition-colors flex-shrink-0 ${
-                  task.status === 'done' 
-                    ? 'bg-emerald-500 border-emerald-500 text-white' 
+                  task.status === 'done'
+                    ? 'bg-emerald-500 border-emerald-500 text-white'
                     : 'border-slate-300 hover:border-emerald-500 text-transparent'
                 }`}
               >
                 <CheckCircle2 className="w-3.5 h-3.5" />
               </button>
-              
+
               <div className="flex-1 min-w-0">
                 <div className={`font-medium text-sm ${task.status === 'done' ? 'line-through text-slate-400' : 'text-slate-800'}`}>
                   {task.title}
@@ -142,7 +142,7 @@ export default function RelatedTasks({ leadId, opportunityId }) {
                             moment(task.due_date).isBefore(moment(), 'day') && task.status !== 'done' ? 'text-red-500 font-bold' : 'text-slate-400'
                         }`}>
                             <Calendar className="w-3 h-3" />
-                            {moment(task.due_date).format('DD/MM/YY')}
+                            {moment(task.due_date).format('MM/DD/YY')}
                         </span>
                     )}
                     <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${
@@ -160,7 +160,7 @@ export default function RelatedTasks({ leadId, opportunityId }) {
                 size="icon"
                 className="h-6 w-6 text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
                 onClick={() => {
-                  if(confirm('למחוק משימה זו?')) deleteTask.mutate(task.id)
+                  if(confirm('Delete this task?')) deleteTask.mutate(task.id)
                 }}
               >
                 <Trash2 className="w-3.5 h-3.5" />
@@ -180,9 +180,9 @@ export default function RelatedTasks({ leadId, opportunityId }) {
                     </Button>
                 </div>
             </DialogHeader>
-            <SimpleTaskForm 
-                onSubmit={(data) => createTask.mutate(data)} 
-                onCancel={() => setShowForm(false)} 
+            <SimpleTaskForm
+                onSubmit={(data) => createTask.mutate(data)}
+                onCancel={() => setShowForm(false)}
             />
         </DialogContent>
       </Dialog>
@@ -208,27 +208,27 @@ function SimpleTaskForm({ onSubmit, onCancel }) {
         <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-1">
                 <label className="text-sm font-medium">Title</label>
-                <Input 
-                    value={formData.title} 
-                    onChange={e => setFormData({...formData, title: e.target.value})} 
+                <Input
+                    value={formData.title}
+                    onChange={e => setFormData({...formData, title: e.target.value})}
                     placeholder="What needs to be done?"
                 />
             </div>
             <div className="space-y-1">
                 <label className="text-sm font-medium">Description</label>
-                <Textarea 
-                    value={formData.description} 
-                    onChange={e => setFormData({...formData, description: e.target.value})} 
+                <Textarea
+                    value={formData.description}
+                    onChange={e => setFormData({...formData, description: e.target.value})}
                     placeholder="More details..."
                 />
             </div>
             <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
                     <label className="text-sm font-medium">Due Date</label>
-                    <Input 
-                        type="date" 
-                        value={formData.due_date} 
-                        onChange={e => setFormData({...formData, due_date: e.target.value})} 
+                    <Input
+                        type="date"
+                        value={formData.due_date}
+                        onChange={e => setFormData({...formData, due_date: e.target.value})}
                     />
                 </div>
                 <div className="space-y-1">

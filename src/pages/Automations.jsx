@@ -1,6 +1,4 @@
-import React, { useState } from "react";
-import { Link } from "react-router-dom";
-import { createPageUrl } from "@/utils";
+import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { atlas } from "@/api/atlasClient";
 import { useSettings } from "@/components/context/SettingsContext";
@@ -9,12 +7,12 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { Trash2, Plus, Zap, Sparkles, Wand2, Bell, Mail, Clock, Loader2, Power, PowerOff, History, CheckCircle2, XCircle, Activity, Copy, Search, Filter, TrendingUp } from "lucide-react";
+import { Trash2, Plus, Zap, Sparkles, Wand2, Bell, Mail, Loader2, PowerOff, History, CheckCircle2, XCircle, Activity, Copy, Search, Filter, TrendingUp } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 
 // Quick Templates
@@ -25,7 +23,7 @@ const templates = [
 },
 {
   id: 'task_big_deal', title: 'Big Deal Alert', description: 'Create task for manager on deals > 1M', icon: Bell, color: 'bg-red-700',
-  rule: { name: 'Big Deal VIP', trigger_entity: 'Opportunity', trigger_event: 'create', condition_field: 'property_value', condition_value: '1000000', action_type: 'create_task' }
+  rule: { name: 'High-Volume Opportunity', trigger_entity: 'Opportunity', trigger_event: 'create', condition_field: 'estimated_monthly_gallons', condition_value: '50000', action_type: 'create_task' }
 },
 {
   id: 'deal_won', title: 'Deal Won', description: 'Send celebration email when deal is won', icon: Sparkles, color: 'bg-emerald-600',
@@ -75,7 +73,7 @@ export default function AutomationsPage() {
       const previousRules = queryClient.getQueryData(['automationRules']);
 
       queryClient.setQueryData(['automationRules'], (old) => {
-        return old.map((r) => 
+        return old.map((r) =>
           r.id === id ? { ...r, is_active: isActive } : r
         );
       });
@@ -93,7 +91,7 @@ export default function AutomationsPage() {
   const duplicateRule = (rule) => {
     const newRule = {
       ...rule,
-      name: `${rule.name} (עותק)`,
+      name: `${rule.name} (Copy)`,
       is_active: false
     };
     delete newRule.id;
@@ -121,7 +119,7 @@ export default function AutomationsPage() {
 
   return (
     <div className={`space-y-8 pb-20 font-sans transition-colors ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`} dir="ltr">
-      
+
       {/* Header + Stats */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
         <div>
@@ -195,7 +193,7 @@ export default function AutomationsPage() {
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="rules" className="space-y-6">{/* תבניות */}
+        <TabsContent value="rules" className="space-y-6">{/* Automation workflow */}
 
       <div>
           <h3 className={`text-lg font-bold mb-4 flex items-center gap-2 ${theme === 'dark' ? 'text-white' : 'text-slate-800'}`}>
@@ -247,7 +245,7 @@ export default function AutomationsPage() {
               <Zap className={`w-5 h-5 ${theme === 'dark' ? 'text-cyan-400' : 'text-red-600'}`} />
               Active Rules ({filteredRules.length})
         </h3>
-        
+
         {isLoading ? <div className={`text-center py-10 ${theme === 'dark' ? 'text-slate-400' : 'text-slate-500'}`}>Loading...</div> : filteredRules.map((rule) =>
         <Card key={rule.id} className={`flex flex-row items-center justify-between p-6 border shadow-sm transition-colors ${
             theme === 'dark'
@@ -279,14 +277,14 @@ export default function AutomationsPage() {
                 </div>
                 <div className="flex items-center gap-2">
                     <div className="flex items-center gap-2 px-3">
-                      <Switch 
-                        checked={rule.is_active !== false} 
+                      <Switch
+                        checked={rule.is_active !== false}
                         onCheckedChange={(checked) => toggleRule.mutate({ id: rule.id, isActive: checked })}
                       />
                     </div>
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
+                    <Button
+                      variant="ghost"
+                      size="icon"
                       className={`${theme === 'dark' ? 'text-slate-400 hover:text-cyan-400 hover:bg-slate-700' : 'text-slate-400 hover:text-blue-600 hover:bg-blue-50'}`}
                       onClick={() => duplicateRule(rule)}
                       title="Duplicate Rule"
@@ -301,13 +299,13 @@ export default function AutomationsPage() {
                 </div>
             </Card>
         )}
-        
+
         {filteredRules.length === 0 && !isLoading && rules.length > 0 &&
         <div className={`text-center py-16 rounded-2xl border border-dashed ${theme === 'dark' ? 'bg-slate-800/50 border-slate-700' : 'bg-slate-50 border-slate-300'}`}>
                 <p className={`font-medium ${theme === 'dark' ? 'text-slate-400' : 'text-slate-500'}`}>No matching rules found</p>
             </div>
         }
-        
+
         {rules.length === 0 && !isLoading &&
         <div className={`text-center py-16 rounded-2xl border border-dashed ${theme === 'dark' ? 'bg-slate-800/50 border-slate-700' : 'bg-slate-50 border-slate-300'}`}>
                 <p className={`font-medium ${theme === 'dark' ? 'text-slate-400' : 'text-slate-500'}`}>No automations defined</p>
@@ -323,7 +321,7 @@ export default function AutomationsPage() {
               <Activity className={`w-5 h-5 ${theme === 'dark' ? 'text-slate-400' : 'text-slate-600'}`} />
               <h3 className={`text-lg font-bold ${theme === 'dark' ? 'text-white' : ''}`}>Recent Execution Log</h3>
             </div>
-            
+
             {logsLoading ? (
               <div className="text-center py-10"><Loader2 className="animate-spin mx-auto" /></div>
             ) : logs.length === 0 ? (
@@ -382,7 +380,7 @@ export default function AutomationsPage() {
       </TabsContent>
       </Tabs>
 
-      {/* מודל יצירה/עריכה */}
+      {/* Automation workflow */}
       <Dialog open={isDialogOpen} onOpenChange={(open) => {
         setIsDialogOpen(open);
         if (!open) setEditingRule(null);
@@ -410,7 +408,7 @@ export default function AutomationsPage() {
 
 }
 
-// טופס יצירה (עם AI)
+// Automation workflow
 function RuleForm({ onSuccess, editingRule }) {
   const { theme } = useSettings();
   const queryClient = useQueryClient();
@@ -439,21 +437,16 @@ function RuleForm({ onSuccess, editingRule }) {
 
   // Dynamic field options based on entity
   const leadFields = [
-    { value: 'lead_status', label: 'סטטוס ליד', values: ['New', 'Attempting Contact', 'Contacted - Qualifying', 'Sales Ready', 'Converted', 'Lost / Unqualified'] },
-    { value: 'source_year', label: 'שנת מקור', values: ['2023', '2024', '2025'] },
-    { value: 'age', label: 'גיל', type: 'number' },
-    { value: 'city', label: 'עיר', type: 'text' },
-    { value: 'estimated_property_value', label: 'שווי נכס משוער', type: 'number' },
-    { value: 'lead_temperature', label: 'טמפרטורת ליד', values: ['Warm (חם)', 'Cold (קר)', 'Hot History (היה חם בעבר)'] }
+    { value: 'lead_status', label: 'Lead Status', values: ['New', 'Attempting Contact', 'Contacted - Qualifying', 'Sales Ready', 'Converted', 'Lost / Unqualified'] },
+            { value: 'city', label: 'City', type: 'text' },
+        { value: 'lead_temperature', label: 'Lead Temperature', values: ['Cold', 'Warm', 'Hot'] }
   ];
 
   const opportunityFields = [
-    { value: 'deal_stage', label: 'שלב עסקה', values: ['New (חדש)', 'Discovery Call (שיחת בירור צרכים)', 'Meeting Scheduled (נקבעת פגישה)', 'Documents Collection (איסוף מסמכים)', 'Request Sent to Harel (בקשה נשלחה להראל)', 'Closed Won (נחתם - בהצלחה)', 'Closed Lost (אבוד)'] },
-    { value: 'product_type', label: 'סוג מוצר', values: ['Reverse Mortgage', 'Savings/Insurance', 'Loan', 'Other'] },
-    { value: 'probability', label: 'הסתברות', type: 'number' },
-    { value: 'property_value', label: 'שווי נכס', type: 'number' },
-    { value: 'loan_amount_requested', label: 'סכום מבוקש', type: 'number' }
-  ];
+    { value: 'deal_stage', label: 'Opportunity Stage', values: ['New', 'Discovery', 'Proposal', 'Negotiation', 'Closed Won', 'Closed Lost'] },
+    { value: 'product_type', label: 'Fuel Product', values: ['On-Road Diesel', 'Off-Road Diesel', 'Gasoline', 'DEF', 'Lubricants', 'Other'] },
+    { value: 'probability', label: 'Probability', type: 'number' },
+          ];
 
   const availableFields = formData.trigger_entity === 'Lead' ? leadFields : opportunityFields;
   const selectedField = availableFields.find(f => f.value === formData.condition_field);
@@ -473,18 +466,18 @@ function RuleForm({ onSuccess, editingRule }) {
     setIsGenerating(true);
     try {
       const systemPrompt = `
-                You are an automation configuration assistant for a CRM. 
+                You are an automation configuration assistant for a CRM.
                 User Logic: "${aiPrompt}"
-                
+
                 Your goal is to output a JSON object to populate a form based on the logic.
-                
+
                 Input Schema mapping:
                 - trigger_entity: "Lead" or "Opportunity"
                 - trigger_event: "create" or "update"
-                - condition_field: "lead_status", "deal_stage", "source_year", etc.
+                - condition_field: "lead_status", "deal_stage", "estimated_monthly_gallons", etc.
                 - condition_value: translate Hebrew terms to exact English Enums below:
                     Lead Statuses: "New", "Attempting Contact", "Contacted - Qualifying", "Sales Ready", "Converted", "Lost / Unqualified"
-                    Deal Stages: "New (חדש)", "Discovery Call (שיחת בירור צרכים)", "Meeting Scheduled (נקבעת פגישה)", "Closed Won (נחתם - בהצלחה)"
+                    Deal Stages: "New", "Discovery", "Proposal", "Negotiation", "Closed Won", "Closed Lost"
                 - action_type: "create_task" or "send_email"
                 - action_config: {
                      email_to: string (use {{full_name}} or {{email}} placeholders),
@@ -495,7 +488,7 @@ function RuleForm({ onSuccess, editingRule }) {
                      task_due_days: number
                 }
                 - name: Suggest a short hebrew name for this rule
-    
+
                 Output strictly valid JSON only.
             `;
 
@@ -539,7 +532,7 @@ function RuleForm({ onSuccess, editingRule }) {
 
     } catch (error) {
       console.error("AI Generation failed", error);
-      alert("אירעה שגיאה ביצירת האוטומציה עם AI");
+      alert("An error occurred while creating the automation with AI.");
     } finally {
       setIsGenerating(false);
     }
@@ -558,14 +551,14 @@ function RuleForm({ onSuccess, editingRule }) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4" dir="ltr">
-            
+
             {/* AI Generator Section */}
             <div className={`p-6 rounded-2xl shadow-lg mb-8 border relative overflow-hidden transition-colors ${
-                theme === 'dark' 
-                    ? 'bg-slate-900 text-white border-slate-800' 
+                theme === 'dark'
+                    ? 'bg-slate-900 text-white border-slate-800'
                     : 'bg-gradient-to-br from-indigo-50 to-white border-indigo-100 text-slate-900'
             }`}>
-                
+
                 <div className="relative z-10 space-y-4">
                     <div className="flex items-center gap-2 font-bold text-lg">
                         <Sparkles className={`w-5 h-5 animate-pulse ${theme === 'dark' ? 'text-red-500' : 'text-indigo-600'}`} />
@@ -574,7 +567,7 @@ function RuleForm({ onSuccess, editingRule }) {
                     <p className={`text-sm ${theme === 'dark' ? 'text-slate-400' : 'text-slate-500'}`}>
                         Describe the automation in free language, and the AI will build the rule for you.
                     </p>
-                    
+
                     <div className="flex gap-3 pt-2">
                         <div className="flex-1 relative">
                             <Textarea
@@ -582,10 +575,10 @@ function RuleForm({ onSuccess, editingRule }) {
                                 onChange={(e) => setAiPrompt(e.target.value)}
                                 placeholder="E.g. When a lead becomes 'Sales Ready', send them a welcome email..."
                                 className={`resize-none h-20 text-sm rounded-xl transition-all focus:ring-2 ${
-                                    theme === 'dark' 
-                                        ? 'bg-slate-800 border-slate-700 text-white placeholder:text-slate-500 focus:ring-red-900 focus:bg-slate-800' 
+                                    theme === 'dark'
+                                        ? 'bg-slate-800 border-slate-700 text-white placeholder:text-slate-500 focus:ring-red-900 focus:bg-slate-800'
                                         : 'bg-white border-indigo-200 text-slate-900 placeholder:text-slate-400 focus:ring-indigo-200'
-                                }`} 
+                                }`}
                             />
                         </div>
                         <Button
@@ -753,7 +746,7 @@ function RuleForm({ onSuccess, editingRule }) {
 
                         </div>
                     </div> :
-        
+
         <div className={`space-y-3 p-3 rounded ${sectionBg}`}>
                         <div className="space-y-2">
                             <Label className={labelClass}>Field to Update</Label>

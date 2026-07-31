@@ -25,15 +25,14 @@ export default function AiInsights() {
       const convertedLeads = leads.filter(l => l.lead_status === 'Converted' || l.lead_status === 'Converted to Opportunity').length;
       const leadsByCity = {};
       const leadsBySource = {};
-      
+
       leads.forEach(l => {
         if (l.city) leadsByCity[l.city] = (leadsByCity[l.city] || 0) + 1;
-        if (l.source_year) leadsBySource[l.source_year] = (leadsBySource[l.source_year] || 0) + 1;
       });
 
-      const wonOpps = opportunities.filter(o => o.deal_stage?.includes('Won') || o.deal_stage?.includes('בהצלחה'));
-      const lostOpps = opportunities.filter(o => o.deal_stage?.includes('Lost') || o.deal_stage?.includes('אבוד'));
-      
+      const wonOpps = opportunities.filter(o => o.deal_stage?.includes('Won'));
+      const lostOpps = opportunities.filter(o => o.deal_stage?.includes('Lost'));
+
       const analysisPayload = {
         stats: {
           totalLeads,
@@ -51,12 +50,12 @@ export default function AiInsights() {
       const prompt = `
         You are a senior CRM data analyst. Analyze the following sales data and provide insights in English.
         Data: ${JSON.stringify(analysisPayload)}
-        
+
         Provide a JSON response with:
         1. "key_factors": List of 3 main factors likely influencing conversion (based on general knowledge + data).
         2. "recommendations": List of 3 strategic recommendations for the sales manager.
         3. "trend_analysis": A short paragraph summarizing the current health of the pipeline.
-        
+
         Return JSON format only:
         {
           "key_factors": ["string", "string", "string"],
@@ -97,8 +96,8 @@ export default function AiInsights() {
             The system will scan all leads and opportunities to identify hidden patterns and recommend improvements.
           </p>
         </div>
-        <Button 
-          onClick={generateInsights} 
+        <Button
+          onClick={generateInsights}
           disabled={isLoadingAI || !leads}
           className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-200/50"
           size="lg"
@@ -118,7 +117,7 @@ export default function AiInsights() {
 
       {!isLoadingAI && insights && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-          
+
           {/* Trend Analysis */}
           <Card className={`md:col-span-3 shadow-sm ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'border-indigo-100 bg-white'}`}>
             <CardHeader>
@@ -179,7 +178,7 @@ export default function AiInsights() {
           </Card>
         </div>
       )}
-      
+
       {!isLoadingAI && !insights && (
         <div className={`text-center py-12 rounded-2xl border border-dashed ${theme === 'dark' ? 'bg-slate-800/50 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
           <BrainCircuit className="w-12 h-12 text-slate-300 mx-auto mb-3" />

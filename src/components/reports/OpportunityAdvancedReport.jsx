@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { 
+import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, AreaChart, Area, Legend, ComposedChart
 } from 'recharts';
 import { Calendar, User, Filter as FilterIcon, Table as TableIcon, BarChart3, TrendingUp } from "lucide-react";
@@ -57,11 +57,11 @@ export default function OpportunityAdvancedReport({ leads, opportunities }) {
   }, [filteredData]);
 
   const sourceData = useMemo(() => {
-    const wonDeals = filteredData.filter(o => o.deal_stage?.includes('Won') || o.deal_stage?.includes('בהצלחה'));
+    const wonDeals = filteredData.filter(o => o.deal_stage?.includes('Won'));
     const counts = {};
     wonDeals.forEach(o => {
       const lead = leads.find(l => l.id === o.lead_id);
-      const source = lead?.source_year || 'Unknown'; 
+      const source = lead?.lead_source || 'Unknown';
       if (!counts[source]) counts[source] = { name: source, value: 0 };
       counts[source].value += 1;
     });
@@ -86,7 +86,7 @@ export default function OpportunityAdvancedReport({ leads, opportunities }) {
     const productCycles = {};
     filteredData.forEach(o => {
         const createdDate = o.custom_data?.simulated_date || o.created_date;
-        if ((o.deal_stage?.includes('Won') || o.deal_stage?.includes('בהצלחה')) && createdDate) {
+        if ((o.deal_stage?.includes('Won')) && createdDate) {
             const start = moment(createdDate);
             const end = o.updated_date ? moment(o.updated_date) : moment();
             const days = end.diff(start, 'days');
@@ -180,11 +180,11 @@ export default function OpportunityAdvancedReport({ leads, opportunities }) {
                     <ComposedChart data={progressionData} layout="vertical" margin={{ left: 0, right: 30, top: 10, bottom: 0 }}>
                         <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke={theme === 'dark' ? '#374151' : '#e5e7eb'} />
                         <XAxis type="number" hide />
-                        <YAxis 
-                            dataKey="name" 
-                            type="category" 
-                            width={70} 
-                            tick={{fontSize: 9, fill: theme === 'dark' ? '#94a3b8' : '#666'}} 
+                        <YAxis
+                            dataKey="name"
+                            type="category"
+                            width={70}
+                            tick={{fontSize: 9, fill: theme === 'dark' ? '#94a3b8' : '#666'}}
                             tickFormatter={(val) => val.length > 8 ? `${val.substring(0, 8)}..` : val}
                         />
                         <Tooltip contentStyle={{borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', backgroundColor: theme === 'dark' ? '#1f2937' : '#fff', color: theme === 'dark' ? '#fff' : '#000', fontSize: '12px'}} formatter={(value, name) => name === 'gallons' ? `${formatGallons(value)} gal` : value} />

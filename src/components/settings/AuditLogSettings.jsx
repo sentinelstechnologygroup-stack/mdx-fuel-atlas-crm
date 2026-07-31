@@ -1,18 +1,17 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { atlas } from '@/api/atlasClient';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Loader2, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { format } from "date-fns";
 import { useSettings } from '@/components/context/SettingsContext';
 
 export default function AuditLogSettings() {
     const { theme } = useSettings();
     const [searchTerm, setSearchTerm] = useState("");
-    
+
     // In a real scenario, we would use backend filtering, but for now fetching all (usually limited by default)
     const { data: logs, isLoading } = useQuery({
         queryKey: ['audit_logs'],
@@ -20,7 +19,7 @@ export default function AuditLogSettings() {
         initialData: []
     });
 
-    const filteredLogs = logs.filter(log => 
+    const filteredLogs = logs.filter(log =>
         (log.user_email && log.user_email.toLowerCase().includes(searchTerm.toLowerCase())) ||
         (log.action && log.action.toLowerCase().includes(searchTerm.toLowerCase())) ||
         (log.entity && log.entity.toLowerCase().includes(searchTerm.toLowerCase()))
@@ -37,8 +36,8 @@ export default function AuditLogSettings() {
                     <div className="flex gap-4 mb-4">
                         <div className="relative flex-1">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                            <Input 
-                                placeholder="Search by user, action or entity..." 
+                            <Input
+                                placeholder="Search by user, action or entity..."
                                 className={`pl-10 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white placeholder:text-slate-500' : ''}`}
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -73,7 +72,7 @@ export default function AuditLogSettings() {
                                 ) : filteredLogs.map((log) => (
                                     <TableRow key={log.id} className={theme === 'dark' ? 'border-slate-700 hover:bg-slate-700/50' : ''}>
                                         <TableCell className="text-slate-600 dark:text-slate-400 font-mono text-xs">
-                                            {log.timestamp ? format(new Date(log.timestamp), 'dd/MM/yyyy HH:mm') : '-'}
+                                            {log.timestamp ? format(new Date(log.timestamp), 'MM/dd/yyyy h:mm a') : '-'}
                                         </TableCell>
                                         <TableCell className={`font-medium ${theme === 'dark' ? 'text-slate-200' : ''}`}>{log.user_email}</TableCell>
                                         <TableCell>
