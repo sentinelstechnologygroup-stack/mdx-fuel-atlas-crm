@@ -1,9 +1,9 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
-import { Loader2, Sparkles, Upload, FileImage, Type, Camera, CheckCircle2, Edit3, ArrowRight, X } from "lucide-react";
+import { Loader2, Sparkles, Upload, FileImage, Type, Camera, CheckCircle2, Edit3 } from "lucide-react";
 import { atlas } from "@/api/atlasClient";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
@@ -227,12 +227,11 @@ ${textToAnalyze}`,
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 placeholder="Example:
-David Cohen, Age 68, lives in Tel Aviv
-Phone: 050-1234567
-Married, has 3 children
-Has an apartment worth about 3 million
-Has a mortgage of 500,000 NIS
-Interested in a reverse mortgage to help the children"
+John Smith, Smith Construction LLC
+1234 Main Street, Houston, TX 77002
+Phone: (713) 555-0123
+Email: john.smith@example.com
+Interested in regular commercial fuel delivery"
                 className={`h-64 resize-none font-mono text-sm ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white placeholder:text-slate-500 focus:border-purple-500' : 'bg-white border-slate-200 placeholder:text-slate-400 focus:border-purple-500'}`}
                 disabled={isProcessing}
               />
