@@ -20,7 +20,7 @@ import { useAuth } from '@/auth/AuthContext';
 
 function LayoutContent({ children, currentPageName }) {
   const [isSidebarOpen, setIsSidebarOpen] = React.useState(false);
-  const { branding, theme } = useSettings();
+  const { branding, theme, toggleTheme } = useSettings();
   const { logout, isLoadingAuth } = useAuth();
   // Phase 3C.1 presentation layer: hide navigation for modules with can_view=false.
   // This is UX only — server-enforced authorization arrives in Phase 3C.2.
