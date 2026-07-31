@@ -21,7 +21,28 @@ const PROFILE_FIELDS = [
 ];
 
 function initialForm(user) {
-  return Object.fromEntries(PROFILE_FIELDS.map((field) => [field, user?.[field] ?? '']));
+  return Object.fromEntries(
+    PROFILE_FIELDS.map((field) => [
+      field,
+      user?.[field] ?? ''
+    ])
+  );
+}
+
+function formatUsPhone(value) {
+  const digits = String(value || '')
+    .replace(/\D/g, '')
+    .slice(0, 10);
+
+  if (digits.length < 4) {
+    return digits;
+  }
+
+  if (digits.length < 7) {
+    return `(${digits.slice(0, 3)}) ${digits.slice(3)}`;
+  }
+
+  return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
 }
 
 export default function UserProfileEditor({ user, onCancel, onSaved }) {
@@ -35,7 +56,13 @@ export default function UserProfileEditor({ user, onCancel, onSaved }) {
     const firstName = form.first_name.trim();
     const lastName = form.last_name.trim();
     const email = form.email.trim().toLowerCase();
-    const quota = form.monthly_gallon_quota === '' ? null : Number(form.monthly_gallon_quota);
+    const quota =
+      form.monthly_gallon_quota === ''
+        ? null
+        : Number(form.monthly_gallon_quota);
+
+    const phone =
+      formatUsPhone(form.phone);
 
     if (!firstName || !lastName) {
       toast({ title: 'First and last name are required.', variant: 'destructive' });
@@ -45,6 +72,17 @@ export default function UserProfileEditor({ user, onCancel, onSaved }) {
       toast({ title: 'A valid MDX work email is required.', variant: 'destructive' });
       return;
     }
+    if (
+      phone &&
+      !/^\(\d{3}\) \d{3}-\d{4}$/.test(phone)
+    ) {
+      toast({
+        title: 'Use a 10-digit US phone number.',
+        variant: 'destructive'
+      });
+      return;
+    }
+
     if (quota !== null && (!Number.isFinite(quota) || quota < 0)) {
       toast({ title: 'Monthly gallon quota must be zero or greater.', variant: 'destructive' });
       return;
@@ -59,6 +97,7 @@ export default function UserProfileEditor({ user, onCancel, onSaved }) {
         display_name: `${firstName} ${lastName}`.trim(),
         full_name: `${firstName} ${lastName}`.trim(),
         email,
+        phone,
         monthly_gallon_quota: quota,
       };
 
@@ -111,7 +150,19 @@ export default function UserProfileEditor({ user, onCancel, onSaved }) {
         </div>
         <div className="space-y-2">
           <Label>Phone</Label>
-          <Input value={form.phone} onChange={(e) => update('phone', e.target.value)} />
+          <Input
+            type="tel"
+            inputMode="tel"
+            autoComplete="tel"
+            value={form.phone}
+            placeholder="(713) 555-0123"
+            onChange={(e) =>
+              update(
+                'phone',
+                formatUsPhone(e.target.value)
+              )
+            }
+          />
         </div>
         <div className="space-y-2">
           <Label>Employee ID</Label>
