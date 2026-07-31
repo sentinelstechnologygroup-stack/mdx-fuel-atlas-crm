@@ -1,13 +1,14 @@
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Trophy, Medal, Crown } from "lucide-react";
 import { useSettings } from "@/components/context/SettingsContext";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
+import { formatGallons, getOpportunityGallons } from "@/lib/fuelVolume";
 
 export default function LeaderboardWidget({ opportunities }) {
-    const { theme, branding } = useSettings();
+    const { theme } = useSettings();
     const isDark = theme === 'dark';
 
     const leaderboard = useMemo(() => {
@@ -16,19 +17,19 @@ export default function LeaderboardWidget({ opportunities }) {
         opportunities.forEach(opp => {
             const agent = opp.assigned_to || 'Unassigned';
             if (!stats[agent]) {
-                stats[agent] = { name: agent, revenue: 0, deals: 0, pipeline: 0 };
+                stats[agent] = { name: agent, gallons: 0, deals: 0, pipelineGallons: 0 };
             }
             
             if (opp.deal_stage === 'Closed Won') {
-                stats[agent].revenue += (opp.amount || 0);
+                stats[agent].gallons += getOpportunityGallons(opp);
                 stats[agent].deals += 1;
             } else if (!['Closed Lost'].includes(opp.deal_stage)) {
-                stats[agent].pipeline += (opp.amount || 0);
+                stats[agent].pipelineGallons += getOpportunityGallons(opp);
             }
         });
 
         return Object.values(stats)
-            .sort((a, b) => b.revenue - a.revenue)
+            .sort((a, b) => b.gallons - a.gallons)
             .slice(0, 5); // Top 5
     }, [opportunities]);
 
@@ -72,10 +73,10 @@ export default function LeaderboardWidget({ opportunities }) {
                             </div>
                             <div className="text-right">
                                 <p className={`text-sm font-bold font-mono ${isDark ? 'text-emerald-400' : 'text-emerald-600'}`}>
-                                    {branding.currency}{(agent.revenue / 1000000).toFixed(1)}M
+                                    {formatGallons(agent.gallons, { compact: true })} gal
                                 </p>
                                 <p className="text-xs text-slate-500">
-                                    Pipe: {branding.currency}{(agent.pipeline / 1000000).toFixed(1)}M
+                                    Pipeline: {formatGallons(agent.pipelineGallons, { compact: true })} gal
                                 </p>
                             </div>
                         </Link>

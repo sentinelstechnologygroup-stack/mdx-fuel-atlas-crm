@@ -1,19 +1,17 @@
-import React, { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { atlas } from '@/api/atlasClient';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer,
+import { XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer,
   PieChart, Pie, Cell, AreaChart, Area } from
 'recharts';
-import { Users, DollarSign, Activity, CheckCircle2, Clock, Calendar, AlertCircle, Plus } from 'lucide-react';
+import { Users, Fuel, Activity, Plus } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Badge } from "@/components/ui/badge";
 import moment from 'moment';
 import TasksWidget from '@/components/dashboard/TasksWidget';
 import ForecastWidget from '@/components/dashboard/ForecastWidget';
@@ -21,14 +19,25 @@ import LeaderboardWidget from '@/components/dashboard/LeaderboardWidget';
 import StagnantDealsWidget from '@/components/dashboard/StagnantDealsWidget';
 import AddWidgetDialog from '@/components/dashboard/AddWidgetDialog';
 import { useSettings } from '@/components/context/SettingsContext';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
+import { usePermissions } from '@/components/hooks/usePermissions';
+import { firstName } from '@/lib/roles';
+import {
+  formatGallons,
+  getMonthlyGallonQuota,
+  getOpportunityGallons,
+  getPeriodGallonQuota,
+} from '@/lib/fuelVolume';
 
 export default function Dashboard() {
-  const [timeRange, setTimeRange] = useState('all'); // 'today', 'week', 'month', 'quarter', 'year', 'all'
+  const [timeRange, setTimeRange] = useState('month'); // 'today', 'week', 'month', 'quarter', 'year', 'all'
   const [showAddWidget, setShowAddWidget] = useState(false);
-  const { theme, branding, pipelineStages } = useSettings();
+  const { theme, pipelineStages } = useSettings();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const { user: currentUser, applicationRole } = usePermissions();
+  const monthlyGallonQuota = getMonthlyGallonQuota(currentUser);
+  const periodGallonQuota = getPeriodGallonQuota(monthlyGallonQuota, timeRange);
 
   const getStageColor = (stageName) => {
     // Normalize stage name (remove translations in parens)
@@ -108,7 +117,7 @@ export default function Dashboard() {
 
     const totalOpps = filteredOpps.length;
     const wonOpps = filteredOpps.filter((o) => o.deal_stage?.includes('Won'));
-    const totalWonValue = wonOpps.reduce((sum, o) => sum + (o.amount || 0), 0);
+    const totalWonGallons = wonOpps.reduce((sum, o) => sum + getOpportunityGallons(o), 0);
 
     // Opportunity Stages
     const oppsByStage = filteredOpps.reduce((acc, o) => {
@@ -150,7 +159,7 @@ export default function Dashboard() {
 
     return {
       totalLeads, newLeads, convertedLeads,
-      totalOpps, wonOppsCount: wonOpps.length, totalWonValue,
+      totalOpps, wonOppsCount: wonOpps.length, totalWonGallons,
       stageData, trendData, upcomingTasks
     };
   }, [filteredLeads, filteredOpps, tasks, timeRange, pipelineStages]);
@@ -163,6 +172,13 @@ export default function Dashboard() {
     if (hour < 18) return "Good Afternoon";
     return "Good Evening";
   };
+
+  const greetingName = firstName(currentUser);
+  const quotaScopeLabel = applicationRole === 'salesperson'
+    ? 'My'
+    : applicationRole === 'supervisor'
+      ? 'Team'
+      : 'Company';
 
   const glassCardClasses = theme === 'dark' 
     ? 'bg-slate-900/60 backdrop-blur-xl border-slate-700/50 shadow-xl shadow-black/20' 
@@ -184,7 +200,7 @@ export default function Dashboard() {
               <div className="relative z-10 flex flex-col h-full justify-between">
                   <div>
                     <h1 className={`text-4xl md:text-5xl font-bold tracking-tight mb-2 ${theme === 'dark' ? 'text-white' : 'text-slate-800'}`}>
-                        {getGreeting()}
+                        {getGreeting()}{greetingName ? ` ${greetingName}` : ''}
                     </h1>
                     <p className={`text-lg ${theme === 'dark' ? 'text-indigo-200' : 'text-slate-500'}`}>
                         {moment().format("dddd, MMMM Do YYYY")}
@@ -241,13 +257,13 @@ export default function Dashboard() {
                {/* Stat 1 */}
                <Link to={`${createPageUrl('Opportunities')}?view=won`} className={`col-span-2 rounded-3xl p-6 border flex items-center justify-between transition-transform hover:scale-[1.02] cursor-pointer ${glassCardClasses}`}>
                    <div>
-                       <p className={`text-sm font-medium mb-1 ${theme === 'dark' ? 'text-slate-400' : 'text-slate-500'}`}>Total Revenue</p>
+                       <p className={`text-sm font-medium mb-1 ${theme === 'dark' ? 'text-slate-400' : 'text-slate-500'}`}>{dateRangeLabel} Gallons Won</p>
                        <p className={`text-3xl font-bold tracking-tight ${theme === 'dark' ? 'text-emerald-400' : 'text-slate-800'}`}>
-                           ${(stats.totalWonValue / 1000000).toFixed(2)}m
+                           {formatGallons(stats.totalWonGallons, { compact: true })}
                        </p>
                    </div>
                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${theme === 'dark' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-emerald-100 text-emerald-600'}`}>
-                       <DollarSign className="w-6 h-6" />
+                       <Fuel className="w-6 h-6" />
                    </div>
                </Link>
 
@@ -278,7 +294,8 @@ export default function Dashboard() {
               <ForecastWidget 
                   opportunities={filteredOpps} 
                   timeRange={timeRange}
-                  periodTarget={250000} // Hardcoded for MVP visualization
+                  periodTarget={periodGallonQuota}
+                  scopeLabel={quotaScopeLabel}
               />
           </div>
 

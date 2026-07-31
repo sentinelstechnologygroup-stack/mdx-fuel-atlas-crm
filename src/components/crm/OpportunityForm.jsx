@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { motion } from "framer-motion";
-import { Loader2, Briefcase, Sparkles, MessageSquare, BrainCircuit, Activity, FileText, User, CheckSquare, AlertCircle, X } from "lucide-react";
+import { Loader2, Briefcase, Sparkles, BrainCircuit, User, CheckSquare, AlertCircle, X } from "lucide-react";
 import { useSettings } from "@/components/context/SettingsContext";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ActivityLog from "./ActivityLog";
@@ -36,6 +36,7 @@ export default function OpportunityForm({ opportunity, initialLead, onSubmit, on
       product_type: "Consulting",
       deal_type: "Business",
       amount: "",
+      estimated_monthly_gallons: "",
       deal_stage: "New",
       probability: 20,
       expected_close_date: "",
@@ -369,6 +370,26 @@ export default function OpportunityForm({ opportunity, initialLead, onSubmit, on
                   placeholder="0.00"
                   className={inputClass} />
 
+          </div>
+
+          <div className="space-y-2">
+            <Label className={labelClass}>Estimated Monthly Gallons</Label>
+            <Input
+                  type="number"
+                  min="0"
+                  step="1"
+                  {...register("estimated_monthly_gallons", {
+                    valueAsNumber: true,
+                    min: { value: 0, message: "Gallons cannot be negative" }
+                  })}
+                  placeholder="e.g., 25,000"
+                  className={inputClass} />
+            <p className={`text-[11px] ${theme === 'dark' ? 'text-slate-500' : 'text-slate-400'}`}>
+              Used for gallon quota attainment, forecasts, and sales rankings.
+            </p>
+            {errors.estimated_monthly_gallons && (
+              <span className="text-red-500 text-xs">{errors.estimated_monthly_gallons.message}</span>
+            )}
           </div>
 
           <div className="space-y-2">

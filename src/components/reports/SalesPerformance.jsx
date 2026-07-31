@@ -1,8 +1,9 @@
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
-import { DollarSign, Trophy, Target, TrendingUp } from "lucide-react";
+import { Fuel, Trophy, Target, TrendingUp } from "lucide-react";
 import { useSettings } from "@/components/context/SettingsContext";
+import { formatGallons, getOpportunityGallons } from "@/lib/fuelVolume";
 
 const COLORS = ['#ef4444', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d'];
 
@@ -35,18 +36,18 @@ export default function SalesPerformance({ leads, opportunities, timeRange }) {
   
   const stats = useMemo(() => {
     const closedWon = opportunities.filter(o => o.deal_stage?.includes("Won") || o.deal_stage?.includes("בהצלחה"));
-    const totalRevenue = closedWon.reduce((sum, o) => sum + (o.amount || 0), 0);
-    const avgDealSize = closedWon.length > 0 ? totalRevenue / closedWon.length : 0;
+    const totalGallons = closedWon.reduce((sum, o) => sum + getOpportunityGallons(o), 0);
+    const avgGallons = closedWon.length > 0 ? totalGallons / closedWon.length : 0;
     
-    const pipelineValue = opportunities
+    const pipelineGallons = opportunities
       .filter(o => !o.deal_stage?.includes("Won") && !o.deal_stage?.includes("Lost"))
-      .reduce((sum, o) => sum + (o.amount || 0), 0);
+      .reduce((sum, o) => sum + getOpportunityGallons(o), 0);
 
     return {
-      totalRevenue,
+      totalGallons,
       closedCount: closedWon.length,
-      avgDealSize,
-      pipelineValue
+      avgGallons,
+      pipelineGallons
     };
   }, [opportunities, timeRange]);
 
@@ -72,20 +73,18 @@ export default function SalesPerformance({ leads, opportunities, timeRange }) {
     }));
   }, [opportunities, pipelineStages]);
 
-  const formatCurrency = (val) => `$${(val || 0).toLocaleString()}`;
-
   return (
     <div className="space-y-6">
       {/* KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card className={theme === 'dark' ? 'bg-slate-800 border-slate-700' : ''}>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className={`text-sm font-medium ${theme === 'dark' ? 'text-emerald-200' : ''}`}>Closed Revenue</CardTitle>
-            <DollarSign className={`h-4 w-4 ${theme === 'dark' ? 'text-emerald-400 drop-shadow-sm' : 'text-green-600'}`} />
+            <CardTitle className={`text-sm font-medium ${theme === 'dark' ? 'text-emerald-200' : ''}`}>Gallons Won</CardTitle>
+            <Fuel className={`h-4 w-4 ${theme === 'dark' ? 'text-emerald-400 drop-shadow-sm' : 'text-green-600'}`} />
           </CardHeader>
           <CardContent>
-            <div className={`text-xl md:text-2xl font-bold truncate ${theme === 'dark' ? 'text-emerald-400 drop-shadow-sm' : 'text-green-600'}`} title={formatCurrency(stats.totalRevenue)}>{formatCurrency(stats.totalRevenue)}</div>
-            <p className={`text-xs ${theme === 'dark' ? 'text-slate-400' : 'text-neutral-500'}`}>Total successfully closed deals</p>
+            <div className={`text-xl md:text-2xl font-bold truncate ${theme === 'dark' ? 'text-emerald-400 drop-shadow-sm' : 'text-green-600'}`} title={`${formatGallons(stats.totalGallons)} gallons`}>{formatGallons(stats.totalGallons)} gal</div>
+            <p className={`text-xs ${theme === 'dark' ? 'text-slate-400' : 'text-neutral-500'}`}>Estimated monthly gallons from won opportunities</p>
           </CardContent>
         </Card>
 
@@ -102,23 +101,23 @@ export default function SalesPerformance({ leads, opportunities, timeRange }) {
 
         <Card className={theme === 'dark' ? 'bg-slate-800 border-slate-700' : ''}>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className={`text-sm font-medium ${theme === 'dark' ? 'text-red-200' : ''}`}>Average Deal Size</CardTitle>
+            <CardTitle className={`text-sm font-medium ${theme === 'dark' ? 'text-red-200' : ''}`}>Average Gallons per Win</CardTitle>
             <Target className={`h-4 w-4 ${theme === 'dark' ? 'text-red-400 drop-shadow-sm' : 'text-red-500'}`} />
           </CardHeader>
           <CardContent>
-            <div className={`text-xl md:text-2xl font-bold truncate ${theme === 'dark' ? 'text-red-400' : ''}`}>{formatCurrency(stats.avgDealSize)}</div>
-            <p className={`text-xs ${theme === 'dark' ? 'text-slate-400' : 'text-neutral-500'}`}>Average for closed deal</p>
+            <div className={`text-xl md:text-2xl font-bold truncate ${theme === 'dark' ? 'text-red-400' : ''}`}>{formatGallons(stats.avgGallons)} gal</div>
+            <p className={`text-xs ${theme === 'dark' ? 'text-slate-400' : 'text-neutral-500'}`}>Average monthly gallons for won opportunities</p>
           </CardContent>
         </Card>
 
         <Card className={theme === 'dark' ? 'bg-slate-800 border-slate-700' : ''}>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className={`text-sm font-medium ${theme === 'dark' ? 'text-purple-200' : ''}`}>Open Pipeline Value</CardTitle>
+            <CardTitle className={`text-sm font-medium ${theme === 'dark' ? 'text-purple-200' : ''}`}>Open Pipeline Gallons</CardTitle>
             <TrendingUp className={`h-4 w-4 ${theme === 'dark' ? 'text-purple-400 drop-shadow-sm' : 'text-purple-500'}`} />
           </CardHeader>
           <CardContent>
-            <div className={`text-xl md:text-2xl font-bold truncate ${theme === 'dark' ? 'text-purple-400' : ''}`}>{formatCurrency(stats.pipelineValue)}</div>
-            <p className={`text-xs ${theme === 'dark' ? 'text-slate-400' : 'text-neutral-500'}`}>Potential of open deals</p>
+            <div className={`text-xl md:text-2xl font-bold truncate ${theme === 'dark' ? 'text-purple-400' : ''}`}>{formatGallons(stats.pipelineGallons)} gal</div>
+            <p className={`text-xs ${theme === 'dark' ? 'text-slate-400' : 'text-neutral-500'}`}>Potential monthly gallons in open opportunities</p>
           </CardContent>
         </Card>
       </div>

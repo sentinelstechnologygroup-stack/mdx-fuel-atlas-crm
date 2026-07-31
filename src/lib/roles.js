@@ -116,6 +116,19 @@ export function displayName(user) {
   );
 }
 
+export function firstName(user) {
+  if (!user) return '';
+  if (user.first_name?.trim()) return user.first_name.trim();
+
+  const fallback =
+    user.display_name ||
+    user.full_name ||
+    user.email?.split('@')[0] ||
+    '';
+
+  return fallback.trim().split(/\s+/)[0] || '';
+}
+
 export function getInitials(user) {
   const name = displayName(user);
   if (!name || name === 'Unnamed User') return '?';

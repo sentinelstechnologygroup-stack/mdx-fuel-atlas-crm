@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { atlas } from '@/api/atlasClient';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -13,9 +13,10 @@ import { MoreVertical, Search, Eye, Pencil, ShieldCheck, Users, MapPin, UserChec
 import { useSettings } from '@/components/context/SettingsContext';
 import { usePermissions } from '@/components/hooks/usePermissions';
 import { useDirectoryData } from '@/components/hooks/useDirectoryData';
-import { APPLICATION_ROLES, ASSIGNABLE_ROLES_BY_ADMIN, roleLabel, statusLabel, displayName, effectiveRole, canAssignRole, canDeactivateUser } from '@/lib/roles';
+import { APPLICATION_ROLES, ASSIGNABLE_ROLES_BY_ADMIN, roleLabel, statusLabel, displayName, effectiveRole, canDeactivateUser } from '@/lib/roles';
 import UserAvatar from '@/components/settings/UserAvatar';
 import UserProfileView from '@/components/settings/UserProfileView';
+import UserProfileEditor from '@/components/settings/UserProfileEditor';
 import DeactivateUserDialog from '@/components/ownership/DeactivateUserDialog';
 import { useToast } from '@/components/ui/use-toast';
 
@@ -245,6 +246,7 @@ export default function UserDirectory() {
                         {canManageUser(u) && (
                           <>
                             <DropdownMenuSeparator />
+                            <DropdownMenuItem onClick={() => openAction('profile', u)}><Pencil className="w-4 h-4 mr-2" /> Edit Protected Profile</DropdownMenuItem>
                             <DropdownMenuItem onClick={() => openAction('role', u)}><ShieldCheck className="w-4 h-4 mr-2" /> Assign Role</DropdownMenuItem>
                             <DropdownMenuItem onClick={() => openAction('team', u)}><Users className="w-4 h-4 mr-2" /> Assign Team</DropdownMenuItem>
                             <DropdownMenuItem onClick={() => openAction('supervisor', u)}><UserCheck className="w-4 h-4 mr-2" /> Assign Supervisor</DropdownMenuItem>
@@ -279,6 +281,20 @@ export default function UserDirectory() {
               <DialogHeader><DialogTitle>Employee Profile</DialogTitle></DialogHeader>
               <UserProfileView user={action.user} team={resolveTeam(action.user.team_id)} supervisor={resolveUser(action.user.supervisor_user_id)} territories={resolveTerritories(action.user.territory_ids)} />
               <DialogFooter><Button variant="ghost" onClick={closeAction}>Close</Button></DialogFooter>
+            </>
+          )}
+
+          {action?.type === 'profile' && (
+            <>
+              <DialogHeader><DialogTitle>Edit Employee Profile — {displayName(action.user)}</DialogTitle></DialogHeader>
+              <UserProfileEditor
+                user={action.user}
+                onCancel={closeAction}
+                onSaved={() => {
+                  refreshAll();
+                  closeAction();
+                }}
+              />
             </>
           )}
 

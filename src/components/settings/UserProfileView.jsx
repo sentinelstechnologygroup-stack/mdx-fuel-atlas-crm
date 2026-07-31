@@ -1,9 +1,9 @@
-import React from 'react';
 import { Badge } from '@/components/ui/badge';
-import { roleLabel, statusLabel, territoryTypeLabel } from '@/lib/roles';
+import { roleLabel, statusLabel } from '@/lib/roles';
 import { useSettings } from '@/components/context/SettingsContext';
 import UserAvatar from '@/components/settings/UserAvatar';
 import { Mail, Phone, Briefcase, Building2, MapPin, Clock, Palette, Bell, FileText } from 'lucide-react';
+import { formatGallons, getMonthlyGallonQuota } from '@/lib/fuelVolume';
 
 function InfoRow({ icon: Icon, label, value }) {
   const { theme } = useSettings();
@@ -56,6 +56,8 @@ export default function UserProfileView({ user, team, supervisor, territories })
       </div>
 
       <Section title="Profile">
+        <InfoRow icon={Briefcase} label="First Name" value={user.first_name} />
+        <InfoRow icon={Briefcase} label="Last Name" value={user.last_name} />
         <InfoRow icon={Briefcase} label="Job Title" value={user.job_title} />
         <InfoRow icon={Mail} label="Email" value={user.email} />
         <InfoRow icon={Phone} label="Phone" value={user.phone} />
@@ -80,12 +82,17 @@ export default function UserProfileView({ user, team, supervisor, territories })
       </Section>
 
       <Section title="Performance">
+        <InfoRow
+          icon={Briefcase}
+          label="Monthly Gallon Quota"
+          value={getMonthlyGallonQuota(user) ? `${formatGallons(getMonthlyGallonQuota(user))} gallons` : 'Not assigned'}
+        />
         <div className={`rounded-lg p-4 text-center text-sm ${theme === 'dark' ? 'bg-slate-800/50 text-slate-400' : 'bg-slate-50 text-slate-500'}`}>
           Available after ownership migration
         </div>
         <p className={`text-xs mt-2 ${theme === 'dark' ? 'text-slate-500' : 'text-slate-400'}`}>
           Assigned leads, assigned opportunities, open tasks, won opportunities, lost opportunities, quotes created,
-          sales goals, and performance metrics will be populated once record ownership is migrated in a later phase.
+          gallon goals and performance metrics will be populated once record ownership is migrated in a later phase.
         </p>
       </Section>
     </div>
