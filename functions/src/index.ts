@@ -4132,3 +4132,5 @@ export const convertOpportunityToClient = onCall(
     };
   }
 );
+
+export {processAutomationWrite} from "./automation.js";
