@@ -11,7 +11,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { useQuery } from "@tanstack/react-query";
 import { atlas } from "@/api/atlasClient";
-import { listEmployeeLookup } from '@/api/userDirectoryService';
 import { useSettings } from "@/components/context/SettingsContext";
 import ActivityLog from "./ActivityLog";
 import DiscoveryScript from "./DiscoveryScript";
@@ -52,7 +51,6 @@ export default function LeadForm({ lead, onSaveAndClose, onSaveAndStay, onCancel
       phone_number: lead?.phone_number || "",
       email: lead?.email || "",
       documents: lead?.documents || [],
-      assigned_to: lead?.assigned_to || "",
       original_status_color:
         lead?.original_status_color || "Green",
       lead_status: lead?.lead_status || "New",
@@ -70,11 +68,6 @@ export default function LeadForm({ lead, onSaveAndClose, onSaveAndStay, onCancel
   // Removed opportunities query here as it is moved to LeadOpportunities component
 
   // Fetch users for assignment
-  const { data: users } = useQuery({
-    queryKey: ['users_list'],
-    queryFn: listEmployeeLookup, // Added limit
-    initialData: []
-  });
 
   // 1. Browser Tab Awareness
   React.useEffect(() => {
@@ -145,11 +138,13 @@ export default function LeadForm({ lead, onSaveAndClose, onSaveAndStay, onCancel
   };
 
   const sanitizeLeadData = (data) => {
+    const leadData = { ...data };
+    delete leadData.assigned_to;
     const firstName = String(data.first_name || "").trim();
     const lastName = String(data.last_name || "").trim();
 
     return {
-      ...data,
+      ...leadData,
       first_name: firstName,
       last_name: lastName,
       full_name: [firstName, lastName].filter(Boolean).join(" "),
@@ -519,22 +514,6 @@ export default function LeadForm({ lead, onSaveAndClose, onSaveAndStay, onCancel
                 }
               </div>
 
-              <div className="space-y-1">
-                <Label className={labelClass}>Assigned To</Label>
-                <Select
-                  defaultValue={lead?.assigned_to || ""}
-                  onValueChange={(val) => handleSelectChange("assigned_to", val)}>
-                  <SelectTrigger className={inputClass}>
-                    <SelectValue placeholder="Select User" />
-                  </SelectTrigger>
-                  <SelectContent className={theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : ''}>
-                    <SelectItem value="unassigned">Unassigned</SelectItem>
-                    {users?.map(u => (
-                      <SelectItem key={u.id} value={u.email}>{u.full_name || u.email}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
 
               <div className="space-y-1">
                 <Label className={labelClass}>Last Contact Date</Label>

@@ -2987,6 +2987,457 @@ export const exportReport = onCall(async (request) => {
 /**
  * Converts an authorized lead into one opportunity.
  */
+
+const REASSIGNMENT_ENTITIES = {
+  lead: {
+    collection: "Lead",
+    module: "leads",
+  },
+  opportunity: {
+    collection: "Opportunity",
+    module: "opportunities",
+  },
+  task: {
+    collection: "Task",
+    module: "tasks",
+  },
+  activity: {
+    collection: "Activity",
+    module: "activities",
+  },
+  client: {
+    collection: "Client",
+    module: "clients",
+  },
+} as const;
+
+type ReassignmentEntityType =
+  keyof typeof REASSIGNMENT_ENTITIES;
+
+/**
+ * Validates and normalizes a required reassignment identifier.
+ * @param {unknown} value Candidate identifier.
+ * @param {string} label Human-readable field label.
+ * @return {string} Normalized identifier.
+ */
+function requiredReassignmentId(
+  value: unknown,
+  label: string,
+): string {
+  if (typeof value !== "string") {
+    throw new HttpsError(
+      "invalid-argument",
+      label + " is required.",
+    );
+  }
+
+  const result = value.trim();
+
+  if (
+    !result ||
+    result.length > 160 ||
+    !/^[A-Za-z0-9_-]+$/.test(result)
+  ) {
+    throw new HttpsError(
+      "invalid-argument",
+      label + " is invalid.",
+    );
+  }
+
+  return result;
+}
+
+/**
+ * Validates and normalizes an optional reassignment identifier.
+ * @param {unknown} value Candidate identifier.
+ * @param {string} label Human-readable field label.
+ * @return {string|null} Normalized identifier or null.
+ */
+function optionalReassignmentId(
+  value: unknown,
+  label: string,
+): string | null {
+  if (value === undefined || value === null || value === "") {
+    return null;
+  }
+
+  return requiredReassignmentId(value, label);
+}
+
+/**
+ * Validates and normalizes optional reassignment text.
+ * @param {unknown} value Candidate text.
+ * @param {string} label Human-readable field label.
+ * @param {number} maximumLength Maximum permitted length.
+ * @return {string|null} Normalized text or null.
+ */
+function optionalReassignmentText(
+  value: unknown,
+  label: string,
+  maximumLength: number,
+): string | null {
+  if (value === undefined || value === null) {
+    return null;
+  }
+
+  if (typeof value !== "string") {
+    throw new HttpsError(
+      "invalid-argument",
+      label + " must be text.",
+    );
+  }
+
+  const result = value.trim();
+
+  if (result.length > maximumLength) {
+    throw new HttpsError(
+      "invalid-argument",
+      label + " is too long.",
+    );
+  }
+
+  return result || null;
+}
+
+export const reassignRecord = onCall(async (request) => {
+  const actor = await requireActiveActor(request.auth?.uid);
+  const data = (request.data || {}) as Record<string, unknown>;
+
+  const rawEntityType =
+    typeof data.entity_type === "string" ?
+      data.entity_type.trim().toLowerCase() :
+      "";
+
+  if (!(rawEntityType in REASSIGNMENT_ENTITIES)) {
+    throw new HttpsError(
+      "invalid-argument",
+      "A supported entity type is required.",
+    );
+  }
+
+  const entityType = rawEntityType as ReassignmentEntityType;
+  const configuration = REASSIGNMENT_ENTITIES[entityType];
+
+  const entityId = requiredReassignmentId(
+    data.entity_id,
+    "The entity identifier",
+  );
+  const targetOwnerId = requiredReassignmentId(
+    data.to_owner_user_id,
+    "The destination owner",
+  );
+  const requestedTeamId = optionalReassignmentId(
+    data.to_team_id,
+    "The destination team",
+  );
+  const requestedSupervisorId = optionalReassignmentId(
+    data.to_supervisor_user_id,
+    "The destination supervisor",
+  );
+  const operationId = requiredReassignmentId(
+    data.transfer_operation_id,
+    "The transfer operation identifier",
+  );
+  const transferReason = optionalReassignmentText(
+    data.transfer_reason,
+    "The transfer reason",
+    500,
+  );
+  const transferType =
+    optionalReassignmentText(
+      data.transfer_type,
+      "The transfer type",
+      40,
+    ) || "manual";
+
+  if (!/^[a-z][a-z0-9_-]*$/.test(transferType)) {
+    throw new HttpsError(
+      "invalid-argument",
+      "The transfer type is invalid.",
+    );
+  }
+
+  const permission = await resolveActorModulePermission(
+    actor,
+    configuration.module,
+  );
+
+  if (
+    permission.can_assign !== true ||
+    permission.record_scope === "none"
+  ) {
+    throw new HttpsError(
+      "permission-denied",
+      "You are not authorized to assign these records.",
+    );
+  }
+
+  const recordReference = firestore
+    .collection("entities")
+    .doc(configuration.collection)
+    .collection("records")
+    .doc(entityId);
+
+  const targetOwnerReference = firestore
+    .collection("userProfiles")
+    .doc(targetOwnerId);
+
+  const auditReference = firestore
+    .collection("entities")
+    .doc("AuditLog")
+    .collection("records")
+    .doc("ownership-transfer-" + operationId);
+
+  return firestore.runTransaction(async (transaction) => {
+    const [
+      recordSnapshot,
+      targetOwnerSnapshot,
+      auditSnapshot,
+    ] = await Promise.all([
+      transaction.get(recordReference),
+      transaction.get(targetOwnerReference),
+      transaction.get(auditReference),
+    ]);
+
+    if (auditSnapshot.exists) {
+      const priorAudit =
+        (auditSnapshot.data() || {}) as Record<string, unknown>;
+
+      if (
+        permissionString(priorAudit.entity_type) !== entityType ||
+        permissionString(priorAudit.entity_id) !== entityId
+      ) {
+        throw new HttpsError(
+          "already-exists",
+          "The transfer operation identifier is already in use.",
+        );
+      }
+
+      return {
+        success: true,
+        status: "already_processed",
+        entity_type: entityType,
+        entity_id: entityId,
+        transfer_operation_id: operationId,
+      };
+    }
+
+    if (!recordSnapshot.exists) {
+      throw new HttpsError(
+        "not-found",
+        "The requested CRM record was not found.",
+      );
+    }
+
+    if (!targetOwnerSnapshot.exists) {
+      throw new HttpsError(
+        "not-found",
+        "The destination employee was not found.",
+      );
+    }
+
+    const record =
+      (recordSnapshot.data() || {}) as Record<string, unknown>;
+
+    const canModifySourceRecord =
+      canModifyScopedRecord(actor, record) &&
+      canViewReportRecord(
+        actor,
+        record,
+        permission.record_scope,
+      );
+
+    if (!canModifySourceRecord) {
+      throw new HttpsError(
+        "permission-denied",
+        "The requested record is outside your authorized scope.",
+      );
+    }
+
+    const targetOwner = normalizeDirectoryUser(
+      targetOwnerSnapshot.id,
+      targetOwnerSnapshot.data() as ProfileData,
+    );
+
+    if (targetOwner.account_status !== "active") {
+      throw new HttpsError(
+        "failed-precondition",
+        "The destination employee account is not active.",
+      );
+    }
+
+    const destinationTeamId =
+      requestedTeamId ?? targetOwner.team_id;
+
+    const destinationSupervisorId =
+      requestedSupervisorId ??
+      targetOwner.supervisor_user_id;
+
+    const teamReference = destinationTeamId ?
+      firestore
+        .collection("entities")
+        .doc("Team")
+        .collection("records")
+        .doc(destinationTeamId) :
+      null;
+
+    const supervisorReference = destinationSupervisorId ?
+      firestore
+        .collection("userProfiles")
+        .doc(destinationSupervisorId) :
+      null;
+
+    const teamSnapshot = teamReference ?
+      await transaction.get(teamReference) :
+      null;
+
+    const supervisorSnapshot = supervisorReference ?
+      await transaction.get(supervisorReference) :
+      null;
+
+    if (teamSnapshot && !teamSnapshot.exists) {
+      throw new HttpsError(
+        "not-found",
+        "The destination team was not found.",
+      );
+    }
+
+    let destinationSupervisor: DirectoryUser | null = null;
+
+    if (supervisorReference) {
+      if (!supervisorSnapshot || !supervisorSnapshot.exists) {
+        throw new HttpsError(
+          "not-found",
+          "The destination supervisor was not found.",
+        );
+      }
+
+      destinationSupervisor = normalizeDirectoryUser(
+        supervisorSnapshot.id,
+        supervisorSnapshot.data() as ProfileData,
+      );
+
+      if (destinationSupervisor.account_status !== "active") {
+        throw new HttpsError(
+          "failed-precondition",
+          "The destination supervisor is not active.",
+        );
+      }
+
+      if (
+        ![
+          "super_admin",
+          "administrator",
+          "supervisor",
+        ].includes(destinationSupervisor.application_role)
+      ) {
+        throw new HttpsError(
+          "failed-precondition",
+          "The selected employee cannot supervise records.",
+        );
+      }
+
+      if (
+        destinationTeamId &&
+        destinationSupervisor.team_id &&
+        destinationSupervisor.team_id !== destinationTeamId
+      ) {
+        throw new HttpsError(
+          "failed-precondition",
+          "The supervisor does not manage the destination team.",
+        );
+      }
+    }
+
+    if (
+      destinationTeamId &&
+      targetOwner.team_id &&
+      targetOwner.team_id !== destinationTeamId
+    ) {
+      throw new HttpsError(
+        "failed-precondition",
+        "The owner does not belong to the destination team.",
+      );
+    }
+
+    if (
+      permission.record_scope !== "all" &&
+      actor.team_id !== destinationTeamId
+    ) {
+      throw new HttpsError(
+        "permission-denied",
+        "You cannot transfer a record outside your team.",
+      );
+    }
+
+    const now = new Date().toISOString();
+
+    const previousOwnership = {
+      owner_user_id:
+        readString(record, "owner_user_id", "ownerId"),
+      assigned_team_id:
+        readString(record, "assigned_team_id", "teamId"),
+      assigned_supervisor_user_id: readString(
+        record,
+        "assigned_supervisor_user_id",
+        "supervisorId",
+      ),
+      territory_id:
+        readString(record, "territory_id", "territoryId"),
+      ownership_status:
+        readString(record, "ownership_status"),
+    };
+
+    const updatedOwnership = {
+      owner_user_id: targetOwner.id,
+      assigned_team_id: destinationTeamId,
+      assigned_supervisor_user_id:
+        destinationSupervisorId,
+      territory_id:
+        previousOwnership.territory_id || null,
+      ownership_status: "assigned",
+    };
+
+    transaction.update(recordReference, {
+      ...updatedOwnership,
+      assigned_by_user_id: actor.id,
+      assignment_date: now,
+      last_modified_by_user_id: actor.id,
+      updated_date: now,
+      ownerId: FieldValue.delete(),
+      teamId: FieldValue.delete(),
+      supervisorId: FieldValue.delete(),
+      territoryId: FieldValue.delete(),
+    });
+
+    transaction.create(auditReference, {
+      action_type: "record_reassigned",
+      actor_user_id: actor.id,
+      actor_email: actor.email,
+      entity_type: entityType,
+      entity_collection: configuration.collection,
+      entity_id: entityId,
+      transfer_operation_id: operationId,
+      transfer_type: transferType,
+      transfer_reason: transferReason,
+      previous_value: previousOwnership,
+      new_value: updatedOwnership,
+      created_date: now,
+      created_by_user_id: actor.id,
+      immutable: true,
+    });
+
+    return {
+      success: true,
+      status: "completed",
+      entity_type: entityType,
+      entity_id: entityId,
+      transfer_operation_id: operationId,
+      ownership: updatedOwnership,
+    };
+  });
+});
+
 export const convertLeadToOpportunity = onCall(
   async (request) => {
     const actor = await requireActiveActor(
