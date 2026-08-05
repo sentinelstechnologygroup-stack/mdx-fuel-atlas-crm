@@ -11,7 +11,7 @@ export const SendEmail = atlas.integrations.Core.SendEmail;
 
 export const SendSMS = atlas.integrations.Core.SendSMS;
 
-export const UploadFile = atlas.integrations.Core.UploadFile;
+export { uploadFileToFirebase as UploadFile } from '@/firebase/storageService';
 
 export const GenerateImage = atlas.integrations.Core.GenerateImage;
 

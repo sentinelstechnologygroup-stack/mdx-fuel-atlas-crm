@@ -2,6 +2,78 @@ rules_version = '2';
 
 service firebase.storage {
   match /b/{bucket}/o {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function profilePath() {
+      return /databases/(default)/documents/userProfiles/$(request.auth.uid);
+    }
+
+    function profileExists() {
+      return signedIn() && firestore.exists(profilePath());
+    }
+
+    function profileData() {
+      return firestore.get(profilePath()).data;
+    }
+
+    function accountStatus() {
+      return profileData().keys().hasAll(['account_status'])
+        ? profileData().account_status
+        : (
+            profileData().keys().hasAll(['status'])
+              ? profileData().status
+              : null
+          );
+    }
+
+    function activeUser() {
+      return profileExists() && accountStatus() == 'active';
+    }
+
+    function allowedUploadType() {
+      return request.resource.contentType.matches(
+        'image/(jpeg|png|webp)'
+      ) ||
+      request.resource.contentType == 'application/pdf' ||
+      request.resource.contentType == 'application/msword' ||
+      request.resource.contentType ==
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
+      request.resource.contentType == 'application/vnd.ms-excel' ||
+      request.resource.contentType ==
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' ||
+      request.resource.contentType == 'text/csv' ||
+      request.resource.contentType == 'text/plain';
+    }
+
+    function validUploadMetadata(userId, uploadId) {
+      return request.resource.metadata.ownerUid == userId &&
+        request.resource.metadata.uploadId == uploadId &&
+        request.resource.metadata.originalName != null &&
+        request.resource.metadata.uploadedAt != null;
+    }
+
+    match /users/{userId}/uploads/{uploadId}/{fileName} {
+      allow create: if resource == null &&
+        activeUser() &&
+        request.auth.uid == userId &&
+        request.resource.size > 0 &&
+        request.resource.size <= 10 * 1024 * 1024 &&
+        allowedUploadType() &&
+        validUploadMetadata(userId, uploadId);
+
+      allow read: if activeUser() &&
+        request.auth.uid == userId &&
+        resource.metadata.ownerUid == userId;
+
+      allow update: if false;
+
+      allow delete: if activeUser() &&
+        request.auth.uid == userId &&
+        resource.metadata.ownerUid == userId;
+    }
+
     match /{allPaths=**} {
       allow read, write: if false;
     }

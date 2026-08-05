@@ -25,7 +25,16 @@
     "test:user-entity:rules": "vitest run --no-file-parallelism tests/firestore.userEntity.rules.test.js",
     "test:configuration:rules": "vitest run --no-file-parallelism tests/firestore.configuration.rules.test.js",
     "test:phase5": "npm run test:phase4 && npm run test:configuration:rules && npm run seed:emulators",
-    "test:phase6": "npm run test:phase5 && npx vitest run tests/functions.getEffectivePermissions.emulator.test.js tests/functions.updateUserPermissionOverride.emulator.test.js tests/functions.initializePermissionModel.emulator.test.js --no-file-parallelism --testTimeout=30000"
+    "test:phase6": "npm run test:phase5 && npx vitest run tests/functions.getEffectivePermissions.emulator.test.js tests/functions.updateUserPermissionOverride.emulator.test.js tests/functions.initializePermissionModel.emulator.test.js --no-file-parallelism --testTimeout=30000",
+    "test:storage:rules": "vitest run --no-file-parallelism --testTimeout=30000 tests/storage.rules.test.js",
+    "test:messaging:providers": "vitest run --no-file-parallelism tests/messaging.providers.test.js",
+    "test:phase9:checkpoint50": "npm run test:messaging:providers",
+    "test:message:delivery": "vitest run --no-file-parallelism tests/message.delivery.service.test.js",
+    "test:phase9:checkpoint75": "npm run test:messaging:providers && npm run test:message:delivery",
+    "test:message:repository": "vitest run --no-file-parallelism --testTimeout=30000 tests/firestore.delivery.repository.test.js",
+    "test:phase9:checkpoint85": "npm run test:messaging:providers && npm run test:message:delivery",
+    "test:message:callable": "vitest run --no-file-parallelism --testTimeout=30000 tests/message.delivery.callable.test.js",
+    "test:phase9:final": "npm run test:messaging:providers && npm run test:message:delivery && npm run test:message:repository && npm run test:message:callable"
   },
   "dependencies": {
     "@hello-pangea/dnd": "^17.0.0",

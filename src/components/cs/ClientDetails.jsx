@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { atlas } from "@/api/atlasClient";
+import { uploadFileToFirebase } from "@/firebase/storageService";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -61,7 +62,7 @@ export default function ClientDetails({ client, open, onClose }) {
     if (!file) return;
 
     try {
-      const { file_url } = await atlas.integrations.Core.UploadFile({ file });
+      const { file_url } = await uploadFileToFirebase({ file });
       const newDoc = { name: file.name, url: file_url, type: file.type };
       const updatedDocs = [...(activeClient.documents || []), newDoc];
 

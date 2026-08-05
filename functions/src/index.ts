@@ -3,6 +3,9 @@ import {getApps, initializeApp} from "firebase-admin/app";
 import {FieldValue, getFirestore} from "firebase-admin/firestore";
 import {setGlobalOptions} from "firebase-functions";
 import {HttpsError, onCall} from "firebase-functions/v2/https";
+import {
+  executeMessageDeliveryCallable,
+} from "./messageDeliveryCallable";
 
 setGlobalOptions({maxInstances: 10});
 
@@ -4140,3 +4143,28 @@ export {
   processDailyReminderNotifications,
   processNewLeadNotifications,
 } from "./notifications.js";
+export const sendMessageDelivery = onCall(
+  async (request) => {
+    return executeMessageDeliveryCallable(
+      {
+        firestore,
+        environment: {
+          RESEND_API_KEY:
+            process.env.RESEND_API_KEY,
+          RESEND_FROM_EMAIL:
+            process.env.RESEND_FROM_EMAIL,
+          RESEND_REPLY_TO:
+            process.env.RESEND_REPLY_TO,
+          TWILIO_ACCOUNT_SID:
+            process.env.TWILIO_ACCOUNT_SID,
+          TWILIO_AUTH_TOKEN:
+            process.env.TWILIO_AUTH_TOKEN,
+          TWILIO_FROM_NUMBER:
+            process.env.TWILIO_FROM_NUMBER,
+        },
+      },
+      request.auth?.uid,
+      request.data || {}
+    );
+  }
+);

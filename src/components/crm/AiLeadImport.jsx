@@ -5,6 +5,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Loader2, Sparkles, Upload, FileImage, Type, Camera, CheckCircle2, Edit3 } from "lucide-react";
 import { atlas } from "@/api/atlasClient";
+import { uploadFileToFirebase } from "@/firebase/storageService";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
@@ -29,7 +30,7 @@ export default function AiLeadImport({ open, onOpenChange, onLeadCreated }) {
       // AI lead import workflow
       if (mode === "image" && selectedFile) {
         // AI lead import workflow
-        const uploadResult = await atlas.integrations.Core.UploadFile({ file: selectedFile });
+        const uploadResult = await uploadFileToFirebase({ file: selectedFile });
         const fileUrl = uploadResult.file_url;
 
         // AI lead import workflow

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Loader2, Upload, X, FileText, Image as ImageIcon, File } from "lucide-react";
-import { atlas } from "@/api/atlasClient";
+import { uploadFileToFirebase } from "@/firebase/storageService";
 
 export default function FileUpload({ files = [], onFilesChange, label = "Files & Documents" }) {
   const [uploading, setUploading] = useState(false);
@@ -16,7 +16,7 @@ export default function FileUpload({ files = [], onFilesChange, label = "Files &
 
     try {
       for (const file of selectedFiles) {
-        const response = await atlas.integrations.Core.UploadFile({ file });
+        const response = await uploadFileToFirebase({ file });
         if (response && response.file_url) {
           newFiles.push({
             name: file.name,
