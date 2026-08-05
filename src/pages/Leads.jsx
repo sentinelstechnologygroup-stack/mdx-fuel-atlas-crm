@@ -187,7 +187,7 @@ export default function LeadsPage() {
       try {
           // In a real app, you'd fetch the admin email or iterate relevant users
           const currentUser = await atlas.auth.me();
-          await atlas.entities.Notification.create({
+          await Promise.resolve({
               title: 'New lead received',
               message: `${data.full_name} - ${data.phone_number}`,
               type: 'lead',

@@ -236,6 +236,22 @@ service cloud.firestore {
         selfOwnerEmail(request.resource.data) == profileEmail();
     }
 
+    function validNotificationReadStateUpdate() {
+      return isActive() &&
+        isSelfOwned(resource.data) &&
+        isSelfOwned(request.resource.data) &&
+        request.resource.data.keys().hasAll(['is_read']) &&
+        request.resource.data.is_read is bool &&
+        request.resource.data
+          .diff(resource.data)
+          .affectedKeys()
+          .hasOnly([
+            'is_read',
+            'updated_date',
+            'last_modified_by_user_id'
+          ]);
+    }
+
     function recordOwnerId(data) {
       return data.keys().hasAll(['owner_user_id'])
         ? data.owner_user_id
@@ -399,6 +415,7 @@ service cloud.firestore {
           ) ||
           (
             isSelfOwnedEntity(entityName) &&
+            entityName != 'Notification' &&
             validSelfOwnedCreate(request.resource.data)
           ) ||
           (
@@ -422,7 +439,12 @@ service cloud.firestore {
           ) ||
           (
             isSelfOwnedEntity(entityName) &&
+            entityName != 'Notification' &&
             validSelfOwnedUpdate()
+          ) ||
+          (
+            entityName == 'Notification' &&
+            validNotificationReadStateUpdate()
           ) ||
           (
             isConfigurationEntity(entityName) &&
@@ -446,6 +468,7 @@ service cloud.firestore {
           ) ||
           (
             isSelfOwnedEntity(entityName) &&
+            entityName != 'Notification' &&
             isActive() &&
             isSelfOwned(resource.data)
           ) ||

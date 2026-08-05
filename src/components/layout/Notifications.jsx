@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { atlas } from '@/api/atlasClient';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSettings } from '@/components/context/SettingsContext';
@@ -6,9 +6,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { 
-    Bell, Calendar, CheckSquare, MessageSquare, Check, X, 
+import {
+    Bell, CheckSquare, MessageSquare, Check,
     Briefcase, UserPlus, Clock, Settings
 } from "lucide-react";
 import { formatDistanceToNow } from 'date-fns';
@@ -27,89 +26,15 @@ export default function Notifications() {
         atlas.auth.me().then(setCurrentUser).catch(() => {});
     }, []);
 
-    // Fetch Settings
-    const { data: settings } = useQuery({
-        queryKey: ['notification_settings', currentUser?.email],
-        queryFn: async () => {
-            if (!currentUser?.email) return null;
-            const res = await atlas.entities.NotificationSettings.filter({ user_email: currentUser.email });
-            return res[0] || { notify_tasks: true, notify_opp_closing: true, days_before_deadline: 3 }; // Defaults
-        },
-        enabled: !!currentUser
-    });
-
-    // Fetch 1: Persistent Notifications (DB)
+    // Read server-created persistent notifications
     const { data: persistentNotifications } = useQuery({
         queryKey: ['notifications_db', currentUser?.email],
         queryFn: () => atlas.entities.Notification.filter(
-            { user_email: currentUser.email, is_read: false }, 
-            '-created_date', 
+            { user_email: currentUser.email, is_read: false },
+            '-created_date',
             20
         ),
         enabled: !!currentUser,
-        initialData: []
-    });
-
-    // Fetch 2: Tasks due soon/overdue (Computed)
-    const { data: taskAlerts } = useQuery({
-        queryKey: ['notifications_tasks', currentUser?.email],
-        queryFn: async () => {
-            if (!settings?.notify_tasks) return [];
-            const tasks = await atlas.entities.Task.list(); // Filter logic below due to SDK limitations on complex dates
-            const today = new Date();
-            const twoDaysFromNow = new Date();
-            twoDaysFromNow.setDate(today.getDate() + 2);
-
-            return tasks.filter(t => {
-                if (t.status === 'done') return false;
-                // Simple assignment check - ideally matched by email
-                // Assuming task.assigned_to stores email
-                if (t.assigned_to && t.assigned_to !== currentUser.email) return false;
-                
-                if (!t.due_date) return false;
-                const due = new Date(t.due_date);
-                return due <= twoDaysFromNow;
-            }).map(t => ({
-                id: `task-${t.id}`,
-                type: 'task',
-                title: 'Task requires attention',
-                message: t.title,
-                date: t.due_date,
-                isOverdue: new Date(t.due_date) < new Date(),
-                link: createPageUrl('Dashboard'), // Or Tasks page
-                actionLabel: 'View Tasks'
-            }));
-        },
-        enabled: !!currentUser && !!settings,
-        initialData: []
-    });
-
-    // Fetch 3: Opportunities Closing Soon (Computed)
-    const { data: oppAlerts } = useQuery({
-        queryKey: ['notifications_opps'],
-        queryFn: async () => {
-            if (!settings?.notify_opp_closing) return [];
-            const opps = await atlas.entities.Opportunity.list();
-            const days = settings.days_before_deadline || 3;
-            const threshold = new Date();
-            threshold.setDate(threshold.getDate() + days);
-
-            return opps.filter(o => {
-                if (['Closed Won', 'Closed Lost'].some(s => o.deal_stage.includes(s))) return false;
-                if (!o.expected_close_date) return false;
-                const closeDate = new Date(o.expected_close_date);
-                return closeDate <= threshold && closeDate >= new Date(); // Future but soon
-            }).map(o => ({
-                id: `opp-${o.id}`,
-                type: 'opportunity',
-                title: 'Opportunity closing soon',
-                message: `${o.lead_name} - ${o.product_type}`,
-                date: o.expected_close_date,
-                link: createPageUrl('Opportunities'),
-                actionLabel: 'View Board'
-            }));
-        },
-        enabled: !!settings,
         initialData: []
     });
 
@@ -148,10 +73,10 @@ export default function Notifications() {
             };
         });
 
-        return [...dbNotifs, ...taskAlerts, ...oppAlerts].sort((a, b) => 
+        return dbNotifs.sort((a, b) =>
             new Date(b.date) - new Date(a.date)
         );
-    }, [persistentNotifications, taskAlerts, oppAlerts]);
+    }, [persistentNotifications]);
 
     const unreadCount = allNotifications.length;
 
@@ -169,8 +94,8 @@ export default function Notifications() {
         <Popover open={isOpen} onOpenChange={setIsOpen}>
             <PopoverTrigger asChild>
                 <Button variant="ghost" size="icon" className={`relative rounded-xl transition-colors ${
-                    theme === 'dark' 
-                        ? 'text-slate-300 hover:text-cyan-400 hover:bg-slate-800' 
+                    theme === 'dark'
+                        ? 'text-slate-300 hover:text-cyan-400 hover:bg-slate-800'
                         : 'text-slate-600 hover:text-red-600 hover:bg-red-50'
                 }`}>
                     <Bell className={`w-6 h-6 ${unreadCount > 0 ? 'fill-current' : ''}`} />
@@ -219,9 +144,9 @@ export default function Notifications() {
                                             </div>
                                         </div>
                                         {notif.isPersistent && (
-                                            <Button 
-                                                variant="ghost" 
-                                                size="icon" 
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
                                                 className={`h-6 w-6 opacity-0 group-hover:opacity-100 absolute top-2 right-2 ${theme === 'dark' ? 'text-slate-500 hover:text-cyan-400' : 'text-slate-300 hover:text-blue-600'}`}
                                                 onClick={(e) => {
                                                     e.stopPropagation();
