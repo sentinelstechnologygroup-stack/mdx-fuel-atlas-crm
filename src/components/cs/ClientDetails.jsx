@@ -1,6 +1,9 @@
 import React, { useState } from "react";
 import { atlas } from "@/api/atlasClient";
-import { uploadFileToFirebase } from "@/firebase/storageService";
+import {
+  downloadAttachmentFromFirebase,
+  uploadFileToFirebase,
+} from "@/firebase/storageService";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -62,9 +65,11 @@ export default function ClientDetails({ client, open, onClose }) {
     if (!file) return;
 
     try {
-      const { file_url } = await uploadFileToFirebase({ file });
-      const newDoc = { name: file.name, url: file_url, type: file.type };
-      const updatedDocs = [...(activeClient.documents || []), newDoc];
+      const upload = await uploadFileToFirebase({ file });
+      const updatedDocs = [
+        ...(activeClient.documents || []),
+        upload.attachment,
+      ];
 
       await atlas.entities.Client.update(activeClient.id, { documents: updatedDocs });
       queryClient.invalidateQueries(['clients']);
@@ -72,6 +77,15 @@ export default function ClientDetails({ client, open, onClose }) {
     } catch (err) {
       console.error(err);
       alert("Failed to upload file");
+    }
+  };
+
+  const handleDocumentDownload = async (documentRecord) => {
+    try {
+      await downloadAttachmentFromFirebase(documentRecord);
+    } catch (error) {
+      console.error(error);
+      alert("You do not have permission to download this file.");
     }
   };
 
@@ -179,9 +193,9 @@ export default function ClientDetails({ client, open, onClose }) {
                                             <p className="font-medium truncate">{doc.name}</p>
                                             <p className="text-xs text-slate-500 uppercase">{doc.type || 'FILE'}</p>
                                         </div>
-                                        <a href={doc.url} target="_blank" rel="noreferrer" className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full transition-colors">
+                                        <button type="button" onClick={() => handleDocumentDownload(doc)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full transition-colors">
                                             <Download className="w-4 h-4" />
-                                        </a>
+                                        </button>
                                     </CardContent>
                                 </Card>
               ) :

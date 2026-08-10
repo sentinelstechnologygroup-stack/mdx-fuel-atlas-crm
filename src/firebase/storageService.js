@@ -1,5 +1,6 @@
 import {
   getDownloadURL,
+  getBlob,
   ref,
   uploadBytes,
 } from 'firebase/storage';
@@ -8,6 +9,11 @@ import {
   firebaseAuth,
   firebaseStorage,
 } from '@/firebase/client';
+
+import {
+  attachmentAccessTarget,
+  buildAttachmentRecord,
+} from '@/firebase/attachmentMetadata';
 
 const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
 
@@ -75,6 +81,42 @@ function createUploadId() {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 12)}`;
 }
 
+function triggerBrowserDownload(url, name, openInNewTab = false) {
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.download = name;
+
+  if (openInNewTab) {
+    anchor.target = '_blank';
+    anchor.rel = 'noopener noreferrer';
+  }
+
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+}
+
+export async function downloadAttachmentFromFirebase(attachment) {
+  requireAuthenticatedUser();
+
+  const target = attachmentAccessTarget(attachment);
+
+  if (target.kind === 'legacy-url') {
+    triggerBrowserDownload(target.value, target.name, true);
+    return;
+  }
+
+  const storageReference = ref(firebaseStorage, target.value);
+  const blob = await getBlob(storageReference, MAX_UPLOAD_BYTES);
+  const objectUrl = URL.createObjectURL(blob);
+
+  try {
+    triggerBrowserDownload(objectUrl, target.name);
+  } finally {
+    setTimeout(() => URL.revokeObjectURL(objectUrl), 60000);
+  }
+}
+
 export async function uploadFileToFirebase({ file } = {}) {
   const currentUser = requireAuthenticatedUser();
 
@@ -95,19 +137,30 @@ export async function uploadFileToFirebase({ file } = {}) {
       originalName: file.name,
       uploadedAt,
       uploadId,
+      metadataVersion: '1',
+      sanitizedName: safeFileName,
     },
   });
 
   const downloadUrl = await getDownloadURL(snapshot.ref);
 
+  const attachment = buildAttachmentRecord({
+    storagePath: snapshot.ref.fullPath,
+    originalName:
+      snapshot.metadata.customMetadata?.originalName || file.name,
+    contentType: snapshot.metadata.contentType,
+    size: snapshot.metadata.size,
+    ownerUid:
+      snapshot.metadata.customMetadata?.ownerUid || currentUser.uid,
+    uploadedAt:
+      snapshot.metadata.customMetadata?.uploadedAt || uploadedAt,
+    uploadId:
+      snapshot.metadata.customMetadata?.uploadId || uploadId,
+  });
+
   return {
+    ...attachment,
     file_url: downloadUrl,
-    storage_path: snapshot.ref.fullPath,
-    name: file.name,
-    type: file.type,
-    size: file.size,
-    owner_uid: currentUser.uid,
-    uploaded_at: uploadedAt,
-    provider: 'firebase-storage',
+    attachment,
   };
 }

@@ -94,6 +94,8 @@ function uploadMetadata(user, uploadId, overrides = {}) {
       originalName: 'document.pdf',
       uploadedAt: '2026-08-05T22:00:00.000Z',
       uploadId,
+      metadataVersion: '1',
+      sanitizedName: 'document.pdf',
       ...overrides,
     },
   };
@@ -226,6 +228,36 @@ describe('Phase 9 Firebase Storage upload authorization', () => {
         uploadMetadata(
           USERS.alice,
           'different-upload-id'
+        )
+      )
+    );
+  });
+
+  it('denies missing metadata versions', async () => {
+    await assertFails(
+      uploadString(
+        ref(storageFor(USERS.alice), ALICE_PATH),
+        'missing-version-content',
+        'raw',
+        uploadMetadata(
+          USERS.alice,
+          ALICE_UPLOAD_ID,
+          {metadataVersion: null}
+        )
+      )
+    );
+  });
+
+  it('denies sanitized names that differ from the object path', async () => {
+    await assertFails(
+      uploadString(
+        ref(storageFor(USERS.alice), ALICE_PATH),
+        'mismatched-name-content',
+        'raw',
+        uploadMetadata(
+          USERS.alice,
+          ALICE_UPLOAD_ID,
+          {sanitizedName: 'different.pdf'}
         )
       )
     );

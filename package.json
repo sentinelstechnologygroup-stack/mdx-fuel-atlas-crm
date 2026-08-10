@@ -34,6 +34,10 @@
     "test:message:repository": "vitest run --no-file-parallelism --testTimeout=30000 tests/firestore.delivery.repository.test.js",
     "test:phase9:checkpoint85": "npm run test:messaging:providers && npm run test:message:delivery",
     "test:message:callable": "vitest run --no-file-parallelism --testTimeout=30000 tests/message.delivery.callable.test.js",
+    "test:notification:delivery": "vitest run --no-file-parallelism tests/notification.delivery.bridge.test.js",
+    "test:automation:messaging": "vitest run --no-file-parallelism tests/automation.messaging.test.js",
+    "test:attachment:metadata": "vitest run --no-file-parallelism tests/attachment.metadata.test.js",
+    "test:messaging:runtime-config": "vitest run --no-file-parallelism tests/messaging.runtime.config.test.js",
     "test:phase9:final": "npm run test:messaging:providers && npm run test:message:delivery && npm run test:message:repository && npm run test:message:callable"
   },
   "dependencies": {

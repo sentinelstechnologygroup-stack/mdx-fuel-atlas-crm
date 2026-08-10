@@ -47,11 +47,16 @@ service firebase.storage {
       request.resource.contentType == 'text/plain';
     }
 
-    function validUploadMetadata(userId, uploadId) {
+    function validUploadMetadata(userId, uploadId, fileName) {
       return request.resource.metadata.ownerUid == userId &&
         request.resource.metadata.uploadId == uploadId &&
-        request.resource.metadata.originalName != null &&
-        request.resource.metadata.uploadedAt != null;
+        request.resource.metadata.metadataVersion == '1' &&
+        request.resource.metadata.sanitizedName == fileName &&
+        request.resource.metadata.originalName is string &&
+        request.resource.metadata.originalName.size() > 0 &&
+        request.resource.metadata.originalName.size() <= 512 &&
+        request.resource.metadata.uploadedAt is string &&
+        request.resource.metadata.uploadedAt.size() > 0;
     }
 
     match /users/{userId}/uploads/{uploadId}/{fileName} {
@@ -61,7 +66,7 @@ service firebase.storage {
         request.resource.size > 0 &&
         request.resource.size <= 10 * 1024 * 1024 &&
         allowedUploadType() &&
-        validUploadMetadata(userId, uploadId);
+        validUploadMetadata(userId, uploadId, fileName);
 
       allow read: if activeUser() &&
         request.auth.uid == userId &&

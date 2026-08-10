@@ -9,6 +9,21 @@ import {
 } from "firebase-admin/firestore";
 import {onDocumentWritten} from "firebase-functions/v2/firestore";
 
+import {
+  FirestoreDeliveryRecordRepository,
+} from "./firestoreDeliveryRepository";
+import {
+  executeRecordedDelivery,
+} from "./messageDeliveryService";
+import {
+  createMessagingProvidersFromEnvironment,
+  DeliveryRequest,
+} from "./messagingProviders";
+import {
+  EMAIL_MESSAGING_SECRETS,
+  emailMessagingEnvironment,
+} from "./messagingRuntimeConfig";
+
 /* eslint-disable require-jsdoc */
 
 type AutomationRule = {
@@ -225,6 +240,10 @@ function calculateDueDate(
 function actionSummary(
   rule: AutomationRule,
 ): string {
+  if (rule.action_type === "send_email") {
+    return "send_email: server-controlled delivery";
+  }
+
   return `${rule.action_type}: ${JSON.stringify(
     rule.action_config,
   )}`;
@@ -390,6 +409,108 @@ async function writeFailureLog(
   );
 }
 
+function validEmail(value: string): boolean {
+  return (
+    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value) &&
+    value.length <= 254
+  );
+}
+
+export function buildAutomationEmailRequest(
+  rule: AutomationRule,
+  entityName: string,
+  recordId: string,
+  eventId: string,
+  data: DocumentData,
+): DeliveryRequest {
+  const recipient = replacePlaceholders(
+    readString(rule.action_config, "email_to") || "",
+    data,
+  ).trim();
+  const subject = replacePlaceholders(
+    readString(rule.action_config, "email_subject") || "",
+    data,
+  ).trim();
+  const message = replacePlaceholders(
+    readString(rule.action_config, "email_body") || "",
+    data,
+  ).trim();
+
+  if (!validEmail(recipient)) {
+    throw new Error(
+      "Automation email recipient is missing or invalid.",
+    );
+  }
+
+  if (!subject) {
+    throw new Error(
+      "Automation email subject is required.",
+    );
+  }
+
+  if (!message) {
+    throw new Error(
+      "Automation email body is required.",
+    );
+  }
+
+  return {
+    idempotencyKey:
+      `automation:${executionId(eventId, rule.id)}:email`,
+    recipient,
+    subject: subject.slice(0, 200),
+    message: message.slice(0, 10000),
+    sourceType: "Automation",
+    sourceId: `${entityName}/${recordId}`,
+  };
+}
+
+async function sendEmailAndLog(
+  rule: AutomationRule,
+  entityName: string,
+  recordId: string,
+  eventId: string,
+  data: DocumentData,
+): Promise<void> {
+  const request = buildAutomationEmailRequest(
+    rule, entityName, recordId, eventId, data,
+  );
+  const environment = emailMessagingEnvironment();
+  const provider =
+    createMessagingProvidersFromEnvironment(
+      environment,
+    ).email;
+  const repository =
+    new FirestoreDeliveryRecordRepository(database);
+  const result = await executeRecordedDelivery(
+    provider, request, repository,
+  );
+  const status = result.record.status === "sent" ?
+    "success" :
+    result.record.status;
+  const logReference = entityRecords(
+    database,
+    "AutomationLog",
+  ).doc(executionId(eventId, rule.id));
+  const now = new Date().toISOString();
+
+  await database.runTransaction(
+    async (transaction: Transaction) => {
+      if ((await transaction.get(logReference)).exists) {
+        return;
+      }
+
+      transaction.set(
+        logReference,
+        buildLog(
+          rule, entityName, recordId, eventId,
+          status, result.record.reason, now,
+        ),
+      );
+    },
+  );
+}
+
 async function executeRule(
   rule: AutomationRule,
   entityName: string,
@@ -423,13 +544,12 @@ async function executeRule(
   }
 
   if (rule.action_type === "send_email") {
-    await writeFailureLog(
+    await sendEmailAndLog(
       rule,
       entityName,
       recordId,
       eventId,
-      "The send_email action is blocked until a " +
-        "Firebase-native email provider is configured.",
+      data,
     );
 
     return;
@@ -446,7 +566,11 @@ async function executeRule(
 
 export const processAutomationWrite =
   onDocumentWritten(
-    "entities/{entityName}/records/{recordId}",
+    {
+      document: "entities/{entityName}/records/{recordId}",
+      region: "us-central1",
+      secrets: EMAIL_MESSAGING_SECRETS,
+    },
     async (event) => {
       const entityName = event.params.entityName;
       const recordId = event.params.recordId;
