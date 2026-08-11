@@ -4151,6 +4151,21 @@ export {
   deliverNotificationEmail,
   processNotificationDelivery,
 } from "./notificationDeliveryBridge.js";
+export {executeAtlasAiCallable} from "./atlasAiGateway.js";
+export const invokeAtlasAi = onCall(
+  {region: "us-central1"},
+  async (request) => {
+    const {executeAtlasAiCallable} = await import(
+      "./atlasAiGateway.js"
+    );
+
+    return executeAtlasAiCallable(
+      {firestore},
+      request.auth?.uid,
+      request.data
+    );
+  }
+);
 export const sendMessageDelivery = onCall(
   {
     region: "us-central1",
