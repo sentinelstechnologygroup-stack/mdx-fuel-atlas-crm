@@ -1,15 +1,15 @@
 # Migration Status
 
-Last updated: 2026-07-17
+Last updated: 2026-08-11
 
 ## Current state
 
-- Active phase: Phase 2 — Firebase Authentication and employee profiles (shadow-mode checkpoint)
+- Active phase: Phase 11 — Independent ATLAS
 - Baseline verified: tag and commit identity verified
 - Firebase development project: `mdx-fuel-atlas-crm-dev` (`485940537312`)
 - Firestore location: `nam5`
 - Firebase foundation added: yes; Phase 1 foundation commit `c89f440` pushed
-- Frontend connected to Firebase runtime: yes, for Phase 2 Auth/profile shadow-mode testing only
+- Frontend connected to Firebase runtime: yes
 - legacy provider removed: no
 - Production cutover authorized: no
 - `retired-provider/` rename authorized: no; unsafe until runtime and reference material are separated and Phase 13 gates pass
@@ -21,8 +21,10 @@ Last updated: 2026-07-17
 |---:|---|---|
 | 0 | Complete | Baseline inventory and migration documentation committed; baseline production build passed; pre-existing typecheck and lint findings recorded |
 | 1 | Complete | Foundation commit `c89f440` pushed to `migration/phase-1-firebase-foundation`; Firebase dev project and Emulator Suite verified |
-| 2 | In progress — implementation verified locally in shadow mode; checkpoint commit pending | Firebase login and employee profile lookup verified; deterministic emulator seeding passed; 33 Firestore rules tests passed; Functions lint/build and frontend production build passed; cutover blocked by legacy provider entity dependencies |
-| 3–14 | Not started | None |
+| 2 | Complete | Firebase Authentication and employee profile checkpoint committed and superseded by later migration phases |
+| 3–10 | Complete | Firebase entity, permission, workflow, storage, messaging, notification, and automation checkpoints are present in branch history through commit `6e66de2` |
+| 11 | Complete locally — production activation pending | Provider, artifact, authorization, auditing, frontend adapters, and safe failure UI verified by 43 focused tests, Functions lint/build, production build, and authenticated manual regression |
+| 12–14 | Not started | Phase 11 production activation remains separately gated; no deployment or legacy cleanup is authorized |
 
 ## Phase 1 foundation implemented
 
@@ -121,6 +123,20 @@ Phase 1 was completed and pushed as commit `c89f440`. Deterministic role fixture
 - Baseline `npm run typecheck`: **failed** with extensive pre-existing errors.
 - Baseline `npm run lint`: **failed** with 416 pre-existing findings (343 errors and 73 warnings).
 
-## Exact next implementation step
+## Phase 11 implementation checkpoint
 
-Complete the Phase 2 secret/unintended-change scan, review the final diff, then commit and push the verified shadow-mode checkpoint. Do not approve authentication cutover.
+- Added a provider-neutral ATLAS runtime and a server-only OpenAI adapter.
+- Added Secret Manager and model runtime parameters with safe disabled defaults.
+- Enforced Firebase Authentication, App Check, active account status, effective ATLAS permission, own/team/all CRM context scope, bounded payloads, and durable rate limiting.
+- Added immutable usage events without prompt or response content.
+- Added deterministic owned-file extraction for CSV, text, and Excel.
+- Added owned-image validation for vision and private Firebase Storage persistence for generated images.
+- Replaced unsupported frontend Core AI and agent adapters with the Firebase callable contract.
+- Kept conversation state ephemeral pending an approved retention policy.
+- Verification passed: 8 provider/artifact tests, 16 gateway tests, 19 Storage rules tests, Functions lint/build, targeted changed-file lint, frontend production build, protected ActNow hash, and authenticated ATLAS safe-unavailable UI regression.
+- Root typecheck and full root lint still reproduce the documented pre-existing Three.js and unused-import backlog; no new Phase 11 lint failures remain.
+- No provider secret was configured and no deployment was performed.
+
+## Phase 11 go/no-go
+
+**Phase 11 implementation: complete. Production activation: no-go pending runtime configuration.** All local automated and focused UI verification gates pass. Activation still requires a reviewed Secret Manager credential, an explicit deployment authorization, and a post-deployment provider smoke test.

@@ -1,29 +1,29 @@
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
-import { TrendingUp, Target, AlertCircle } from "lucide-react";
+import { Target } from "lucide-react";
 import { useSettings } from "@/components/context/SettingsContext";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
+import { formatGallons, getOpportunityGallons } from "@/lib/fuelVolume";
 
-export default function ForecastWidget({ opportunities, timeRange, periodTarget = 500000 }) {
-    const { theme, branding } = useSettings();
+export default function ForecastWidget({ opportunities, timeRange, periodTarget = 0, scopeLabel = 'My' }) {
+    const { theme } = useSettings();
 
-    const { wonRevenue, weightedPipeline, pipelineCoverage, gapToQuota } = useMemo(() => {
-        const won = opportunities.filter(o => o.deal_stage === 'Closed Won').reduce((acc, o) => acc + (o.amount || 0), 0);
+    const { wonGallons, weightedPipeline, pipelineCoverage, gapToQuota } = useMemo(() => {
+        const won = opportunities.filter(o => o.deal_stage === 'Closed Won').reduce((acc, o) => acc + getOpportunityGallons(o), 0);
         
         const open = opportunities.filter(o => !['Closed Won', 'Closed Lost'].includes(o.deal_stage));
-        const weighted = open.reduce((acc, o) => acc + ((o.amount || 0) * (o.probability || 0) / 100), 0);
+        const weighted = open.reduce((acc, o) => acc + (getOpportunityGallons(o) * (o.probability || 0) / 100), 0);
         
         const totalForecast = won + weighted;
         const gap = Math.max(0, periodTarget - won);
-        const coverage = gap > 0 ? (open.reduce((acc, o) => acc + (o.amount || 0), 0) / gap).toFixed(1) : '∞';
+        const coverage = gap > 0 ? (open.reduce((acc, o) => acc + getOpportunityGallons(o), 0) / gap).toFixed(1) : '∞';
 
-        return { wonRevenue: won, weightedPipeline: weighted, pipelineCoverage: coverage, gapToQuota: gap };
+        return { wonGallons: won, weightedPipeline: weighted, pipelineCoverage: coverage, gapToQuota: gap };
     }, [opportunities, periodTarget]);
 
-    const attainmentPercent = Math.min(100, Math.round((wonRevenue / periodTarget) * 100));
-    const forecastPercent = Math.min(100, Math.round(((wonRevenue + weightedPipeline) / periodTarget) * 100));
+    const attainmentPercent = periodTarget > 0 ? Math.min(100, Math.round((wonGallons / periodTarget) * 100)) : 0;
+    const forecastPercent = periodTarget > 0 ? Math.min(100, Math.round(((wonGallons + weightedPipeline) / periodTarget) * 100)) : 0;
 
     const isDark = theme === 'dark';
 
@@ -33,10 +33,14 @@ export default function ForecastWidget({ opportunities, timeRange, periodTarget 
                 <CardTitle className={`text-lg font-bold flex items-center justify-between ${isDark ? 'text-white' : 'text-slate-800'}`}>
                     <Link to={createPageUrl('Opportunities')} className="flex items-center gap-2 hover:opacity-80 transition-opacity">
                         <Target className="w-5 h-5 text-indigo-500" />
-                        Forecast vs Quota
+                        Gallon Forecast vs Quota
                     </Link>
                     <span className={`text-sm font-medium ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-                        Target: {branding.currency}{periodTarget.toLocaleString()}
+                        {periodTarget > 0
+                            ? `${scopeLabel} target: ${formatGallons(periodTarget)} gal`
+                            : timeRange === 'all'
+                                ? 'Select a quota period'
+                                : 'Gallon quota not set'}
                     </span>
                 </CardTitle>
             </CardHeader>
@@ -49,7 +53,7 @@ export default function ForecastWidget({ opportunities, timeRange, periodTarget 
                         <span className={`font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>{attainmentPercent}%</span>
                     </div>
                     <div className="relative h-4 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                        {/* Won Revenue (Solid) */}
+                        {/* Won gallons (solid) */}
                         <div 
                             className="absolute top-0 left-0 h-full bg-indigo-500 transition-all duration-500"
                             style={{ width: `${attainmentPercent}%` }}
@@ -63,8 +67,8 @@ export default function ForecastWidget({ opportunities, timeRange, periodTarget 
                         <div className="absolute top-0 bottom-0 w-0.5 bg-black dark:bg-white z-10" style={{ left: '100%' }} />
                     </div>
                     <div className="flex justify-between text-xs text-slate-500">
-                        <span>{branding.currency}{wonRevenue.toLocaleString()} Won</span>
-                        <span>Forecast: {branding.currency}{(wonRevenue + weightedPipeline).toLocaleString()}</span>
+                        <span>{formatGallons(wonGallons)} gal won</span>
+                        <span>Forecast: {formatGallons(wonGallons + weightedPipeline)} gal</span>
                     </div>
                 </div>
 
@@ -78,11 +82,15 @@ export default function ForecastWidget({ opportunities, timeRange, periodTarget 
                         <div className="text-[10px] text-slate-400">Target: 3.0x</div>
                     </div>
                     <div className={`p-4 rounded-2xl border ${isDark ? 'bg-slate-800/50 border-slate-700' : 'bg-white border-slate-100'}`}>
-                        <div className="text-xs text-slate-500 mb-1">Gap to Quota</div>
+                        <div className="text-xs text-slate-500 mb-1">Gallons to Quota</div>
                         <div className={`text-2xl font-bold ${gapToQuota > 0 ? 'text-slate-700 dark:text-slate-200' : 'text-emerald-500'}`}>
-                            {branding.currency}{gapToQuota.toLocaleString()}
+                            {periodTarget > 0 ? formatGallons(gapToQuota) : '—'}
                         </div>
-                        <div className="text-[10px] text-slate-400">{gapToQuota > 0 ? 'To Go' : 'Crushed it!'}</div>
+                        <div className="text-[10px] text-slate-400">
+                            {periodTarget === 0
+                                ? timeRange === 'all' ? 'Choose week, month, quarter, or year' : 'Set in employee profile'
+                                : gapToQuota > 0 ? 'Gallons to go' : 'Goal reached'}
+                        </div>
                     </div>
                 </div>
 

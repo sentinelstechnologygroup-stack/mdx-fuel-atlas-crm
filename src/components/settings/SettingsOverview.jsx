@@ -1,7 +1,6 @@
-import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useSettings } from '@/components/context/SettingsContext';
-import { ArrowRight, Building2, Users, Activity, GitMerge, Tags, CheckSquare, PenTool, Puzzle, User, Bell, Lock } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 
 export default function SettingsOverview({ menuGroups, onNavigate }) {
     const { theme } = useSettings();
@@ -56,7 +55,7 @@ function getItemDescription(id) {
         case 'onboarding': return "Configure onboarding templates and tasks for new clients.";
         case 'custom_fields': return "Add custom data fields to leads and opportunities.";
         case 'integrations': return "Connect external services like Google, Slack, and Hubspot.";
-        case 'profile': return "Update your personal profile information and password.";
+        case 'profile': return "View your protected employee identity, assignment, and gallon quota.";
         case 'notifications': return "Manage email alerts and system notifications.";
         default: return "Configure settings for this section.";
     }

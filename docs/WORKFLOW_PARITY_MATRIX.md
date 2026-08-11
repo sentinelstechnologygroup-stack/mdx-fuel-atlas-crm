@@ -26,12 +26,12 @@ Status values: `Legacy`, `In progress`, `Verified`, `Approved for cutover`, `Ret
 | Entity CRUD/query/schema | `legacy_provider.entities.*` | 3–8 | Legacy |
 | Privileged functions | `legacy_provider.functions.invoke` | 2–10 | Legacy |
 | File upload | `Core.UploadFile` | 9 | Legacy |
-| Structured file extraction | `Core.ExtractDataFromUploadedFile` | 9/11 | Legacy |
+| Structured file extraction | `Core.ExtractDataFromUploadedFile` | 9/11 | Verified — owned CSV/text/Excel extraction and negative authorization tests pass locally |
 | Email | `Core.SendEmail` | 9 | Legacy |
 | SMS | `Core.SendSMS` | 9 or approved scope decision | Legacy |
-| General AI | `Core.InvokeLLM` | 11 | Legacy |
-| Image generation | `Core.GenerateImage` | 11 or approved retirement | Legacy |
-| Conversation agent | `legacy_provider.agents.*` / `SalesAssistant` | 11 | Legacy |
+| General AI | `Core.InvokeLLM` | 11 | Verified — provider contract, structured output, authorization, auditing, rate-limit, failure, and frontend safe-state tests pass locally |
+| Image generation | `Core.GenerateImage` | 11 or approved retirement | Verified — provider contract, private Storage persistence, provenance, ownership, and forgery-denial tests pass locally |
+| Conversation agent | `legacy_provider.agents.*` / `SalesAssistant` | 11 | Verified — stateless bounded ATLAS adapter and authenticated safe-unavailable UI behavior verified locally |
 | App usage logging | `legacy_provider.appLogs.*` | 1/8 | Legacy |
 
 No row may be marked Verified without linked test evidence and permission checks.

@@ -21,12 +21,12 @@ export default function LastTouchInfo({ entity, entityType = "Lead" }) {
 
     const displayName = updatedByUser?.full_name || entity?.updated_by || "Unknown";
     const timeAgo = moment(entity.updated_date).fromNow();
-    const fullDate = moment(entity.updated_date).format("DD/MM/YYYY HH:mm");
+    const fullDate = moment(entity.updated_date).format("MM/DD/YYYY h:mm A");
 
     return (
         <div className={`border rounded-xl p-4 flex items-center justify-between transition-colors ${
-            theme === 'dark' 
-                ? 'bg-slate-900 border-slate-700' 
+            theme === 'dark'
+                ? 'bg-slate-900 border-slate-700'
                 : 'bg-slate-50 border-slate-200'
         }`}>
             <div className="flex items-center gap-3">
@@ -41,8 +41,8 @@ export default function LastTouchInfo({ entity, entityType = "Lead" }) {
             </div>
             <div className="flex items-center gap-2">
                 <Badge variant="outline" className={`font-medium flex items-center gap-1.5 ${
-                    theme === 'dark' 
-                        ? 'bg-slate-800 border-slate-600 text-slate-300' 
+                    theme === 'dark'
+                        ? 'bg-slate-800 border-slate-600 text-slate-300'
                         : 'bg-white border-slate-200 text-slate-700'
                 }`}>
                     <UserIcon className="w-3 h-3" />

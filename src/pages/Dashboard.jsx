@@ -1,19 +1,17 @@
-import React, { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { atlas } from '@/api/atlasClient';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer,
+import { XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer,
   PieChart, Pie, Cell, AreaChart, Area } from
 'recharts';
-import { Users, DollarSign, Activity, CheckCircle2, Clock, Calendar, AlertCircle, Plus } from 'lucide-react';
+import { Users, Fuel, Activity, Plus } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Badge } from "@/components/ui/badge";
 import moment from 'moment';
 import TasksWidget from '@/components/dashboard/TasksWidget';
 import ForecastWidget from '@/components/dashboard/ForecastWidget';
@@ -21,21 +19,32 @@ import LeaderboardWidget from '@/components/dashboard/LeaderboardWidget';
 import StagnantDealsWidget from '@/components/dashboard/StagnantDealsWidget';
 import AddWidgetDialog from '@/components/dashboard/AddWidgetDialog';
 import { useSettings } from '@/components/context/SettingsContext';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
+import { usePermissions } from '@/components/hooks/usePermissions';
+import { firstName } from '@/lib/roles';
+import {
+  formatGallons,
+  getMonthlyGallonQuota,
+  getOpportunityGallons,
+  getPeriodGallonQuota,
+} from '@/lib/fuelVolume';
 
 export default function Dashboard() {
-  const [timeRange, setTimeRange] = useState('all'); // 'today', 'week', 'month', 'quarter', 'year', 'all'
+  const [timeRange, setTimeRange] = useState('month'); // 'today', 'week', 'month', 'quarter', 'year', 'all'
   const [showAddWidget, setShowAddWidget] = useState(false);
-  const { theme, branding, pipelineStages } = useSettings();
+  const { theme, pipelineStages } = useSettings();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const { user: currentUser, applicationRole } = usePermissions();
+  const monthlyGallonQuota = getMonthlyGallonQuota(currentUser);
+  const periodGallonQuota = getPeriodGallonQuota(monthlyGallonQuota, timeRange);
 
   const getStageColor = (stageName) => {
     // Normalize stage name (remove translations in parens)
     const normalizedName = stageName?.split('(')[0]?.trim();
     const stage = pipelineStages?.find(s => s.label === normalizedName || s.id === normalizedName || s.label?.startsWith(normalizedName));
     const colorClass = stage?.color || 'bg-slate-400';
-    
+
     // Map Tailwind classes to Hex for Recharts
     const colorMap = {
       'bg-blue-400': '#22d3ee', // Neon Cyan
@@ -100,7 +109,7 @@ export default function Dashboard() {
     };
   }, [leads, opportunities, timeRange]);
 
-  // חישוב מדדים (KPIs)
+  // US CRM workflow
   const stats = useMemo(() => {
     const totalLeads = filteredLeads.length;
     const newLeads = filteredLeads.filter((l) => l.lead_status === 'New').length;
@@ -108,7 +117,7 @@ export default function Dashboard() {
 
     const totalOpps = filteredOpps.length;
     const wonOpps = filteredOpps.filter((o) => o.deal_stage?.includes('Won'));
-    const totalWonValue = wonOpps.reduce((sum, o) => sum + (o.amount || 0), 0);
+    const totalWonGallons = wonOpps.reduce((sum, o) => sum + getOpportunityGallons(o), 0);
 
     // Opportunity Stages
     const oppsByStage = filteredOpps.reduce((acc, o) => {
@@ -116,15 +125,15 @@ export default function Dashboard() {
       acc[stage] = (acc[stage] || 0) + 1;
       return acc;
     }, {});
-    const stageData = Object.entries(oppsByStage).map(([name, value]) => ({ 
-      name, 
+    const stageData = Object.entries(oppsByStage).map(([name, value]) => ({
+      name,
       value,
       fill: getStageColor(name)
     }));
 
     // Sales Trends Data (Leads vs Won Deals)
     const trendMap = {};
-    const dateFormat = timeRange === 'year' ? 'MMM' : 'DD/MM';
+    const dateFormat = timeRange === 'year' ? 'MMM' : 'MM/DD';
 
     filteredLeads.forEach((l) => {
       const date = moment(l.custom_data?.simulated_date || l.created_date).format(dateFormat);
@@ -150,7 +159,7 @@ export default function Dashboard() {
 
     return {
       totalLeads, newLeads, convertedLeads,
-      totalOpps, wonOppsCount: wonOpps.length, totalWonValue,
+      totalOpps, wonOppsCount: wonOpps.length, totalWonGallons,
       stageData, trendData, upcomingTasks
     };
   }, [filteredLeads, filteredOpps, tasks, timeRange, pipelineStages]);
@@ -164,8 +173,15 @@ export default function Dashboard() {
     return "Good Evening";
   };
 
-  const glassCardClasses = theme === 'dark' 
-    ? 'bg-slate-900/60 backdrop-blur-xl border-slate-700/50 shadow-xl shadow-black/20' 
+  const greetingName = firstName(currentUser);
+  const quotaScopeLabel = applicationRole === 'salesperson'
+    ? 'My'
+    : applicationRole === 'supervisor'
+      ? 'Team'
+      : 'Company';
+
+  const glassCardClasses = theme === 'dark'
+    ? 'bg-slate-900/60 backdrop-blur-xl border-slate-700/50 shadow-xl shadow-black/20'
     : 'bg-white/60 backdrop-blur-xl border-white/50 shadow-xl shadow-slate-200/50';
 
   return (
@@ -173,18 +189,18 @@ export default function Dashboard() {
 
       {/* Zen Bento Header Grid */}
       <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
-          
+
           {/* 1. Hero / Focus Card (Span 8) */}
           <div className={`md:col-span-8 rounded-[2rem] p-8 md:p-10 border relative overflow-hidden flex flex-col justify-between min-h-[300px] transition-all duration-500 group ${
-            theme === 'dark' 
-            ? 'bg-gradient-to-br from-indigo-900/80 via-slate-900/90 to-slate-900 border-indigo-500/30' 
+            theme === 'dark'
+            ? 'bg-gradient-to-br from-indigo-900/80 via-slate-900/90 to-slate-900 border-indigo-500/30'
             : 'bg-gradient-to-br from-indigo-50 via-white/80 to-white border-white/60'
           } shadow-2xl ${theme === 'dark' ? 'shadow-indigo-900/20' : 'shadow-indigo-100/50'}`}>
-              
+
               <div className="relative z-10 flex flex-col h-full justify-between">
                   <div>
                     <h1 className={`text-4xl md:text-5xl font-bold tracking-tight mb-2 ${theme === 'dark' ? 'text-white' : 'text-slate-800'}`}>
-                        {getGreeting()}
+                        {getGreeting()}{greetingName ? ` ${greetingName}` : ''}
                     </h1>
                     <p className={`text-lg ${theme === 'dark' ? 'text-indigo-200' : 'text-slate-500'}`}>
                         {moment().format("dddd, MMMM Do YYYY")}
@@ -194,8 +210,8 @@ export default function Dashboard() {
                   <div className="mt-8 flex flex-col md:flex-row gap-4 items-start md:items-center">
                     <Link to={createPageUrl('ActNow')}>
                         <Button className={`h-14 px-8 rounded-2xl text-lg font-semibold transition-all hover:scale-105 shadow-lg ${
-                            theme === 'dark' 
-                            ? 'bg-indigo-500 hover:bg-indigo-400 text-white shadow-indigo-500/30' 
+                            theme === 'dark'
+                            ? 'bg-indigo-500 hover:bg-indigo-400 text-white shadow-indigo-500/30'
                             : 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-indigo-200'
                         }`}>
                             <Activity className="w-5 h-5 mr-2" />
@@ -241,13 +257,13 @@ export default function Dashboard() {
                {/* Stat 1 */}
                <Link to={`${createPageUrl('Opportunities')}?view=won`} className={`col-span-2 rounded-3xl p-6 border flex items-center justify-between transition-transform hover:scale-[1.02] cursor-pointer ${glassCardClasses}`}>
                    <div>
-                       <p className={`text-sm font-medium mb-1 ${theme === 'dark' ? 'text-slate-400' : 'text-slate-500'}`}>Total Revenue</p>
+                       <p className={`text-sm font-medium mb-1 ${theme === 'dark' ? 'text-slate-400' : 'text-slate-500'}`}>{dateRangeLabel} Gallons Won</p>
                        <p className={`text-3xl font-bold tracking-tight ${theme === 'dark' ? 'text-emerald-400' : 'text-slate-800'}`}>
-                           ${(stats.totalWonValue / 1000000).toFixed(2)}m
+                           {formatGallons(stats.totalWonGallons, { compact: true })}
                        </p>
                    </div>
                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${theme === 'dark' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-emerald-100 text-emerald-600'}`}>
-                       <DollarSign className="w-6 h-6" />
+                       <Fuel className="w-6 h-6" />
                    </div>
                </Link>
 
@@ -275,10 +291,11 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* 1. Forecast */}
           <div className={`rounded-[2rem] p-6 border ${glassCardClasses}`}>
-              <ForecastWidget 
-                  opportunities={filteredOpps} 
+              <ForecastWidget
+                  opportunities={filteredOpps}
                   timeRange={timeRange}
-                  periodTarget={250000} // Hardcoded for MVP visualization
+                  periodTarget={periodGallonQuota}
+                  scopeLabel={quotaScopeLabel}
               />
           </div>
 
@@ -332,42 +349,42 @@ export default function Dashboard() {
                             </linearGradient>
                         </defs>
                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={theme === 'dark' ? '#334155' : '#f1f5f9'} />
-                        <XAxis 
-                            dataKey="date" 
-                            axisLine={false} 
-                            tickLine={false} 
-                            tick={{ fontSize: 12, fill: theme === 'dark' ? '#94a3b8' : '#64748b' }} 
+                        <XAxis
+                            dataKey="date"
+                            axisLine={false}
+                            tickLine={false}
+                            tick={{ fontSize: 12, fill: theme === 'dark' ? '#94a3b8' : '#64748b' }}
                             dy={10}
                         />
-                        <YAxis 
-                            axisLine={false} 
-                            tickLine={false} 
-                            tick={{ fontSize: 12, fill: theme === 'dark' ? '#94a3b8' : '#64748b' }} 
+                        <YAxis
+                            axisLine={false}
+                            tickLine={false}
+                            tick={{ fontSize: 12, fill: theme === 'dark' ? '#94a3b8' : '#64748b' }}
                         />
-                        <RechartsTooltip 
-                            contentStyle={{ 
-                                borderRadius: '16px', 
-                                border: 'none', 
+                        <RechartsTooltip
+                            contentStyle={{
+                                borderRadius: '16px',
+                                border: 'none',
                                 boxShadow: '0 10px 40px rgba(0,0,0,0.1)',
                                 backgroundColor: theme === 'dark' ? '#1e293b' : '#ffffff',
                                 color: theme === 'dark' ? '#fff' : '#000'
-                            }} 
+                            }}
                         />
-                        <Area 
-                            type="monotone" 
-                            dataKey="leads" 
-                            name="Leads" 
-                            stroke="#6366f1" 
+                        <Area
+                            type="monotone"
+                            dataKey="leads"
+                            name="Leads"
+                            stroke="#6366f1"
                             strokeWidth={3}
-                            fill="url(#colorLeads)" 
+                            fill="url(#colorLeads)"
                         />
-                        <Area 
-                            type="monotone" 
-                            dataKey="sales" 
-                            name="Sales" 
-                            stroke="#10b981" 
+                        <Area
+                            type="monotone"
+                            dataKey="sales"
+                            name="Sales"
+                            stroke="#10b981"
                             strokeWidth={3}
-                            fill="url(#colorSales)" 
+                            fill="url(#colorSales)"
                         />
                     </AreaChart>
                 </ResponsiveContainer>
@@ -376,7 +393,7 @@ export default function Dashboard() {
 
           {/* Right Column Stack (Span 4) */}
           <div className="md:col-span-4 flex flex-col gap-6">
-              
+
               {/* Tasks Widget */}
               <div className="flex-1">
                  <TasksWidget className={`h-full ${glassCardClasses.replace('rounded-3xl', 'rounded-[2rem]')}`} />
@@ -402,7 +419,7 @@ export default function Dashboard() {
                                           // Try to filter by stage ID if possible, otherwise navigate
                                           // Assuming Opportunity page handles ?action=filter&stage=... or similar manually implemented
                                           // For now, simple navigation
-                                          navigate(`${createPageUrl('Opportunities')}?view=pipeline`); 
+                                          navigate(`${createPageUrl('Opportunities')}?view=pipeline`);
                                       }
                                   }}
                               >
@@ -429,8 +446,8 @@ export default function Dashboard() {
       {/* Add Report Placeholder (Full Width) */}
       <div onClick={() => setShowAddWidget(true)} className="cursor-pointer group">
         <div className={`h-24 rounded-[2rem] border-2 border-dashed flex items-center justify-center gap-4 transition-all ${
-          theme === 'dark' ? 
-          'border-slate-700 bg-slate-800/30 hover:border-indigo-500/50 hover:bg-slate-800' : 
+          theme === 'dark' ?
+          'border-slate-700 bg-slate-800/30 hover:border-indigo-500/50 hover:bg-slate-800' :
           'border-slate-200 bg-white/50 hover:border-indigo-300 hover:bg-white'
         }`}>
           <div className={`p-2 rounded-full transition-all group-hover:scale-110 ${
@@ -444,13 +461,13 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <AddWidgetDialog 
-        open={showAddWidget} 
-        onOpenChange={setShowAddWidget} 
+      <AddWidgetDialog
+        open={showAddWidget}
+        onOpenChange={setShowAddWidget}
         onSave={(data) => {
           setTempWidgets([...tempWidgets, { ...data, id: Date.now() }]);
           setShowAddWidget(false);
-        }} 
+        }}
       />
     </div>);
 

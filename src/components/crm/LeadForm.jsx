@@ -11,7 +11,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { useQuery } from "@tanstack/react-query";
 import { atlas } from "@/api/atlasClient";
-import { listEmployeeLookup } from '@/api/userDirectoryService';
 import { useSettings } from "@/components/context/SettingsContext";
 import ActivityLog from "./ActivityLog";
 import DiscoveryScript from "./DiscoveryScript";
@@ -27,34 +26,48 @@ export default function LeadForm({ lead, onSaveAndClose, onSaveAndStay, onCancel
   const { theme } = useSettings();
 
   const { register, handleSubmit, setValue, watch, formState: { errors } } = useForm({
-    defaultValues: lead || {
-    full_name: "",
-    phone_number: "",
-    email: "",
-    documents: [],
-    assigned_to: "", // Default empty
-    age: "",
-    city: "",
-    source_year: "2024",
-    original_status_color: "Green",
-    lead_status: "New",
-    last_contact_date: new Date().toISOString().split('T')[0],
-    notes: "",
-    lead_temperature: "Cold",
-    tags: [],
-    custom_data: {}
-    }
+    defaultValues: {
+      first_name:
+        lead?.first_name ||
+        lead?.full_name?.trim().split(/\s+/)[0] ||
+        "",
+      last_name:
+        lead?.last_name ||
+        lead?.full_name?.trim().split(/\s+/).slice(1).join(" ") ||
+        "",
+      company_name: lead?.company_name || "",
+      address_line1:
+        lead?.address_line1 ||
+        lead?.street_address ||
+        lead?.address ||
+        "",
+      address_line2: lead?.address_line2 || "",
+      city: lead?.city || "",
+      state: lead?.state || "TX",
+      zip_code:
+        lead?.zip_code ||
+        lead?.postal_code ||
+        "",
+      phone_number: lead?.phone_number || "",
+      email: lead?.email || "",
+      documents: lead?.documents || [],
+      original_status_color:
+        lead?.original_status_color || "Green",
+      lead_status: lead?.lead_status || "New",
+      last_contact_date:
+        lead?.last_contact_date ||
+        new Date().toISOString().split("T")[0],
+      notes: lead?.notes || "",
+      lead_temperature: lead?.lead_temperature || "Cold",
+      tags: lead?.tags || [],
+      custom_data: lead?.custom_data || {},
+    },
   });
 
   // Fetch linked opportunities if editing a lead
   // Removed opportunities query here as it is moved to LeadOpportunities component
 
   // Fetch users for assignment
-  const { data: users } = useQuery({
-    queryKey: ['users_list'],
-    queryFn: listEmployeeLookup, // Added limit
-    initialData: []
-  });
 
   // 1. Browser Tab Awareness
   React.useEffect(() => {
@@ -111,6 +124,41 @@ export default function LeadForm({ lead, onSaveAndClose, onSaveAndStay, onCancel
     setValue(field, value);
   };
 
+  const formatUsPhone = (value) => {
+    const digits = String(value || "")
+      .replace(/\D/g, "")
+      .slice(0, 10);
+
+    if (digits.length < 4) return digits;
+    if (digits.length < 7) {
+      return `(${digits.slice(0, 3)}) ${digits.slice(3)}`;
+    }
+
+    return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
+  };
+
+  const sanitizeLeadData = (data) => {
+    const leadData = { ...data };
+    delete leadData.assigned_to;
+    const firstName = String(data.first_name || "").trim();
+    const lastName = String(data.last_name || "").trim();
+
+    return {
+      ...leadData,
+      first_name: firstName,
+      last_name: lastName,
+      full_name: [firstName, lastName].filter(Boolean).join(" "),
+      company_name: String(data.company_name || "").trim(),
+      address_line1: String(data.address_line1 || "").trim(),
+      address_line2: String(data.address_line2 || "").trim(),
+      city: String(data.city || "").trim(),
+      state: String(data.state || "").trim().toUpperCase(),
+      zip_code: String(data.zip_code || "").trim(),
+      phone_number: formatUsPhone(data.phone_number),
+      email: String(data.email || "").trim(),
+    };
+  };
+
   // Calculate Lead Temperature
   React.useEffect(() => {
     let temp = "Cold";
@@ -128,23 +176,13 @@ export default function LeadForm({ lead, onSaveAndClose, onSaveAndStay, onCancel
   }, [lastContactDate, originalStatusColor, setValue]);
 
   const handleSaveAndClose = (data) => {
-    const sanitized = { ...data };
-    const numberFields = ['age'];
-    numberFields.forEach((f) => {
-      if (Number.isNaN(sanitized[f])) sanitized[f] = null;
-    });
     clearDraft();
-    onSaveAndClose(sanitized);
+    onSaveAndClose(sanitizeLeadData(data));
   };
 
   const handleSaveAndStay = (data) => {
-    const sanitized = { ...data };
-    const numberFields = ['age'];
-    numberFields.forEach((f) => {
-      if (Number.isNaN(sanitized[f])) sanitized[f] = null;
-    });
     clearDraft();
-    onSaveAndStay(sanitized);
+    onSaveAndStay(sanitizeLeadData(data));
   };
 
   const onFormError = (formErrors) => {
@@ -255,80 +293,182 @@ export default function LeadForm({ lead, onSaveAndClose, onSaveAndStay, onCancel
               </div>
 
               <div className="space-y-1">
-                <Label className={labelClass}>Full Name *</Label>
+                <Label className={labelClass}>First Name *</Label>
                 <Input
-                  {...register("full_name", { required: "Required" })}
-                  placeholder="e.g., John Doe"
-                  className={inputClass} />
-
-                {errors.full_name && <span className="text-red-500 text-sm font-medium">{errors.full_name.message}</span>}
-              </div>
-              
-              <div className="space-y-1">
-                <Label className={labelClass}>Phone Number *</Label>
-                <Input
-                  {...register("phone_number", {
-                    required: "Required",
-                    pattern: {
-                      value: /^0[0-9]{1,2}-?[0-9]{7}$/,
-                      message: "Invalid phone number"
-                    }
+                  {...register("first_name", {
+                    required: "First name is required",
                   })}
-                  placeholder="050-0000000"
-                  className={inputClass} />
-
-                {errors.phone_number && <span className="text-red-500 text-sm font-medium">{errors.phone_number.message}</span>}
+                  autoComplete="given-name"
+                  placeholder="e.g., John"
+                  className={inputClass}
+                />
+                {errors.first_name && (
+                  <span className="text-red-500 text-sm font-medium">
+                    {errors.first_name.message}
+                  </span>
+                )}
               </div>
 
               <div className="space-y-1">
-                <Label className={labelClass}>Email</Label>
+                <Label className={labelClass}>Last Name *</Label>
                 <Input
-                  {...register("email", {
-                    pattern: {
-                      value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                      message: "Invalid email address"
-                    }
+                  {...register("last_name", {
+                    required: "Last name is required",
                   })}
-                  placeholder="email@example.com"
-                  className={inputClass} />
-
-                {errors.email && <span className="text-red-500 text-sm font-medium">{errors.email.message}</span>}
+                  autoComplete="family-name"
+                  placeholder="e.g., Smith"
+                  className={inputClass}
+                />
+                {errors.last_name && (
+                  <span className="text-red-500 text-sm font-medium">
+                    {errors.last_name.message}
+                  </span>
+                )}
               </div>
 
-              <div className="space-y-1">
-                <Label className={labelClass}>Age</Label>
+              <div className="space-y-1 md:col-span-2">
+                <Label className={labelClass}>Company Name *</Label>
                 <Input
-                  type="number"
-                  {...register("age", { valueAsNumber: true })}
-                  placeholder="e.g., 68"
-                  className={inputClass} />
+                  {...register("company_name", {
+                    required: "Company name is required",
+                  })}
+                  autoComplete="organization"
+                  placeholder="e.g., Smith Construction LLC"
+                  className={inputClass}
+                />
+                {errors.company_name && (
+                  <span className="text-red-500 text-sm font-medium">
+                    {errors.company_name.message}
+                  </span>
+                )}
+              </div>
 
+              <div className="space-y-1 md:col-span-2">
+                <Label className={labelClass}>Street Address</Label>
+                <Input
+                  {...register("address_line1")}
+                  autoComplete="address-line1"
+                  placeholder="e.g., 1234 Main Street"
+                  className={inputClass}
+                />
+              </div>
+
+              <div className="space-y-1 md:col-span-2">
+                <Label className={labelClass}>Address Line 2</Label>
+                <Input
+                  {...register("address_line2")}
+                  autoComplete="address-line2"
+                  placeholder="Suite, unit, building, or floor"
+                  className={inputClass}
+                />
               </div>
 
               <div className="space-y-1">
                 <Label className={labelClass}>City</Label>
                 <Input
                   {...register("city")}
-                  placeholder="e.g., Tel Aviv"
-                  className={inputClass} />
+                  autoComplete="address-level2"
+                  placeholder="e.g., Houston"
+                  className={inputClass}
+                />
+              </div>
 
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label className={labelClass}>State</Label>
+                  <Input
+                    {...register("state", {
+                      pattern: {
+                        value: /^[A-Za-z]{2}$/,
+                        message: "Use the two-letter state code",
+                      },
+                    })}
+                    autoComplete="address-level1"
+                    placeholder="TX"
+                    maxLength={2}
+                    className={inputClass}
+                  />
+                  {errors.state && (
+                    <span className="text-red-500 text-sm font-medium">
+                      {errors.state.message}
+                    </span>
+                  )}
+                </div>
+
+                <div className="space-y-1">
+                  <Label className={labelClass}>ZIP Code</Label>
+                  <Input
+                    {...register("zip_code", {
+                      pattern: {
+                        value: /^\d{5}(?:-\d{4})?$/,
+                        message: "Use 12345 or 12345-6789",
+                      },
+                    })}
+                    autoComplete="postal-code"
+                    inputMode="numeric"
+                    placeholder="77002"
+                    className={inputClass}
+                  />
+                  {errors.zip_code && (
+                    <span className="text-red-500 text-sm font-medium">
+                      {errors.zip_code.message}
+                    </span>
+                  )}
+                </div>
               </div>
 
               <div className="space-y-1">
-                <Label className={labelClass}>Source Year</Label>
-                <Select
-                  defaultValue={lead?.source_year || "2024"}
-                  onValueChange={(val) => handleSelectChange("source_year", val)}>
+                <Label className={labelClass}>Phone Number *</Label>
+                <Input
+                  {...register("phone_number", {
+                    required: "Phone number is required",
+                    pattern: {
+                      value: /^\(\d{3}\) \d{3}-\d{4}$/,
+                      message: "Use a 10-digit US phone number",
+                    },
+                  })}
+                  type="tel"
+                  inputMode="tel"
+                  autoComplete="tel"
+                  placeholder="(713) 555-0123"
+                  onChange={(event) => {
+                    setValue(
+                      "phone_number",
+                      formatUsPhone(event.target.value),
+                      {
+                        shouldDirty: true,
+                        shouldValidate: true,
+                      }
+                    );
+                  }}
+                  className={inputClass}
+                />
+                {errors.phone_number && (
+                  <span className="text-red-500 text-sm font-medium">
+                    {errors.phone_number.message}
+                  </span>
+                )}
+              </div>
 
-                  <SelectTrigger className={inputClass}>
-                    <SelectValue placeholder="Select Year" />
-                  </SelectTrigger>
-                  <SelectContent className={theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : ''}>
-                    <SelectItem value="2023">2023</SelectItem>
-                    <SelectItem value="2024">2024</SelectItem>
-                    <SelectItem value="2025">2025</SelectItem>
-                  </SelectContent>
-                </Select>
+              <div className="space-y-1">
+                <Label className={labelClass}>Email Address</Label>
+                <Input
+                  {...register("email", {
+                    pattern: {
+                      value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+                      message: "Enter a valid email address",
+                    },
+                  })}
+                  type="email"
+                  autoComplete="email"
+                  placeholder="john.smith@example.com"
+                  className={inputClass}
+                />
+                {errors.email && (
+                  <span className="text-red-500 text-sm font-medium">
+                    {errors.email.message}
+                  </span>
+                )}
               </div>
 
               <div className="space-y-1">
@@ -374,22 +514,6 @@ export default function LeadForm({ lead, onSaveAndClose, onSaveAndStay, onCancel
                 }
               </div>
 
-              <div className="space-y-1">
-                <Label className={labelClass}>Assigned To</Label>
-                <Select
-                  defaultValue={lead?.assigned_to || ""}
-                  onValueChange={(val) => handleSelectChange("assigned_to", val)}>
-                  <SelectTrigger className={inputClass}>
-                    <SelectValue placeholder="Select User" />
-                  </SelectTrigger>
-                  <SelectContent className={theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : ''}>
-                    <SelectItem value="unassigned">Unassigned</SelectItem>
-                    {users?.map(u => (
-                      <SelectItem key={u.id} value={u.email}>{u.full_name || u.email}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
 
               <div className="space-y-1">
                 <Label className={labelClass}>Last Contact Date</Label>

@@ -15,6 +15,7 @@ node_modules
 dist
 dist-ssr
 *.local
+.patch-engine-backups/
 
 # Editor directories and files
 .vscode/*

@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { atlas } from '@/api/atlasClient';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -13,9 +13,10 @@ import { MoreVertical, Search, Eye, Pencil, ShieldCheck, Users, MapPin, UserChec
 import { useSettings } from '@/components/context/SettingsContext';
 import { usePermissions } from '@/components/hooks/usePermissions';
 import { useDirectoryData } from '@/components/hooks/useDirectoryData';
-import { APPLICATION_ROLES, ASSIGNABLE_ROLES_BY_ADMIN, roleLabel, statusLabel, displayName, effectiveRole, canAssignRole, canDeactivateUser } from '@/lib/roles';
+import { APPLICATION_ROLES, ASSIGNABLE_ROLES_BY_ADMIN, roleLabel, statusLabel, displayName, effectiveRole, canDeactivateUser } from '@/lib/roles';
 import UserAvatar from '@/components/settings/UserAvatar';
 import UserProfileView from '@/components/settings/UserProfileView';
+import UserProfileEditor from '@/components/settings/UserProfileEditor';
 import DeactivateUserDialog from '@/components/ownership/DeactivateUserDialog';
 import { useToast } from '@/components/ui/use-toast';
 
@@ -195,6 +196,7 @@ export default function UserDirectory() {
               <TableHead className="text-left hidden lg:table-cell">Team</TableHead>
               <TableHead className="text-left hidden xl:table-cell">Supervisor</TableHead>
               <TableHead className="text-left hidden xl:table-cell">Territories</TableHead>
+              <TableHead className="text-right hidden lg:table-cell">Monthly Quota</TableHead>
               <TableHead className="text-left">Status</TableHead>
               <TableHead className="text-left hidden lg:table-cell">Last Login</TableHead>
               <TableHead className="text-right">Actions</TableHead>
@@ -202,7 +204,7 @@ export default function UserDirectory() {
           </TableHeader>
           <TableBody>
             {filtered.length === 0 && (
-              <TableRow><TableCell colSpan={8} className={`text-center py-10 ${theme === 'dark' ? 'text-slate-500' : 'text-slate-400'}`}>No users found.</TableCell></TableRow>
+              <TableRow><TableCell colSpan={9} className={`text-center py-10 ${theme === 'dark' ? 'text-slate-500' : 'text-slate-400'}`}>No users found.</TableCell></TableRow>
             )}
             {filtered.map((u) => {
               const team = resolveTeam(u.team_id);
@@ -230,9 +232,22 @@ export default function UserDirectory() {
                   <TableCell className={`hidden xl:table-cell ${theme === 'dark' ? 'text-slate-300' : 'text-slate-700'}`}>
                     {userTerritories.length ? `${userTerritories.length} (${userTerritories[0].name}${userTerritories.length > 1 ? '…' : ''})` : '—'}
                   </TableCell>
+                  <TableCell className={`text-right hidden lg:table-cell tabular-nums ${theme === 'dark' ? 'text-slate-300' : 'text-slate-700'}`}>
+                    {u.monthly_gallon_quota !== null &&
+                    u.monthly_gallon_quota !== undefined &&
+                    u.monthly_gallon_quota !== ''
+                      ? `${Number(u.monthly_gallon_quota).toLocaleString('en-US')} gal`
+                      : '—'}
+                  </TableCell>
                   <TableCell><Badge className={STATUS_BADGE[status]}>{statusLabel(status)}</Badge></TableCell>
                   <TableCell className={`hidden lg:table-cell text-sm ${theme === 'dark' ? 'text-slate-400' : 'text-slate-500'}`}>
-                    {u.last_login_date ? new Date(u.last_login_date).toLocaleDateString() : '—'}
+                    {u.last_login_date
+                      ? new Intl.DateTimeFormat('en-US', {
+                          month: '2-digit',
+                          day: '2-digit',
+                          year: 'numeric'
+                        }).format(new Date(u.last_login_date))
+                      : '—'}
                   </TableCell>
                   <TableCell className="text-right">
                     <DropdownMenu>
@@ -245,6 +260,7 @@ export default function UserDirectory() {
                         {canManageUser(u) && (
                           <>
                             <DropdownMenuSeparator />
+                            <DropdownMenuItem onClick={() => openAction('profile', u)}><Pencil className="w-4 h-4 mr-2" /> Edit Protected Profile</DropdownMenuItem>
                             <DropdownMenuItem onClick={() => openAction('role', u)}><ShieldCheck className="w-4 h-4 mr-2" /> Assign Role</DropdownMenuItem>
                             <DropdownMenuItem onClick={() => openAction('team', u)}><Users className="w-4 h-4 mr-2" /> Assign Team</DropdownMenuItem>
                             <DropdownMenuItem onClick={() => openAction('supervisor', u)}><UserCheck className="w-4 h-4 mr-2" /> Assign Supervisor</DropdownMenuItem>
@@ -279,6 +295,20 @@ export default function UserDirectory() {
               <DialogHeader><DialogTitle>Employee Profile</DialogTitle></DialogHeader>
               <UserProfileView user={action.user} team={resolveTeam(action.user.team_id)} supervisor={resolveUser(action.user.supervisor_user_id)} territories={resolveTerritories(action.user.territory_ids)} />
               <DialogFooter><Button variant="ghost" onClick={closeAction}>Close</Button></DialogFooter>
+            </>
+          )}
+
+          {action?.type === 'profile' && (
+            <>
+              <DialogHeader><DialogTitle>Edit Employee Profile — {displayName(action.user)}</DialogTitle></DialogHeader>
+              <UserProfileEditor
+                user={action.user}
+                onCancel={closeAction}
+                onSaved={() => {
+                  refreshAll();
+                  closeAction();
+                }}
+              />
             </>
           )}
 
@@ -357,12 +387,26 @@ export default function UserDirectory() {
             <>
               <DialogHeader><DialogTitle>Suspend — {displayName(action.user)}</DialogTitle><DialogDescription>The account is preserved with full history. The final active Super Administrator cannot be suspended.</DialogDescription></DialogHeader>
               <div className="space-y-3 py-2">
-                <Label>Reason (optional)</Label>
-                <Input value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Reason for suspension" className={selectClass} />
+                <Label>Reason *</Label>
+                <Input
+                  value={reason}
+                  onChange={(e) => setReason(e.target.value)}
+                  placeholder="Required reason for suspension"
+                  className={selectClass}
+                  required
+                />
               </div>
               <DialogFooter>
                 <Button variant="ghost" onClick={closeAction}>Cancel</Button>
-                <Button onClick={handleSubmit} disabled={saving} variant="destructive">{saving ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Suspend'}</Button>
+                <Button
+                  onClick={handleSubmit}
+                  disabled={saving || !reason.trim()}
+                  variant="destructive"
+                >
+                  {saving
+                    ? <Loader2 className="w-4 h-4 animate-spin" />
+                    : 'Suspend'}
+                </Button>
               </DialogFooter>
             </>
           )}

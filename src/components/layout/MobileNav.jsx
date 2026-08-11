@@ -1,4 +1,3 @@
-import React from 'react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { LayoutDashboard, Users, Briefcase, BarChart3, Menu } from 'lucide-react';
@@ -6,10 +5,10 @@ import { cn } from "@/lib/utils"; // Assuming standard shadcn utils, or I'll imp
 
 export default function MobileNav({ currentPageName, onMenuClick }) {
   const navItems = [
-    { name: 'לוח בקרה', path: 'Dashboard', icon: LayoutDashboard },
-    { name: 'לידים', path: 'Leads', icon: Users },
-    { name: 'הזדמנויות', path: 'Opportunities', icon: Briefcase },
-    { name: 'דוחות', path: 'Reports', icon: BarChart3 },
+    { name: 'Dashboard', path: 'Dashboard', icon: LayoutDashboard },
+    { name: 'Leads', path: 'Leads', icon: Users },
+    { name: 'Opportunities', path: 'Opportunities', icon: Briefcase },
+    { name: 'Reports', path: 'Reports', icon: BarChart3 },
   ];
 
   return (
@@ -31,14 +30,14 @@ export default function MobileNav({ currentPageName, onMenuClick }) {
             </Link>
           );
         })}
-        
+
         {/* Menu Button for Sidebar */}
         <button
           onClick={onMenuClick}
           className="flex flex-col items-center justify-center w-full h-full space-y-1 text-neutral-400 hover:text-neutral-600 active:text-red-600 transition-colors"
         >
           <Menu className="w-6 h-6" />
-          <span className="text-[10px] font-medium">תפריט</span>
+          <span className="text-[10px] font-medium">Menu</span>
         </button>
       </div>
     </div>

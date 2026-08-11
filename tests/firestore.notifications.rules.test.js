@@ -277,11 +277,11 @@ describe('Phase 4 self-owned notification reads', () => {
   });
 });
 
-describe('Phase 4 self-owned notification writes', () => {
-  it('allows canonical self-recipient creation and denies forged recipients', async () => {
+describe('Phase 8 server-controlled notification writes', () => {
+  it('denies browser-created notifications for all recipients', async () => {
     const database = firestoreFor(USERS.alice);
 
-    await assertSucceeds(
+    await assertFails(
       setDoc(
         entityDocument(
           database,
@@ -302,28 +302,56 @@ describe('Phase 4 self-owned notification writes', () => {
         notificationData(USERS.bob)
       )
     );
+  });
 
-    await assertFails(
-      setDoc(
+  it('allows only the owner to change notification read state', async () => {
+    await assertSucceeds(
+      updateDoc(
         entityDocument(
-          database,
+          firestoreFor(USERS.alice),
           'Notification',
-          'missing-user-id-notification'
+          'alice-notification'
         ),
         {
-          title: 'Missing canonical user ID',
-          message: 'Invalid notification',
-          user_email: USERS.alice.email,
-          is_read: false,
+          is_read: true,
+          updated_date: '2026-08-04T12:00:00.000Z',
+          last_modified_by_user_id: USERS.alice.uid,
+        }
+      )
+    );
+
+    await assertFails(
+      updateDoc(
+        entityDocument(
+          firestoreFor(USERS.bob),
+          'Notification',
+          'alice-notification'
+        ),
+        {
+          is_read: true,
         }
       )
     );
   });
 
-  it('allows canonicalization of an owned legacy notification', async () => {
+  it('denies content and ownership changes', async () => {
     const database = firestoreFor(USERS.alice);
 
-    await assertSucceeds(
+    await assertFails(
+      updateDoc(
+        entityDocument(
+          database,
+          'Notification',
+          'alice-notification'
+        ),
+        {
+          title: 'Forged browser title',
+          is_read: true,
+        }
+      )
+    );
+
+    await assertFails(
       updateDoc(
         entityDocument(
           database,
@@ -338,44 +366,27 @@ describe('Phase 4 self-owned notification writes', () => {
       )
     );
 
-    const snapshot = await getDoc(
-      entityDocument(
-        database,
-        'Notification',
-        'alice-legacy-notification'
-      )
-    );
-
-    expect(snapshot.data()).toMatchObject({
-      user_id: USERS.alice.uid,
-      user_email: USERS.alice.email,
-      is_read: true,
-    });
-  });
-
-  it('denies notification ownership reassignment', async () => {
     await assertFails(
       updateDoc(
         entityDocument(
-          firestoreFor(USERS.alice),
+          database,
           'Notification',
           'alice-notification'
         ),
         {
           user_id: USERS.bob.uid,
           user_email: USERS.bob.email,
+          is_read: true,
         }
       )
     );
   });
 
-  it('allows an owner to delete their notification but not another user notification', async () => {
-    const database = firestoreFor(USERS.alice);
-
-    await assertSucceeds(
+  it('denies browser deletion of notifications', async () => {
+    await assertFails(
       deleteDoc(
         entityDocument(
-          database,
+          firestoreFor(USERS.alice),
           'Notification',
           'alice-notification'
         )
@@ -385,7 +396,7 @@ describe('Phase 4 self-owned notification writes', () => {
     await assertFails(
       deleteDoc(
         entityDocument(
-          database,
+          firestoreFor(USERS.alice),
           'Notification',
           'bob-notification'
         )
@@ -393,7 +404,6 @@ describe('Phase 4 self-owned notification writes', () => {
     );
   });
 });
-
 describe('Phase 4 self-owned notification settings', () => {
   it('restricts settings reads and writes to the authenticated owner', async () => {
     const database = firestoreFor(USERS.alice);

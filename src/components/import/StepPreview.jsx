@@ -1,10 +1,9 @@
-import React, { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { ArrowRight, UploadCloud, AlertTriangle, CheckCircle } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Progress } from "@/components/ui/progress";
 import { atlas } from "@/api/atlasClient";
-import { findBestMatch } from "./StepMapping";
 
 export default function StepPreview({ data, mapping, customLabels, onBack, onImport }) {
   const [isImporting, setIsImporting] = useState(false);
@@ -24,7 +23,7 @@ export default function StepPreview({ data, mapping, customLabels, onBack, onImp
             if (fieldKey === 'phone_number') {
                 // Remove dashes, spaces
                 value = value?.toString().replace(/[- ]/g, '') || "";
-            } else if (fieldKey === 'estimated_property_value' || fieldKey === 'age') {
+            } else if (fieldKey === 'estimated_monthly_gallons') {
                 // Keep only numbers
                 value = value?.toString().replace(/[^0-9.]/g, '') || "";
                 value = value ? Number(value) : "";
@@ -46,9 +45,9 @@ export default function StepPreview({ data, mapping, customLabels, onBack, onImp
                 // First value for this field
                 if (fieldKey === 'notes') {
                      // Always use label for notes to be clear, unless it's explicitly the "Notes" column itself
-                     // AND the label matches "notes" or "הערות" to avoid redundancy like "Notes: bla bla"
-                     const isExplicitNotes = ['notes', 'הערות', 'comment'].includes(label.toLowerCase());
-                     
+                     // Import preview workflow
+                     const isExplicitNotes = ['notes', 'comment'].includes(label.toLowerCase());
+
                      if (!isExplicitNotes) {
                          newRow[fieldKey] = `${label}: ${value}`;
                      } else {
@@ -61,8 +60,8 @@ export default function StepPreview({ data, mapping, customLabels, onBack, onImp
         });
 
         // Validation
-        if (!newRow.full_name || String(newRow.full_name).length < 2) errors.push("שם לא תקין");
-        if (!newRow.phone_number || String(newRow.phone_number).length < 9) errors.push("טלפון לא תקין");
+        if (!newRow.full_name || String(newRow.full_name).length < 2) errors.push("Invalid full name");
+        if (!newRow.phone_number || String(newRow.phone_number).length < 9) errors.push("Invalid phone number");
 
         return { ...newRow, _original: row, _errors: errors, _id: index };
     });
@@ -88,16 +87,15 @@ export default function StepPreview({ data, mapping, customLabels, onBack, onImp
                 return {
                     ...entityData,
                     lead_status: "New", // Default
-                    source_year: new Date().getFullYear().toString(),
                 };
             });
 
             await atlas.entities.Lead.bulkCreate(batch);
-            
+
             successCount += batch.length;
             setProgress(Math.round(((i + 1) / totalBatches) * 100));
         }
-        
+
         onImport({ success: successCount, failed: invalidRows.length + failCount, total: processedData.length });
 
     } catch (error) {
@@ -112,13 +110,13 @@ export default function StepPreview({ data, mapping, customLabels, onBack, onImp
     <div className="space-y-6">
       <div className="flex justify-between items-end">
         <div>
-            <h2 className="text-xl font-bold text-slate-800">סקירה ואימות</h2>
-            <p className="text-slate-500">סה"כ {processedData.length} רשומות • {validRows.length} תקינות • {invalidRows.length} שגויות</p>
+            <h2 className="text-xl font-bold text-slate-800">Review and Validate</h2>
+            <p className="text-slate-500">Total {processedData.length} records • {validRows.length} valid • {invalidRows.length} invalid</p>
         </div>
         {invalidRows.length > 0 && (
             <div className="text-red-600 bg-red-50 px-3 py-1 rounded text-sm font-bold flex items-center gap-2">
                 <AlertTriangle className="w-4 h-4" />
-                שים לב: {invalidRows.length} רשומות לא ייובאו
+                Warning: {invalidRows.length} records will not be imported
             </div>
         )}
       </div>
@@ -127,11 +125,11 @@ export default function StepPreview({ data, mapping, customLabels, onBack, onImp
         <Table>
             <TableHeader>
                 <TableRow className="bg-slate-50">
-                    <TableHead className="text-right">סטטוס</TableHead>
-                    <TableHead className="text-right">שם מלא</TableHead>
-                    <TableHead className="text-right">טלפון</TableHead>
-                    <TableHead className="text-right">עיר</TableHead>
-                    <TableHead className="text-right">ערך</TableHead>
+                    <TableHead className="text-right">Status</TableHead>
+                    <TableHead className="text-right">Full Name</TableHead>
+                    <TableHead className="text-right">Phone</TableHead>
+                    <TableHead className="text-right">City</TableHead>
+                    <TableHead className="text-right">Monthly Gallons</TableHead>
                 </TableRow>
             </TableHeader>
             <TableBody>
@@ -141,25 +139,31 @@ export default function StepPreview({ data, mapping, customLabels, onBack, onImp
                             {row._errors.length > 0 ? (
                                 <div className="flex items-center gap-1 text-red-500" title={row._errors.join(", ")}>
                                     <AlertTriangle className="w-4 h-4" />
-                                    <span className="text-xs font-bold">שגיאה</span>
+                                    <span className="text-xs font-bold">Error</span>
                                 </div>
                             ) : (
                                 <div className="flex items-center gap-1 text-green-600">
                                     <CheckCircle className="w-4 h-4" />
-                                    <span className="text-xs">תקין</span>
+                                    <span className="text-xs">Valid</span>
                                 </div>
                             )}
                         </TableCell>
                         <TableCell className="font-medium">{row.full_name}</TableCell>
                         <TableCell>{row.phone_number}</TableCell>
                         <TableCell>{row.city || '-'}</TableCell>
-                        <TableCell>{row.estimated_property_value ? `₪${row.estimated_property_value.toLocaleString()}` : '-'}</TableCell>
+                        <TableCell>
+                  {row.estimated_monthly_gallons
+                    ? `${Number(
+                        row.estimated_monthly_gallons
+                      ).toLocaleString('en-US')} gal`
+                    : '-'}
+                </TableCell>
                     </TableRow>
                 ))}
                 {processedData.length > 10 && (
                     <TableRow>
                         <TableCell colSpan={5} className="text-center text-slate-500 text-sm p-2">
-                            ...ועוד {processedData.length - 10} רשומות
+                            ...and {processedData.length - 10} records
                         </TableCell>
                     </TableRow>
                 )}
@@ -170,7 +174,7 @@ export default function StepPreview({ data, mapping, customLabels, onBack, onImp
       {isImporting && (
         <div className="space-y-2">
             <div className="flex justify-between text-sm text-slate-600">
-                <span>מייבא נתונים...</span>
+                <span>Importing Data...</span>
                 <span>{progress}%</span>
             </div>
             <Progress value={progress} className="h-2" />
@@ -180,18 +184,18 @@ export default function StepPreview({ data, mapping, customLabels, onBack, onImp
       <div className="flex justify-between pt-6 border-t">
         <Button variant="outline" onClick={onBack} disabled={isImporting}>
             <ArrowRight className="w-4 h-4 ml-2" />
-            חזרה
+            Back
         </Button>
-        <Button 
-            onClick={handleImport} 
+        <Button
+            onClick={handleImport}
             disabled={isImporting || validRows.length === 0}
             className="bg-blue-600 hover:bg-blue-700 min-w-[150px]"
         >
             {isImporting ? (
-                "מעבד..."
+                "Processing..."
             ) : (
                 <>
-                    ייבא {validRows.length} לידים
+                    Import {validRows.length} Leads
                     <UploadCloud className="w-4 h-4 mr-2" />
                 </>
             )}

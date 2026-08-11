@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useLocation, Link } from 'react-router-dom';
 import { atlas } from '@/api/atlasClient';
 import { useQuery } from '@tanstack/react-query';
@@ -8,9 +8,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { 
-    Search, User, Briefcase, Phone, MapPin, Calendar, ArrowRight, 
-    Loader2, Filter, ChevronLeft, ExternalLink
+import {
+    Search, User, Briefcase, Phone, MapPin, ArrowRight,
+    Loader2, ChevronLeft, ExternalLink
 } from 'lucide-react';
 import { Badge } from "@/components/ui/badge";
 
@@ -19,7 +19,7 @@ export default function SearchResultsPage() {
     const location = useLocation();
     const queryParams = new URLSearchParams(location.search);
     const initialQuery = queryParams.get('q') || '';
-    
+
     const [searchTerm, setSearchTerm] = useState(initialQuery);
     const [activeTab, setActiveTab] = useState("all");
 
@@ -32,7 +32,7 @@ export default function SearchResultsPage() {
         queryKey: ['fullSearch', searchTerm],
         queryFn: async () => {
             if (!searchTerm) return { leads: [], opportunities: [] };
-            
+
             // Parallel fetch of all data
             const [leads, opportunities] = await Promise.all([
                 atlas.entities.Lead.list(),
@@ -45,34 +45,34 @@ export default function SearchResultsPage() {
             // Smart Search Logic
             // 1. Exact matches get priority? (Not easily doable with simple filter, but we can filter broadly)
             // 2. Partial matches on multiple fields
-            
+
             const filterItem = (item, fields) => {
                 if (!lowerTerm) return true;
                 // Check if ANY part of the search term is in ANY of the fields
-                return searchParts.every(part => 
-                    fields.some(field => 
+                return searchParts.every(part =>
+                    fields.some(field =>
                         field && String(field).toLowerCase().includes(part)
                     )
                 );
             };
 
-            const filteredLeads = leads.filter(l => 
+            const filteredLeads = leads.filter(l =>
                 filterItem(l, [
-                    l.full_name, 
-                    l.phone_number, 
-                    l.email, 
-                    l.city, 
+                    l.full_name,
+                    l.phone_number,
+                    l.email,
+                    l.city,
                     l.notes,
                     ...(l.tags || [])
                 ])
             );
 
-            const filteredOpps = opportunities.filter(o => 
+            const filteredOpps = opportunities.filter(o =>
                 filterItem(o, [
-                    o.lead_name, 
-                    o.product_type, 
+                    o.lead_name,
+                    o.product_type,
                     o.deal_stage,
-                    String(o.loan_amount_requested),
+                    String(o.estimated_monthly_gallons),
                     o.main_pain_point
                 ])
             );
@@ -96,7 +96,7 @@ export default function SearchResultsPage() {
     return (
         <div className={`min-h-screen p-6 lg:p-10 font-sans ${theme === 'dark' ? 'bg-slate-900 text-white' : 'bg-neutral-50/50 text-slate-900'}`}>
             <div className="max-w-5xl mx-auto space-y-8">
-                
+
                 {/* Header & Search Bar */}
                 <div className="flex flex-col md:flex-row gap-6 justify-between items-start md:items-center">
                     <div>
@@ -112,7 +112,7 @@ export default function SearchResultsPage() {
 
                     <form onSubmit={handleSearchSubmit} className="relative w-full md:w-96">
                         <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                        <Input 
+                        <Input
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                             className={`pl-12 pr-4 h-12 text-lg shadow-sm border-slate-200 focus:border-red-500 focus:ring-red-500 rounded-xl ${
@@ -149,8 +149,8 @@ export default function SearchResultsPage() {
                                     Try searching with different keywords or check for spelling errors.
                                     You can search by name, phone, city, or tags.
                                 </p>
-                                <Button 
-                                    variant="link" 
+                                <Button
+                                    variant="link"
                                     onClick={() => setSearchTerm('')}
                                     className="mt-4 text-red-600"
                                 >
@@ -319,13 +319,13 @@ function OpportunityResultCard({ opp, theme }) {
                             {opp.deal_stage?.split('(')[0]}
                         </Badge>
                         <span className={`font-bold ${theme === 'dark' ? 'text-white' : 'text-slate-700'}`}>
-                            {opp.loan_amount_requested ? `${branding?.currency || '$'}${opp.loan_amount_requested.toLocaleString()}` : ''}
+                            {opp.estimated_monthly_gallons ? `${Number(opp.estimated_monthly_gallons).toLocaleString('en-US')} gal/mo` : ''}
                         </span>
                     </div>
                     {opp.probability && (
                         <div className={`w-full rounded-full h-1.5 mt-2 ${theme === 'dark' ? 'bg-slate-700' : 'bg-slate-100'}`}>
-                            <div 
-                                className="bg-purple-500 h-1.5 rounded-full" 
+                            <div
+                                className="bg-purple-500 h-1.5 rounded-full"
                                 style={{ width: `${opp.probability}%` }}
                             />
                         </div>

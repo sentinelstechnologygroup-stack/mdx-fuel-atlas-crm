@@ -1,17 +1,14 @@
-import React, { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect } from "react";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Phone, Trash2, Pencil, CheckCircle2, MessageCircle, ChevronLeft, ChevronRight, AlertCircle, Clock } from "lucide-react";
+import { Phone, Trash2, CheckCircle2, ChevronLeft, ChevronRight, AlertCircle, Clock } from "lucide-react";
 import moment from "moment";
-import { createPageUrl } from "@/utils";
-import { Link } from "react-router-dom";
 import { useSettings } from "@/components/context/SettingsContext";
 
 export default function LeadsKanban({ leads, statuses, onStatusChange, onEdit, onDelete, onConvert, activities }) {
   const { theme } = useSettings();
-  
+
   // Scroll Logic
   const scrollContainerRef = useRef(null);
   const [showLeftArrow, setShowLeftArrow] = useState(false);
@@ -22,7 +19,7 @@ export default function LeadsKanban({ leads, statuses, onStatusChange, onEdit, o
       const { scrollLeft, scrollWidth, clientWidth } = scrollContainerRef.current;
       const scrollAbs = Math.abs(scrollLeft);
       const maxScroll = scrollWidth - clientWidth;
-      
+
       if (scrollWidth <= clientWidth) {
         setShowLeftArrow(false);
         setShowRightArrow(false);
@@ -46,9 +43,9 @@ export default function LeadsKanban({ leads, statuses, onStatusChange, onEdit, o
   const scroll = (direction) => {
     if (scrollContainerRef.current) {
       const scrollAmount = 200;
-      scrollContainerRef.current.scrollBy({ 
-        left: direction === 'left' ? -scrollAmount : scrollAmount, 
-        behavior: 'smooth' 
+      scrollContainerRef.current.scrollBy({
+        left: direction === 'left' ? -scrollAmount : scrollAmount,
+        behavior: 'smooth'
       });
       setTimeout(checkScroll, 300);
     }
@@ -82,12 +79,12 @@ export default function LeadsKanban({ leads, statuses, onStatusChange, onEdit, o
       <div className="relative h-full group/kanban isolate">
          {/* Scroll Hints */}
          {showRightArrow && (
-            <Button 
-                variant="secondary" 
-                size="icon" 
+            <Button
+                variant="secondary"
+                size="icon"
                 className={`absolute right-0 top-1/2 -translate-y-1/2 z-20 h-16 w-8 rounded-l-xl rounded-r-none shadow-lg border transition-all ${
-                  theme === 'dark' 
-                    ? 'bg-slate-800/90 border-slate-700 text-slate-400 hover:text-white hover:bg-slate-700 backdrop-blur-sm' 
+                  theme === 'dark'
+                    ? 'bg-slate-800/90 border-slate-700 text-slate-400 hover:text-white hover:bg-slate-700 backdrop-blur-sm'
                     : 'bg-white/90 border-slate-200 text-slate-400 hover:text-slate-600 hover:bg-slate-50 backdrop-blur-sm'
                 }`}
                 onClick={() => scroll('right')}
@@ -97,12 +94,12 @@ export default function LeadsKanban({ leads, statuses, onStatusChange, onEdit, o
             )}
 
             {showLeftArrow && (
-            <Button 
-                variant="secondary" 
-                size="icon" 
+            <Button
+                variant="secondary"
+                size="icon"
                 className={`absolute left-0 top-1/2 -translate-y-1/2 z-20 h-16 w-8 rounded-r-xl rounded-l-none shadow-lg border transition-all ${
-                  theme === 'dark' 
-                    ? 'bg-slate-800/90 border-slate-700 text-slate-400 hover:text-white hover:bg-slate-700 backdrop-blur-sm' 
+                  theme === 'dark'
+                    ? 'bg-slate-800/90 border-slate-700 text-slate-400 hover:text-white hover:bg-slate-700 backdrop-blur-sm'
                     : 'bg-white/90 border-slate-200 text-slate-400 hover:text-slate-600 hover:bg-slate-50 backdrop-blur-sm'
                 }`}
                 onClick={() => scroll('left')}
@@ -111,14 +108,14 @@ export default function LeadsKanban({ leads, statuses, onStatusChange, onEdit, o
             </Button>
             )}
 
-      <div 
+      <div
         ref={scrollContainerRef}
         onScroll={checkScroll}
         className="flex gap-4 overflow-x-auto pb-6 h-full items-start px-1 scroll-smooth"
       >
         {statuses.map((status) => {
           const statusLeads = getLeadsByStatus(status.value);
-          
+
           // Style extraction to match Opportunities minimalism
           const colorClass = status.color.split(' ').find(c => c.startsWith('text-'))?.replace('text-', 'bg-') || 'bg-slate-400';
           const lightClass = status.color.split(' ').filter(c => c.startsWith('bg-') || c.startsWith('text-')).join(' ');
@@ -147,7 +144,7 @@ export default function LeadsKanban({ leads, statuses, onStatusChange, onEdit, o
                     ref={provided.innerRef}
                     className={`flex-1 overflow-y-auto px-1 space-y-3 min-h-[150px] transition-colors rounded-xl ${
                       snapshot.isDraggingOver
-                        ? theme === 'dark' ? 'bg-slate-800/50 ring-2 ring-dashed ring-slate-600' : 'bg-neutral-100/50 ring-2 ring-dashed ring-neutral-200' 
+                        ? theme === 'dark' ? 'bg-slate-800/50 ring-2 ring-dashed ring-slate-600' : 'bg-neutral-100/50 ring-2 ring-dashed ring-neutral-200'
                         : ''
                     }`}
                   >
@@ -160,15 +157,15 @@ export default function LeadsKanban({ leads, statuses, onStatusChange, onEdit, o
                             {...provided.dragHandleProps}
                             className={`
                               cursor-grab active:cursor-grabbing hover:shadow-lg transition-all border shadow-sm group relative overflow-hidden backdrop-blur-md
-                              ${snapshot.isDragging 
-                                ? 'shadow-2xl rotate-2 scale-105 z-50 ring-2 ring-blue-500' 
+                              ${snapshot.isDragging
+                                ? 'shadow-2xl rotate-2 scale-105 z-50 ring-2 ring-blue-500'
                                 : theme === 'dark' ? 'bg-slate-800/60 border-slate-700/50 hover:bg-slate-700/80' : 'bg-white/60 border-white/50 hover:bg-white/80'}
                             `}
                             onClick={() => onEdit(lead)}
                           >
                              {/* Side Indicator */}
                             <div className={`absolute top-0 right-0 w-1 h-full ${colorClass}`} />
-                            
+
                             <CardContent className="p-3 space-y-2">
                                 <div className="absolute top-1 left-1 opacity-0 group-hover:opacity-100 transition-opacity z-10 flex gap-1">
                                     <Button variant="ghost" size="icon" className="h-6 w-6 text-neutral-400 hover:text-red-600 hover:bg-red-50"
@@ -212,15 +209,15 @@ export default function LeadsKanban({ leads, statuses, onStatusChange, onEdit, o
                                 {getLastActivityDate(lead.id) ? (
                                   <div className={`flex items-center gap-1.5 text-[10px] ${theme === 'dark' ? 'text-slate-500' : 'text-neutral-500'}`}>
                                     <Clock className="w-3 h-3" />
-                                    <span>Last Activity: {moment(getLastActivityDate(lead.id)).format('DD/MM')}</span>
+                                    <span>Last Activity: {moment(getLastActivityDate(lead.id)).format('MM/DD')}</span>
                                   </div>
                                 ) : (
                                   <div className={`flex items-center gap-1.5 text-[10px] ${theme === 'dark' ? 'text-slate-500' : 'text-neutral-400'}`}>
                                     <Clock className="w-3 h-3" /> No activity
                                   </div>
                                 )}
-                                
-                                {moment(lead.updated_date).isBefore(moment().subtract(7, 'days')) && 
+
+                                {moment(lead.updated_date).isBefore(moment().subtract(7, 'days')) &&
                                  !['Converted', 'Lost / Unqualified'].includes(lead.lead_status) && (
                                     <div className="text-[10px] text-amber-500 flex items-center gap-1 font-medium mt-1">
                                         <AlertCircle className="w-3 h-3" /> Stale ({moment(lead.updated_date).fromNow(true)})

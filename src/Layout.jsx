@@ -1,12 +1,11 @@
 import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { 
-  LayoutDashboard, Users, Briefcase, Menu, X, Search, Bell, Zap, BarChart3, LogOut, Settings as SettingsIcon, Sun, Moon, Database, CheckSquare, Sparkles, Brain, Globe, GitFork, Mail
+  LayoutDashboard, Users, Briefcase, Menu, X, Zap, BarChart3, LogOut, Settings as SettingsIcon, Sun, Moon, CheckSquare, Sparkles, Brain, Globe, GitFork, Mail
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { SettingsProvider, useSettings } from '@/components/context/SettingsContext';
 import { ActNowProvider } from '@/components/context/ActNowContext';
 import { AssistantProvider } from '@/components/context/AssistantContext';
@@ -17,10 +16,12 @@ import QuickActions from '@/components/layout/QuickActions';
 import CommandPalette from '@/components/layout/CommandPalette';
 import { useEffectivePermissions } from '@/components/hooks/useEffectivePermissions';
 import { NAV_MODULE_MAP } from '@/lib/permissionModules';
+import { useAuth } from '@/auth/AuthContext';
 
 function LayoutContent({ children, currentPageName }) {
   const [isSidebarOpen, setIsSidebarOpen] = React.useState(false);
   const { branding, theme, toggleTheme } = useSettings();
+  const { logout, isLoadingAuth } = useAuth();
   // Phase 3C.1 presentation layer: hide navigation for modules with can_view=false.
   // This is UX only — server-enforced authorization arrives in Phase 3C.2.
   const { canView } = useEffectivePermissions();
@@ -215,15 +216,17 @@ function LayoutContent({ children, currentPageName }) {
                     {currentPageName === 'Settings' && <div className={`absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-6 rounded-r-full ${theme === 'dark' ? 'bg-white shadow-lg shadow-white/30' : 'hidden'}`} />}
                 </Link>
                 <button
-                    onClick={toggleTheme}
-                    className={`mt-3 flex items-center gap-3 px-6 lg:px-4 py-3 text-sm font-medium rounded-xl transition-all w-full ${
-                        theme === 'dark' 
-                            ? 'text-emerald-400 hover:bg-[#1E293B]' 
-                            : 'text-neutral-600 hover:bg-neutral-100'
+                    type="button"
+                    onClick={logout}
+                    disabled={isLoadingAuth}
+                    className={`mt-3 flex items-center gap-3 px-6 lg:px-4 py-3 text-sm font-medium rounded-xl transition-all w-full disabled:cursor-not-allowed disabled:opacity-50 ${
+                        theme === 'dark'
+                            ? 'text-red-300 hover:bg-red-500/10 hover:text-red-200'
+                            : 'text-red-600 hover:bg-red-50'
                     }`}
                 >
-                    {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
-                    {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
+                    <LogOut className="w-5 h-5" />
+                    {isLoadingAuth ? 'Logging Out…' : 'Log Out'}
                 </button>
             </div>
         </div>

@@ -19,6 +19,13 @@ export function normalizeFirebaseProfile(profileId, profileData = {}) {
     id: profileId,
     uid: data.uid ?? profileId,
     display_name: data.display_name ?? data.displayName ?? null,
+    first_name: data.first_name ?? data.firstName ?? null,
+    last_name: data.last_name ?? data.lastName ?? null,
+    monthly_gallon_quota:
+      data.monthly_gallon_quota ??
+      data.monthlyGallonQuota ??
+      data.gallon_quota ??
+      null,
     application_role:
       data.application_role ??
       LEGACY_ROLE_MAP[data.role] ??

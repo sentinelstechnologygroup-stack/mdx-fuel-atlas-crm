@@ -41,29 +41,39 @@ export default function LeadDetailsPage() {
 
   const convertToOpportunity = useMutation({
     mutationFn: async (leadData) => {
-      await atlas.entities.Lead.update(leadData.id, { lead_status: "Converted" });
-      // Copy lead ownership to the new opportunity so ownership follows the lead.
-      return await atlas.entities.Opportunity.create({
-        lead_id: leadData.id,
-        lead_name: leadData.full_name,
-        phone_number: leadData.phone_number,
-        email: leadData.email,
-        product_type: "Reverse Mortgage",
-        deal_stage: "New (חדש)",
-        probability: 10,
-        owner_user_id: leadData.owner_user_id || null,
-        assigned_team_id: leadData.assigned_team_id || null,
-        assigned_supervisor_user_id: leadData.assigned_supervisor_user_id || null,
-        ownership_status: leadData.owner_user_id ? 'assigned' : 'unassigned',
-        assigned_by_user_id: leadData.assigned_by_user_id || null,
-        assignment_date: leadData.assignment_date || null,
-        last_activity_date: leadData.last_activity_date || null
-      });
+      const response = await atlas.functions.invoke(
+        'convertLeadToOpportunity',
+        {
+          leadId: leadData.id
+        }
+      );
+
+      return response?.data ?? {};
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries(['opportunities']);
-      queryClient.invalidateQueries(['leads']);
-      queryClient.invalidateQueries(['lead', leadId]);
+    onSuccess: async (result) => {
+      await Promise.all([
+        queryClient.invalidateQueries(['opportunities']),
+        queryClient.invalidateQueries(['leads']),
+        queryClient.invalidateQueries(['lead', leadId])
+      ]);
+
+      alert(
+        result.created
+          ? 'Lead converted to an opportunity successfully.'
+          : 'This lead is already connected to an opportunity.'
+      );
+    },
+    onError: (error) => {
+      console.error(
+        'Lead conversion failed:',
+        error
+      );
+
+      alert(
+        'The lead could not be converted. ' +
+        'No partial conversion was saved. ' +
+        'Please retry or contact an administrator.'
+      );
     }
   });
 
@@ -96,12 +106,12 @@ export default function LeadDetailsPage() {
           </div>
           <OwnershipAssignControl entityType="lead" record={lead} onUpdated={() => queryClient.invalidateQueries(['lead', leadId])} />
         </div>
-        <LeadForm 
-          lead={lead} 
+        <LeadForm
+          lead={lead}
           onSaveAndClose={(data) => {
             const wasConverted = lead.lead_status === 'Converted';
             const isNowConverted = data.lead_status === 'Converted';
-            
+
             if (isNowConverted && !wasConverted) {
               convertToOpportunity.mutate({ ...lead, ...data });
             } else {
@@ -112,7 +122,7 @@ export default function LeadDetailsPage() {
           onSaveAndStay={(data) => {
             const wasConverted = lead.lead_status === 'Converted';
             const isNowConverted = data.lead_status === 'Converted';
-            
+
             if (isNowConverted && !wasConverted) {
               convertToOpportunity.mutate({ ...lead, ...data });
             } else {

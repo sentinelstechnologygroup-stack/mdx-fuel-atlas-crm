@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { atlas } from '@/api/atlasClient';
 import { listManagedUsers } from '@/api/userDirectoryService';
@@ -6,14 +6,13 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Plus, Pencil, Power, Loader2, MapPin } from 'lucide-react';
 import { useSettings } from '@/components/context/SettingsContext';
 import { usePermissions } from '@/components/hooks/usePermissions';
-import { displayName, territoryTypeLabel, TERRITORY_TYPES } from '@/lib/roles';
+import { displayName, effectiveRole, territoryTypeLabel, TERRITORY_TYPES } from '@/lib/roles';
 
 export default function TerritoryManagement() {
   const { theme } = useSettings();
@@ -91,8 +90,35 @@ export default function TerritoryManagement() {
     saveMutation.mutate({ id: editing.id, data }, { onError: (err) => alert('Failed to save territory: ' + err.message) });
   };
 
-  const toggleStatus = (t) => {
-    statusMutation.mutate({ id: t.id, data: { status: t.status === 'active' ? 'inactive' : 'active' } });
+  const toggleStatus = (territory) => {
+    const nextStatus =
+      territory.status === 'active'
+        ? 'inactive'
+        : 'active';
+
+    if (
+      nextStatus === 'inactive' &&
+      !confirm(
+        `Deactivate ${territory.name}? Existing employee, team, and CRM assignments will remain intact.`
+      )
+    ) {
+      return;
+    }
+
+    statusMutation.mutate(
+      {
+        id: territory.id,
+        data: {
+          status: nextStatus
+        }
+      },
+      {
+        onError: (error) =>
+          alert(
+            `Unable to change territory status: ${error.message}`
+          )
+      }
+    );
   };
 
   const inputClass = theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white';
@@ -192,21 +218,41 @@ export default function TerritoryManagement() {
               </div>
               <div className="space-y-1.5">
                 <Label>Service Area</Label>
-                <Input name="service_area" defaultValue={editing?.service_area} className={inputClass} />
+                <Input
+                  name="service_area"
+                  defaultValue={editing?.service_area}
+                  placeholder="e.g., Greater Houston"
+                  className={inputClass}
+                />
               </div>
             </div>
             <div className="grid grid-cols-1 gap-3">
               <div className="space-y-1.5">
                 <Label>Counties (comma-separated)</Label>
-                <Input name="counties" defaultValue={editing?.counties} className={inputClass} />
+                <Input
+                  name="counties"
+                  defaultValue={editing?.counties}
+                  placeholder="Harris, Montgomery, Fort Bend"
+                  className={inputClass}
+                />
               </div>
               <div className="space-y-1.5">
                 <Label>Cities (comma-separated)</Label>
-                <Input name="cities" defaultValue={editing?.cities} className={inputClass} />
+                <Input
+                  name="cities"
+                  defaultValue={editing?.cities}
+                  placeholder="Houston, Magnolia, Tomball"
+                  className={inputClass}
+                />
               </div>
               <div className="space-y-1.5">
                 <Label>Postal Codes (comma-separated)</Label>
-                <Input name="postal_codes" defaultValue={editing?.postal_codes} className={inputClass} />
+                <Input
+                  name="postal_codes"
+                  defaultValue={editing?.postal_codes}
+                  placeholder="77002, 77354, 77375"
+                  className={inputClass}
+                />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-3">
@@ -216,7 +262,7 @@ export default function TerritoryManagement() {
                   <SelectTrigger className={inputClass}><SelectValue placeholder="Select manager" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">None</SelectItem>
-                    {users.filter((u) => u.application_role === 'supervisor' || u.application_role === 'administrator' || u.application_role === 'super_admin').map((u) => (
+                    {users.filter((u) => ['supervisor', 'administrator', 'super_admin'].includes(effectiveRole(u))).map((u) => (
                       <SelectItem key={u.id} value={u.id}>{displayName(u)}</SelectItem>
                     ))}
                   </SelectContent>

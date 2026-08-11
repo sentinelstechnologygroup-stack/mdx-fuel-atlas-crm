@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,15 +16,15 @@ export default function AddWidgetDialog({ open, onOpenChange, onSave }) {
     });
 
     const entityFields = {
-        'Opportunity': ['deal_stage', 'product_type', 'main_pain_point', 'source_year'],
-        'Lead': ['lead_status', 'source_year', 'city', 'lead_temperature'],
+        'Opportunity': ['deal_stage', 'product_type', 'estimated_monthly_gallons', 'main_pain_point'],
+        'Lead': ['lead_status', 'estimated_monthly_gallons', 'city', 'lead_temperature'],
         'Task': ['status', 'priority', 'assigned_to'],
         'Activity': ['type', 'status']
     };
 
     const handleSave = () => {
         if (!formData.title || !formData.xAxis) return;
-        
+
         onSave({
             name: formData.title,
             type: formData.type,
@@ -56,12 +56,12 @@ export default function AddWidgetDialog({ open, onOpenChange, onSave }) {
                             className={theme === 'dark' ? 'bg-slate-800 border-slate-700' : ''}
                         />
                     </div>
-                    
+
                     <div className="grid grid-cols-2 gap-4">
                         <div className="grid gap-2">
                             <Label className={theme === 'dark' ? 'text-slate-300' : ''}>Data Source</Label>
-                            <Select 
-                                value={formData.entity_type} 
+                            <Select
+                                value={formData.entity_type}
                                 onValueChange={(val) => setFormData({ ...formData, entity_type: val, xAxis: '' })}
                             >
                                 <SelectTrigger className={theme === 'dark' ? 'bg-slate-800 border-slate-700' : ''}>
@@ -77,8 +77,8 @@ export default function AddWidgetDialog({ open, onOpenChange, onSave }) {
                         </div>
                         <div className="grid gap-2">
                             <Label className={theme === 'dark' ? 'text-slate-300' : ''}>Chart Type</Label>
-                            <Select 
-                                value={formData.type} 
+                            <Select
+                                value={formData.type}
                                 onValueChange={(val) => setFormData({ ...formData, type: val })}
                             >
                                 <SelectTrigger className={theme === 'dark' ? 'bg-slate-800 border-slate-700' : ''}>
@@ -96,8 +96,8 @@ export default function AddWidgetDialog({ open, onOpenChange, onSave }) {
 
                     <div className="grid gap-2">
                         <Label className={theme === 'dark' ? 'text-slate-300' : ''}>Group By (X Axis)</Label>
-                        <Select 
-                            value={formData.xAxis} 
+                        <Select
+                            value={formData.xAxis}
                             onValueChange={(val) => setFormData({ ...formData, xAxis: val })}
                         >
                             <SelectTrigger className={theme === 'dark' ? 'bg-slate-800 border-slate-700' : ''}>

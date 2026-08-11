@@ -2,7 +2,10 @@ import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Loader2, Upload, X, FileText, Image as ImageIcon, File } from "lucide-react";
-import { atlas } from "@/api/atlasClient";
+import {
+  downloadAttachmentFromFirebase,
+  uploadFileToFirebase,
+} from "@/firebase/storageService";
 
 export default function FileUpload({ files = [], onFilesChange, label = "Files & Documents" }) {
   const [uploading, setUploading] = useState(false);
@@ -16,13 +19,9 @@ export default function FileUpload({ files = [], onFilesChange, label = "Files &
 
     try {
       for (const file of selectedFiles) {
-        const response = await atlas.integrations.Core.UploadFile({ file });
-        if (response && response.file_url) {
-          newFiles.push({
-            name: file.name,
-            url: response.file_url,
-            type: file.type
-          });
+        const response = await uploadFileToFirebase({ file });
+        if (response?.attachment) {
+          newFiles.push(response.attachment);
         }
       }
       onFilesChange([...files, ...newFiles]);
@@ -33,6 +32,15 @@ export default function FileUpload({ files = [], onFilesChange, label = "Files &
       setUploading(false);
       // Reset input
       e.target.value = '';
+    }
+  };
+
+  const downloadFile = async (file) => {
+    try {
+      await downloadAttachmentFromFirebase(file);
+    } catch (error) {
+      console.error("Download failed:", error);
+      alert("You do not have permission to download this file.");
     }
   };
 
@@ -57,9 +65,9 @@ export default function FileUpload({ files = [], onFilesChange, label = "Files &
         <div key={index} className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg group">
             <div className="flex items-center gap-3 overflow-hidden">
               {getFileIcon(file.type)}
-              <a href={file.url} target="_blank" rel="noopener noreferrer" className="text-sm text-slate-700 dark:text-slate-300 truncate hover:underline hover:text-blue-600">
+              <button type="button" onClick={() => downloadFile(file)} className="text-sm text-left text-slate-700 dark:text-slate-300 truncate hover:underline hover:text-blue-600">
                 {file.name}
-              </a>
+              </button>
             </div>
             <Button
             type="button"

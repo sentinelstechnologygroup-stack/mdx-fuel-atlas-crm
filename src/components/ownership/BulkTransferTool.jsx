@@ -1,11 +1,10 @@
-import React, { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Loader2, ArrowRightLeft, AlertTriangle } from 'lucide-react';
@@ -13,6 +12,8 @@ import { atlas } from '@/api/atlasClient';
 import { useDirectoryData } from '@/components/hooks/useDirectoryData';
 import { displayName, isUserActive } from '@/lib/roles';
 import { useToast } from '@/components/ui/use-toast';
+import { useSettings } from '@/components/context/SettingsContext';
+import { effectiveRole } from '@/lib/roles';
 
 const ENTITY_OPTIONS = [
   { value: 'lead', label: 'Leads' },
@@ -30,6 +31,7 @@ const ENTITY_MAP = { lead: 'Lead', opportunity: 'Opportunity', task: 'Task', act
 export default function BulkTransferTool() {
   const { users, teams, userById, teamById } = useDirectoryData();
   const { toast } = useToast();
+  const { theme } = useSettings();
 
   const [entityType, setEntityType] = useState('lead');
   const [ownerFilter, setOwnerFilter] = useState('all');
@@ -126,7 +128,10 @@ export default function BulkTransferTool() {
     }
   };
 
-  const inputClass = 'bg-white';
+  const inputClass =
+    theme === 'dark'
+      ? 'bg-slate-900 border-slate-700 text-white'
+      : 'bg-white';
 
   return (
     <Card>
@@ -231,7 +236,18 @@ export default function BulkTransferTool() {
             <Label>Destination Supervisor</Label>
             <Select value={destSupervisorId} onValueChange={setDestSupervisorId}>
               <SelectTrigger className={inputClass}><SelectValue placeholder="Supervisor" /></SelectTrigger>
-              <SelectContent>{activeUsers.map((u) => <SelectItem key={u.id} value={u.id}>{displayName(u)}</SelectItem>)}</SelectContent>
+              <SelectContent>
+                {activeUsers
+                  .filter((user) =>
+                    ['supervisor', 'administrator', 'super_admin']
+                      .includes(effectiveRole(user))
+                  )
+                  .map((user) => (
+                    <SelectItem key={user.id} value={user.id}>
+                      {displayName(user)}
+                    </SelectItem>
+                  ))}
+              </SelectContent>
             </Select>
           </div>
           <div className="space-y-1.5">

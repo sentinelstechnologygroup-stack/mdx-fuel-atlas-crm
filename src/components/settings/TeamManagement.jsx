@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { atlas } from '@/api/atlasClient';
 import { listManagedUsers } from '@/api/userDirectoryService';
@@ -13,7 +13,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Plus, Pencil, Power, Loader2, Users } from 'lucide-react';
 import { useSettings } from '@/components/context/SettingsContext';
 import { usePermissions } from '@/components/hooks/usePermissions';
-import { displayName } from '@/lib/roles';
+import { displayName, effectiveRole } from '@/lib/roles';
 
 export default function TeamManagement() {
   const { theme } = useSettings();
@@ -80,7 +80,34 @@ export default function TeamManagement() {
   };
 
   const toggleStatus = (team) => {
-    statusMutation.mutate({ id: team.id, data: { status: team.status === 'active' ? 'inactive' : 'active' } });
+    const nextStatus =
+      team.status === 'active'
+        ? 'inactive'
+        : 'active';
+
+    if (
+      nextStatus === 'inactive' &&
+      !confirm(
+        `Deactivate ${team.name}? Existing employee and CRM assignments will remain intact.`
+      )
+    ) {
+      return;
+    }
+
+    statusMutation.mutate(
+      {
+        id: team.id,
+        data: {
+          status: nextStatus
+        }
+      },
+      {
+        onError: (error) =>
+          alert(
+            `Unable to change team status: ${error.message}`
+          )
+      }
+    );
   };
 
   const inputClass = theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white';
@@ -182,7 +209,7 @@ export default function TeamManagement() {
                 <SelectTrigger className={inputClass}><SelectValue placeholder="Select manager" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="none">None</SelectItem>
-                  {users.filter((u) => u.application_role === 'supervisor' || u.application_role === 'administrator' || u.application_role === 'super_admin').map((u) => (
+                  {users.filter((u) => ['supervisor', 'administrator', 'super_admin'].includes(effectiveRole(u))).map((u) => (
                     <SelectItem key={u.id} value={u.id}>{displayName(u)}</SelectItem>
                   ))}
                 </SelectContent>

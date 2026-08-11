@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, useMemo } from 'react';
+import { useEffect, useRef, useState, useMemo } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 import { useSettings } from "@/components/context/SettingsContext";
@@ -8,11 +8,11 @@ import { cn } from "@/lib/utils";
 export default function GalaxyScene({ opportunities }) {
     const mountRef = useRef(null);
     const { theme, pipelineStages, branding } = useSettings();
-    
+
     // Interaction State
     const [hoveredObject, setHoveredObject] = useState(null);
     const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 });
-    
+
     // THREE refs - kept in refs to persist across renders without triggering re-renders
     const sceneRef = useRef(null);
     const cameraRef = useRef(null);
@@ -32,7 +32,7 @@ export default function GalaxyScene({ opportunities }) {
         let lostAmount = 0;
 
         opportunities.forEach(opp => {
-            const val = (opp.amount || opp.loan_amount_requested || 0);
+            const val = Number(opp.estimated_monthly_gallons) || 0;
             if (opp.deal_stage === 'Closed Won') {
                 won.push(opp);
                 wonAmount += val;
@@ -52,19 +52,19 @@ export default function GalaxyScene({ opportunities }) {
     const sunScaleFactor = useMemo(() => {
         if (totalWonAmount === 0) return 1;
         const logValue = Math.log10(totalWonAmount + 1);
-        return 1 + (logValue * 0.15); 
+        return 1 + (logValue * 0.15);
     }, [totalWonAmount]);
 
     // Helpers
     const activeStages = useMemo(() => pipelineStages.filter(s => s.id !== 'Closed Won' && s.id !== 'Closed Lost'), [pipelineStages]);
-    
+
     const getStageConfig = (stageId) => {
         const index = activeStages.findIndex(s => s.id === stageId);
         if (index === -1) return { radius: 180 };
         const total = activeStages.length;
-        const minOrbit = (sunBaseRadius * sunScaleFactor) + 25; 
+        const minOrbit = (sunBaseRadius * sunScaleFactor) + 25;
         const maxOrbit = minOrbit + 120;
-        const normalizedPos = 1 - (index / Math.max(total - 1, 1)); 
+        const normalizedPos = 1 - (index / Math.max(total - 1, 1));
         const radius = minOrbit + (normalizedPos * (maxOrbit - minOrbit));
         return { radius };
     };
@@ -166,9 +166,9 @@ export default function GalaxyScene({ opportunities }) {
         activeDeals.forEach((opp, i) => {
             const config = getStageConfig(opp.deal_stage);
             const color = getHexColor(opp.deal_stage);
-            const val = opp.amount || opp.loan_amount_requested || 0;
+            const val = Number(opp.estimated_monthly_gallons) || 0;
             const size = Math.max(1.2, Math.log10(val + 1) * 1.5);
-            
+
             const planet = new THREE.Mesh(
                 new THREE.SphereGeometry(size, 32, 32),
                 new THREE.MeshStandardMaterial({ color, roughness: 0.6, metalness: 0.2, emissive: color, emissiveIntensity: 0.2 })
@@ -177,7 +177,7 @@ export default function GalaxyScene({ opportunities }) {
             const angle = (i * 137.5) * (Math.PI / 180);
             const variance = (Math.random() - 0.5) * 15;
             const radius = config.radius + variance;
-            
+
             planet.position.set(Math.cos(angle) * radius, (Math.random() - 0.5) * (radius * 0.1), Math.sin(angle) * radius);
             planet.userData = { type: 'DEAL', opp, angle, radius, speed: getOrbitalSpeed(opp.updated_date), baseY: planet.position.y };
             scene.add(planet);
@@ -215,7 +215,7 @@ export default function GalaxyScene({ opportunities }) {
         // Animation Loop
         const animate = () => {
             if (!mountRef.current || !rendererRef.current || !sceneRef.current || !cameraRef.current) return;
-            
+
             requestRef.current = requestAnimationFrame(animate);
 
             // Orbit
@@ -247,7 +247,7 @@ export default function GalaxyScene({ opportunities }) {
                 const vec = new THREE.Vector3();
                 hovered.getWorldPosition(vec);
                 vec.project(camera);
-                
+
                 let x = (vec.x * .5 + .5) * mountRef.current.clientWidth;
                 let y = (-(vec.y * .5) + .5) * mountRef.current.clientHeight;
 
@@ -295,7 +295,7 @@ export default function GalaxyScene({ opportunities }) {
     return (
         <div className="relative w-full h-full bg-black">
             <div ref={mountRef} className="w-full h-full" />
-            
+
             <div className="absolute top-8 left-8 pointer-events-none select-none z-10">
                 <h1 className="text-6xl font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-yellow-500 to-amber-700 tracking-tighter drop-shadow-2xl relative z-0">
                     GALAXY
@@ -306,10 +306,10 @@ export default function GalaxyScene({ opportunities }) {
             </div>
 
             {hoveredObject && (
-                <div 
+                <div
                     className="absolute z-[100] pointer-events-none transition-all duration-75 ease-out"
-                    style={{ 
-                        left: tooltipPos.x, 
+                    style={{
+                        left: tooltipPos.x,
                         top: tooltipPos.y,
                         transform: 'translate(20px, -20%)'
                     }}
@@ -327,8 +327,8 @@ export default function GalaxyScene({ opportunities }) {
                                 hoveredObject.userData.type === 'BLACK_HOLE' ? "bg-purple-500/20 text-purple-300" :
                                 "bg-emerald-500/20 text-emerald-300"
                             )}>
-                                {hoveredObject.userData.type === 'DEAL' 
-                                    ? hoveredObject.userData.opp.deal_stage 
+                                {hoveredObject.userData.type === 'DEAL'
+                                    ? hoveredObject.userData.opp.deal_stage
                                     : hoveredObject.userData.label}
                             </span>
                             {hoveredObject.userData.type === 'DEAL' && (
@@ -343,13 +343,13 @@ export default function GalaxyScene({ opportunities }) {
                                 <>
                                     <h3 className="text-xl font-bold text-white leading-tight">{hoveredObject.userData.opp.lead_name}</h3>
                                     <p className="text-sm text-white/50">{hoveredObject.userData.opp.product_type || 'Opportunity'}</p>
-                                    
+
                                     <div className="mt-4 pt-4 border-t border-white/10 grid grid-cols-2 gap-4">
                                         <div>
                                             <div className="text-[10px] text-slate-500 uppercase tracking-wider mb-1">Value</div>
                                             <div className="flex items-baseline gap-1">
                                                 <span className="text-2xl font-mono font-bold text-white">
-                                                    {(hoveredObject.userData.opp.amount || hoveredObject.userData.opp.loan_amount_requested || 0).toLocaleString()}
+                                                    {`${Number(hoveredObject.userData.opp.estimated_monthly_gallons || 0).toLocaleString('en-US')} gal/mo`}
                                                 </span>
                                                 <span className="text-xs text-slate-500 font-bold">{branding?.currency || '$'}</span>
                                             </div>
@@ -361,7 +361,7 @@ export default function GalaxyScene({ opportunities }) {
                                             </div>
                                         </div>
                                     </div>
-                                    
+
                                     <div className="mt-4 flex items-center justify-between text-[11px] text-slate-500 font-mono border-t border-white/5 pt-2">
                                         <span>Target: {hoveredObject.userData.opp.expected_close_date ? new Date(hoveredObject.userData.opp.expected_close_date).toLocaleDateString() : 'N/A'}</span>
                                         <span>{differenceInDays(new Date(), new Date(hoveredObject.userData.opp.updated_date || new Date()))}d ago</span>
@@ -388,7 +388,7 @@ export default function GalaxyScene({ opportunities }) {
                     </div>
                 </div>
             )}
-            
+
             <div className="absolute bottom-6 left-6 pointer-events-none z-10">
                  <div className="flex gap-4">
                      {activeStages.map(stage => (

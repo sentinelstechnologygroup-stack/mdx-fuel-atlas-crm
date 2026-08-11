@@ -1,17 +1,15 @@
-import React, { useState, useMemo } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { useState, useMemo } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { 
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
-  LineChart, Line, PieChart, Pie, Cell, AreaChart, Area, Legend, ComposedChart
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, AreaChart, Area, Legend, ComposedChart
 } from 'recharts';
-import { Download, Filter, RefreshCw, Calendar, User, Filter as FilterIcon, Table as TableIcon, BarChart3, TrendingUp } from "lucide-react";
+import { Calendar, User, Filter as FilterIcon, Table as TableIcon, BarChart3, TrendingUp } from "lucide-react";
 import moment from 'moment';
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useSettings } from "@/components/context/SettingsContext";
+import { formatGallons, getOpportunityGallons } from "@/lib/fuelVolume";
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d', '#ff6b6b', '#4ecdc4'];
 
@@ -51,34 +49,34 @@ export default function OpportunityAdvancedReport({ leads, opportunities }) {
     const counts = {};
     filteredData.forEach(o => {
       const stage = o.deal_stage?.split('(')[0]?.trim() || 'Unknown';
-      if (!counts[stage]) counts[stage] = { name: stage, count: 0, value: 0 };
+      if (!counts[stage]) counts[stage] = { name: stage, count: 0, gallons: 0 };
       counts[stage].count += 1;
-      counts[stage].value += (o.amount || 0);
+      counts[stage].gallons += getOpportunityGallons(o);
     });
     return Object.values(counts).sort((a, b) => b.count - a.count);
   }, [filteredData]);
 
   const sourceData = useMemo(() => {
-    const wonDeals = filteredData.filter(o => o.deal_stage?.includes('Won') || o.deal_stage?.includes('בהצלחה'));
+    const wonDeals = filteredData.filter(o => o.deal_stage?.includes('Won'));
     const counts = {};
     wonDeals.forEach(o => {
       const lead = leads.find(l => l.id === o.lead_id);
-      const source = lead?.source_year || 'Unknown'; 
+      const source = lead?.lead_source || 'Unknown';
       if (!counts[source]) counts[source] = { name: source, value: 0 };
       counts[source].value += 1;
     });
     return Object.values(counts);
   }, [filteredData, leads]);
 
-  const revenueData = useMemo(() => {
+  const gallonForecastData = useMemo(() => {
     const data = {};
     filteredData.forEach(o => {
         if (!o.expected_close_date) return;
         const month = moment(o.expected_close_date).format('YYYY-MM');
         if (!data[month]) data[month] = { month, expected: 0, actual: 0 };
-        data[month].expected += (o.amount || 0) * ((o.probability || 0) / 100);
+        data[month].expected += getOpportunityGallons(o) * ((o.probability || 0) / 100);
         if (o.deal_stage?.includes('Won')) {
-            data[month].actual += (o.amount || 0);
+            data[month].actual += getOpportunityGallons(o);
         }
     });
     return Object.values(data).sort((a, b) => a.month.localeCompare(b.month));
@@ -88,7 +86,7 @@ export default function OpportunityAdvancedReport({ leads, opportunities }) {
     const productCycles = {};
     filteredData.forEach(o => {
         const createdDate = o.custom_data?.simulated_date || o.created_date;
-        if ((o.deal_stage?.includes('Won') || o.deal_stage?.includes('בהצלחה')) && createdDate) {
+        if ((o.deal_stage?.includes('Won')) && createdDate) {
             const start = moment(createdDate);
             const end = o.updated_date ? moment(o.updated_date) : moment();
             const days = end.diff(start, 'days');
@@ -103,8 +101,8 @@ export default function OpportunityAdvancedReport({ leads, opportunities }) {
     }));
   }, [filteredData]);
 
-  const totalPipeline = filteredData.reduce((sum, o) => sum + (o.amount || 0), 0);
-  const weightedPipeline = filteredData.reduce((sum, o) => sum + ((o.amount || 0) * ((o.probability || 0) / 100)), 0);
+  const totalPipelineGallons = filteredData.reduce((sum, o) => sum + getOpportunityGallons(o), 0);
+  const weightedPipelineGallons = filteredData.reduce((sum, o) => sum + (getOpportunityGallons(o) * ((o.probability || 0) / 100)), 0);
   const winRate = filteredData.length > 0 ? (filteredData.filter(o => o.deal_stage?.includes('Won')).length / filteredData.length) * 100 : 0;
 
   return (
@@ -156,12 +154,12 @@ export default function OpportunityAdvancedReport({ leads, opportunities }) {
         </div>
         <div className={`flex items-center gap-2 px-4 py-2 rounded-lg border ${theme === 'dark' ? 'bg-slate-700 border-slate-600' : 'bg-neutral-50 border-neutral-200'}`}>
             <div className={`text-center px-4 border-l ${theme === 'dark' ? 'border-slate-600' : 'border-neutral-200'}`}>
-                <p className={`text-xs ${theme === 'dark' ? 'text-slate-400' : 'text-neutral-500'}`}>Pipeline Value</p>
-                <p className={`text-lg font-bold ${theme === 'dark' ? 'text-white' : 'text-neutral-800'}`}>${totalPipeline.toLocaleString()}</p>
+                <p className={`text-xs ${theme === 'dark' ? 'text-slate-400' : 'text-neutral-500'}`}>Pipeline Gallons</p>
+                <p className={`text-lg font-bold ${theme === 'dark' ? 'text-white' : 'text-neutral-800'}`}>{formatGallons(totalPipelineGallons)} gal</p>
             </div>
             <div className={`text-center px-4 border-l ${theme === 'dark' ? 'border-slate-600' : 'border-neutral-200'}`}>
-                <p className={`text-xs ${theme === 'dark' ? 'text-slate-400' : 'text-neutral-500'}`}>Weighted Forecast</p>
-                <p className="text-lg font-bold text-red-600">${weightedPipeline.toLocaleString()}</p>
+                <p className={`text-xs ${theme === 'dark' ? 'text-slate-400' : 'text-neutral-500'}`}>Weighted Gallon Forecast</p>
+                <p className="text-lg font-bold text-red-600">{formatGallons(weightedPipelineGallons)} gal</p>
             </div>
             <div className="text-center px-4">
                 <p className={`text-xs ${theme === 'dark' ? 'text-slate-400' : 'text-neutral-500'}`}>Win Rate</p>
@@ -174,7 +172,7 @@ export default function OpportunityAdvancedReport({ leads, opportunities }) {
         <Card className={`shadow-sm ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'border-neutral-100'}`}>
             <CardHeader>
                 <CardTitle className={`text-lg flex items-center gap-2 ${theme === 'dark' ? 'text-white' : ''}`}>
-                    <BarChart3 className="w-5 h-5 text-red-500" /> Deal Progression (Count & Value)
+                    <BarChart3 className="w-5 h-5 text-red-500" /> Pipeline Gallons by Stage
                 </CardTitle>
             </CardHeader>
             <CardContent className="h-[350px]">
@@ -182,15 +180,15 @@ export default function OpportunityAdvancedReport({ leads, opportunities }) {
                     <ComposedChart data={progressionData} layout="vertical" margin={{ left: 0, right: 30, top: 10, bottom: 0 }}>
                         <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke={theme === 'dark' ? '#374151' : '#e5e7eb'} />
                         <XAxis type="number" hide />
-                        <YAxis 
-                            dataKey="name" 
-                            type="category" 
-                            width={70} 
-                            tick={{fontSize: 9, fill: theme === 'dark' ? '#94a3b8' : '#666'}} 
+                        <YAxis
+                            dataKey="name"
+                            type="category"
+                            width={70}
+                            tick={{fontSize: 9, fill: theme === 'dark' ? '#94a3b8' : '#666'}}
                             tickFormatter={(val) => val.length > 8 ? `${val.substring(0, 8)}..` : val}
                         />
-                        <Tooltip contentStyle={{borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', backgroundColor: theme === 'dark' ? '#1f2937' : '#fff', color: theme === 'dark' ? '#fff' : '#000', fontSize: '12px'}} formatter={(value, name) => name === 'value' ? `$${value.toLocaleString()}` : value} />
-                        <Bar dataKey="count" name="Count" fill="#ef4444" barSize={16} radius={[0, 4, 4, 0]} />
+                        <Tooltip contentStyle={{borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', backgroundColor: theme === 'dark' ? '#1f2937' : '#fff', color: theme === 'dark' ? '#fff' : '#000', fontSize: '12px'}} formatter={(value, name) => name === 'gallons' ? `${formatGallons(value)} gal` : value} />
+                        <Bar dataKey="gallons" name="Estimated Monthly Gallons" fill="#ef4444" barSize={16} radius={[0, 4, 4, 0]} />
                     </ComposedChart>
                 </ResponsiveContainer>
             </CardContent>
@@ -222,12 +220,12 @@ export default function OpportunityAdvancedReport({ leads, opportunities }) {
         <Card className={`shadow-sm ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'border-neutral-100'}`}>
             <CardHeader>
                 <CardTitle className={`text-lg flex items-center gap-2 ${theme === 'dark' ? 'text-white' : ''}`}>
-                    <TrendingUp className="w-5 h-5 text-green-500" /> Revenue Forecast (Weighted vs Actual)
+                    <TrendingUp className="w-5 h-5 text-green-500" /> Gallon Forecast (Weighted vs Won)
                 </CardTitle>
             </CardHeader>
             <CardContent className="h-[350px]">
                 <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={revenueData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                    <AreaChart data={gallonForecastData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
                         <defs>
                             <linearGradient id="colorExpected" x1="0" y1="0" x2="0" y2="1">
                                 <stop offset="5%" stopColor="#8884d8" stopOpacity={0.1}/>
@@ -241,7 +239,7 @@ export default function OpportunityAdvancedReport({ leads, opportunities }) {
                         <XAxis dataKey="month" stroke={theme === 'dark' ? '#94a3b8' : '#666'} />
                         <YAxis tickFormatter={(val) => `${val/1000}k`} stroke={theme === 'dark' ? '#94a3b8' : '#666'} />
                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={theme === 'dark' ? '#334155' : '#e5e7eb'} />
-                        <Tooltip formatter={(val) => `$${val.toLocaleString()}`} contentStyle={{ backgroundColor: theme === 'dark' ? '#1f2937' : '#fff', color: theme === 'dark' ? '#fff' : '#000', border: 'none' }} />
+                        <Tooltip formatter={(val) => `${formatGallons(val)} gal`} contentStyle={{ backgroundColor: theme === 'dark' ? '#1f2937' : '#fff', color: theme === 'dark' ? '#fff' : '#000', border: 'none' }} />
                         <Area type="monotone" dataKey="expected" name="Weighted Forecast" stroke="#8884d8" fillOpacity={1} fill="url(#colorExpected)" />
                         <Area type="monotone" dataKey="actual" name="Actual (Won)" stroke="#82ca9d" fillOpacity={1} fill="url(#colorActual)" />
                     </AreaChart>

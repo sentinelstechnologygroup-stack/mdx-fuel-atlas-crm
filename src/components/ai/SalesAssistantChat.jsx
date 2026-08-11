@@ -1,8 +1,7 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { atlas } from '@/api/atlasClient';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Send, Bot, User, Loader2, Sparkles } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { useSettings } from '@/components/context/SettingsContext';
@@ -122,6 +121,10 @@ export default function SalesAssistantChat() {
             // The subscription will update the state with the new message and the AI response
         } catch (error) {
             console.error("Failed to send message:", error);
+            setMessages((current) => [...current, {
+                role: 'assistant',
+                content: 'ATLAS is temporarily unavailable. Please try again later.'
+            }]);
         } finally {
             setIsLoading(false);
         }
