@@ -1,8 +1,14 @@
-import {createHash} from "node:crypto";
+/* eslint-disable require-jsdoc, max-len */
+import {createHash, randomUUID} from "node:crypto";
 
 import type {Firestore} from "firebase-admin/firestore";
 import {logger} from "firebase-functions";
 import {HttpsError} from "firebase-functions/v2/https";
+import type {AtlasAiArtifactService} from "./atlasAiArtifacts.js";
+import type {
+  AtlasAiProvider,
+  AtlasProviderResult,
+} from "./atlasAiProvider.js";
 
 type AiMode =
   | "disabled"
@@ -35,12 +41,13 @@ export interface AtlasAiRequest {
  * Controlled unavailable result returned before provider integration.
  */
 export interface AtlasAiResult {
-  success: false;
-  status: "unavailable";
+  success: boolean;
+  status: "completed" | "unavailable";
   operation: AiOperation;
-  reason:
+  reason?:
     | "ai_disabled"
     | "provider_not_configured";
+  output?: unknown;
   requestId: string;
 }
 
@@ -50,6 +57,8 @@ export interface AtlasAiResult {
 export interface AtlasAiGatewayDependencies {
   firestore: Firestore;
   now?: () => number;
+  provider?: AtlasAiProvider;
+  artifacts?: AtlasAiArtifactService;
 }
 
 const OPERATIONS = new Set<AiOperation>([
@@ -68,6 +77,10 @@ const REQUEST_KEYS = new Set([
   "operation",
   "input",
   "context",
+]);
+const CONTEXT_KEYS = new Set([
+  "response_json_schema", "json_schema", "storage_path", "storage_paths",
+  "history", "record_refs",
 ]);
 
 const MAX_INPUT_CHARACTERS = 12000;
@@ -109,6 +122,7 @@ function requestId(
 ): string {
   return createHash("sha256")
     .update(uid + ":" + operation + ":" + now)
+    .update(":" + randomUUID())
     .digest("hex")
     .slice(0, 24);
 }
@@ -184,6 +198,14 @@ export function normalizeAtlasAiRequest(
 
     context = record.context as DataRecord;
 
+    if (Object.keys(context).some((key) => !CONTEXT_KEYS.has(key))) {
+      throw new HttpsError(
+        "invalid-argument", "AI context contains unsupported fields."
+      );
+    }
+
+    validateSchema(context.response_json_schema ?? context.json_schema);
+
     if (
       Buffer.byteLength(
         JSON.stringify(context),
@@ -218,6 +240,24 @@ export function normalizeAtlasAiRequest(
   return normalized;
 }
 
+function validateSchema(value: unknown, depth = 0): void {
+  if (value === undefined) return;
+  if (!value || typeof value !== "object" || Array.isArray(value) || depth > 8) {
+    throw new HttpsError("invalid-argument", "The response schema is invalid.");
+  }
+  const schema = value as DataRecord;
+  if (Object.keys(schema).some((key) => key === "$ref" || key === "$defs")) {
+    throw new HttpsError("invalid-argument", "Schema references are not allowed.");
+  }
+  if (schema.properties && typeof schema.properties === "object" &&
+      !Array.isArray(schema.properties)) {
+    for (const child of Object.values(schema.properties as DataRecord)) {
+      validateSchema(child, depth + 1);
+    }
+  }
+  if (schema.items !== undefined) validateSchema(schema.items, depth + 1);
+}
+
 /**
  * Requires an authenticated active ATLAS employee.
  * @param {Firestore} firestore Firestore service.
@@ -227,7 +267,7 @@ export function normalizeAtlasAiRequest(
 export async function requireAtlasAiActor(
   firestore: Firestore,
   uid: string | undefined
-): Promise<{uid: string; role: string}> {
+): Promise<{uid: string; role: string; scope: string; teamId: string | null}> {
   if (!uid) {
     throw new HttpsError(
       "unauthenticated",
@@ -266,7 +306,59 @@ export async function requireAtlasAiActor(
     readString(profile, "role") ||
     "viewer_support";
 
-  return {uid, role};
+  const scope = await requireAtlasPermission(firestore, uid, role, profile);
+  return {
+    uid, role, scope,
+    teamId: readString(profile, "team_id") || readString(profile, "teamId"),
+  };
+}
+
+async function requireAtlasPermission(
+  firestore: Firestore,
+  uid: string,
+  role: string,
+  profile: DataRecord
+): Promise<string> {
+  if (role === "super_admin") return "all";
+  const [moduleSnapshot, overrideSnapshot] = await Promise.all([
+    firestore.collection("entities").doc("ModulePermission")
+      .collection("records").get(),
+    firestore.collection("entities").doc("UserPermissionOverride")
+      .collection("records").get(),
+  ]);
+  const customRoleId = readString(profile, "custom_role_id");
+  const active = (data: DataRecord): boolean => data.active !== false &&
+    data.is_active !== false;
+  const moduleRecords = moduleSnapshot.docs.map((doc) => doc.data())
+    .filter((data) => active(data) && readString(data, "module_key") === "atlas");
+  const base = moduleRecords.find((data) => customRoleId &&
+    (readString(data, "custom_role_id") === customRoleId ||
+      readString(data, "role_definition_id") === customRoleId)) ||
+    moduleRecords.find((data) =>
+      (readString(data, "role_key") || readString(data, "role_type") ||
+        readString(data, "base_role_key")) === role &&
+      !readString(data, "custom_role_id") &&
+      !readString(data, "role_definition_id"));
+  const override = overrideSnapshot.docs.map((doc) => doc.data())
+    .filter(active).find((data) => readString(data, "user_id") === uid &&
+      readString(data, "module_key") === "atlas");
+  const mode = override ? readString(override, "override_mode") || "restrict" : null;
+  const selected = override && mode === "replace" ?
+    override : base;
+  const allowed = selected?.can_view === true &&
+    (!override || readString(override, "override_mode") === "replace" ||
+      readString(override, "override_mode") === "inherit" ||
+      override.can_view === true);
+  const baseScope = selected ? readString(selected, "record_scope") : null;
+  const ranks: Record<string, number> = {none: 0, own: 1, team: 2, all: 3};
+  const overrideScope = override ? readString(override, "record_scope") : null;
+  const scope = mode === "restrict" && baseScope && overrideScope ?
+    (ranks[baseScope] <= ranks[overrideScope] ? baseScope : overrideScope) :
+    baseScope;
+  if (!allowed || !scope || scope === "none") {
+    throw new HttpsError("permission-denied", "ATLAS access is not permitted.");
+  }
+  return scope;
 }
 
 /**
@@ -391,15 +483,94 @@ export async function executeAtlasAiCallable(
   );
 
   const mode = await readMode(dependencies.firestore);
-  const reason = mode === "disabled" ?
-    "ai_disabled" :
-    "provider_not_configured";
+  if (mode === "disabled") {
+    return {success: false, status: "unavailable", operation: request.operation,
+      reason: "ai_disabled", requestId: id};
+  }
 
-  logger.info("ATLAS AI request safely unavailable", {
+  if (mode === "client_managed") {
+    return {success: false, status: "unavailable", operation: request.operation,
+      reason: "provider_not_configured", requestId: id};
+  }
+
+  if (request.operation === "document_extraction") {
+    if (!dependencies.artifacts || !request.context) {
+      return {success: false, status: "unavailable", operation: request.operation,
+        reason: "provider_not_configured", requestId: id};
+    }
+    const startedAt = Date.now();
+    const output = await dependencies.artifacts.extractDocument(
+      actor.uid, request.context
+    );
+    await writeUsage(dependencies.firestore, id, actor.uid, request.operation, {
+      output, provider: "atlas_document", model: "deterministic-v1",
+      inputTokens: 0, outputTokens: 0, estimatedCostUsd: 0,
+    }, "completed", Date.now() - startedAt, now);
+    return {success: true, status: "completed", operation: request.operation,
+      output, requestId: id};
+  }
+
+  if (!dependencies.provider) {
+    return {success: false, status: "unavailable", operation: request.operation,
+      reason: "provider_not_configured", requestId: id};
+  }
+
+  const startedAt = Date.now();
+  let providerRequest = request;
+  const crmContext = await loadAuthorizedCrmContext(
+    dependencies.firestore, actor, request.context
+  );
+  if (crmContext.length > 0) {
+    providerRequest = {
+      ...providerRequest,
+      context: {...providerRequest.context, server_crm_context: crmContext},
+    };
+  }
+  if (request.context && dependencies.artifacts &&
+      (request.operation === "lead_import" || request.operation === "conversation")) {
+    const images = await dependencies.artifacts.authorizeImages(
+      actor.uid, request.context
+    );
+    providerRequest = {
+      ...providerRequest,
+      context: {
+        ...providerRequest.context,
+        authorized_image_data_urls: images,
+      },
+    };
+  }
+
+  let providerResult: AtlasProviderResult;
+  try {
+    providerResult = await dependencies.provider.execute(providerRequest);
+  } catch (error) {
+    await writeUsage(dependencies.firestore, id, actor.uid, request.operation,
+      null, "failed", Date.now() - startedAt, now);
+    logger.error("ATLAS provider request failed", {
+      requestId: id,
+      error: error instanceof Error ? error.message : "unknown",
+    });
+    throw new HttpsError("unavailable", "ATLAS could not complete the request.");
+  }
+
+  let output = providerResult.output;
+  if (request.operation === "image_generation") {
+    if (!dependencies.artifacts) {
+      throw new HttpsError("failed-precondition", "Image storage is unavailable.");
+    }
+    output = await dependencies.artifacts.persistGeneratedImage(
+      actor.uid, id, output
+    );
+  }
+  await writeUsage(dependencies.firestore, id, actor.uid, request.operation,
+    providerResult, "completed", Date.now() - startedAt, now);
+
+  logger.info("ATLAS AI request completed", {
     requestId: id,
     operation: request.operation,
     mode,
     actorRole: actor.role,
+    actorScope: actor.scope,
     inputCharacters: request.input.length,
     contextBytes: request.context ?
       Buffer.byteLength(
@@ -410,10 +581,60 @@ export async function executeAtlasAiCallable(
   });
 
   return {
-    success: false,
-    status: "unavailable",
+    success: true,
+    status: "completed",
     operation: request.operation,
-    reason,
+    output,
     requestId: id,
   };
+}
+
+async function loadAuthorizedCrmContext(
+  firestore: Firestore,
+  actor: {uid: string; scope: string; teamId: string | null},
+  context?: DataRecord
+): Promise<DataRecord[]> {
+  const references = Array.isArray(context?.record_refs) ?
+    context.record_refs.slice(0, 20) : [];
+  const allowedEntities = new Set(["Lead", "Opportunity", "Activity", "Task"]);
+  const records: DataRecord[] = [];
+  for (const raw of references) {
+    if (!raw || typeof raw !== "object" || Array.isArray(raw)) continue;
+    const reference = raw as DataRecord;
+    const entity = readString(reference, "entity");
+    const id = readString(reference, "id");
+    if (!entity || !id || !allowedEntities.has(entity)) {
+      throw new HttpsError("invalid-argument", "CRM context reference is invalid.");
+    }
+    const snapshot = await firestore.collection("entities").doc(entity)
+      .collection("records").doc(id).get();
+    if (!snapshot.exists) continue;
+    const data = snapshot.data() || {};
+    const owner = readString(data, "owner_user_id") || readString(data, "ownerId");
+    const team = readString(data, "assigned_team_id") || readString(data, "teamId");
+    const authorized = actor.scope === "all" ||
+      (actor.scope === "team" && (owner === actor.uid ||
+        (actor.teamId !== null && team === actor.teamId))) ||
+      (actor.scope === "own" && owner === actor.uid);
+    if (!authorized) {
+      throw new HttpsError("permission-denied", "CRM context is not authorized.");
+    }
+    records.push({entity, id, ...data});
+  }
+  return records;
+}
+
+async function writeUsage(
+  firestore: Firestore, id: string, uid: string, operation: AiOperation,
+  result: AtlasProviderResult | null, status: "completed" | "failed",
+  latencyMs: number, now: number
+): Promise<void> {
+  await firestore.collection("atlasAiUsage").doc(id).create({
+    user_id: uid, provider: result?.provider || null,
+    model: result?.model || null, input_tokens: result?.inputTokens || 0,
+    output_tokens: result?.outputTokens || 0,
+    estimated_cost_usd: result?.estimatedCostUsd ?? null,
+    request_type: operation, created_date: new Date(now).toISOString(),
+    correlation_id: id, status, latency_ms: latencyMs,
+  });
 }

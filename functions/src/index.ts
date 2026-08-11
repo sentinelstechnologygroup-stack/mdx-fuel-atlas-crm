@@ -1,6 +1,7 @@
 import ExcelJS from "exceljs";
 import {getApps, initializeApp} from "firebase-admin/app";
 import {FieldValue, getFirestore} from "firebase-admin/firestore";
+import {getStorage} from "firebase-admin/storage";
 import {setGlobalOptions} from "firebase-functions";
 import {HttpsError, onCall} from "firebase-functions/v2/https";
 import {
@@ -10,6 +11,12 @@ import {
   ALL_MESSAGING_SECRETS,
   messagingEnvironment,
 } from "./messagingRuntimeConfig";
+import {AtlasAiArtifactService} from "./atlasAiArtifacts.js";
+import {OpenAiAtlasProvider} from "./atlasAiProvider.js";
+import {
+  atlasAiEnvironment,
+  atlasOpenAiApiKey,
+} from "./atlasAiRuntimeConfig.js";
 
 setGlobalOptions({maxInstances: 10});
 
@@ -18,6 +25,7 @@ const firebaseAdminApp = getApps().length > 0 ?
   initializeApp();
 
 const firestore = getFirestore(firebaseAdminApp);
+const storageBucket = getStorage(firebaseAdminApp).bucket();
 
 const CANONICAL_ROLES = new Set([
   "super_admin",
@@ -4153,14 +4161,28 @@ export {
 } from "./notificationDeliveryBridge.js";
 export {executeAtlasAiCallable} from "./atlasAiGateway.js";
 export const invokeAtlasAi = onCall(
-  {region: "us-central1"},
+  {
+    region: "us-central1",
+    enforceAppCheck: true,
+    secrets: [atlasOpenAiApiKey],
+  },
   async (request) => {
     const {executeAtlasAiCallable} = await import(
       "./atlasAiGateway.js"
     );
 
+    const environment = atlasAiEnvironment();
+    const provider = environment.apiKey ? new OpenAiAtlasProvider({
+      ...environment,
+      timeoutMs: 30000,
+    }) : undefined;
+
     return executeAtlasAiCallable(
-      {firestore},
+      {
+        firestore,
+        provider,
+        artifacts: new AtlasAiArtifactService(storageBucket),
+      },
       request.auth?.uid,
       request.data
     );

@@ -395,3 +395,54 @@ describe('Phase 9 Firebase Storage upload authorization', () => {
     );
   });
 });
+
+describe('Phase 11 generated image authorization', () => {
+  const generatedPath =
+    `users/${USERS.alice.uid}/generated/generation-001/atlas-output.png`;
+
+  function generatedMetadata(overrides = {}) {
+    return {
+      contentType: 'image/png',
+      customMetadata: {
+        ownerUid: USERS.alice.uid,
+        generatedBy: 'ATLAS',
+        requestId: 'request-001',
+        ...overrides,
+      },
+    };
+  }
+
+  it('allows only the active owner to read an ATLAS image', async () => {
+    await seedStoredObject(
+      generatedPath,
+      'generated-image-content',
+      generatedMetadata()
+    );
+    await assertSucceeds(getBytes(
+      ref(storageFor(USERS.alice), generatedPath)
+    ));
+    await assertFails(getBytes(
+      ref(storageFor(USERS.bob), generatedPath)
+    ));
+  });
+
+  it('denies client creation in the generated namespace', async () => {
+    await assertFails(uploadString(
+      ref(storageFor(USERS.alice), generatedPath),
+      'forged-generated-image',
+      'raw',
+      generatedMetadata()
+    ));
+  });
+
+  it('denies reading an object without ATLAS provenance', async () => {
+    await seedStoredObject(
+      generatedPath,
+      'untrusted-content',
+      generatedMetadata({generatedBy: 'forged'})
+    );
+    await assertFails(getBytes(
+      ref(storageFor(USERS.alice), generatedPath)
+    ));
+  });
+});

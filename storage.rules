@@ -79,6 +79,15 @@ service firebase.storage {
         resource.metadata.ownerUid == userId;
     }
 
+    match /users/{userId}/generated/{generationId}/{fileName} {
+      allow read, delete: if activeUser() &&
+        request.auth.uid == userId &&
+        resource.metadata.ownerUid == userId &&
+        resource.metadata.generatedBy == 'ATLAS';
+
+      allow create, update: if false;
+    }
+
     match /{allPaths=**} {
       allow read, write: if false;
     }

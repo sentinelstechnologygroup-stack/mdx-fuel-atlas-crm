@@ -341,6 +341,16 @@ Never commit:
 
 Firebase browser configuration may be stored in environment-specific Vite variables, but it must never be treated as an authorization boundary.
 
+Phase 11 ATLAS Functions use these server-side parameters:
+
+- `ATLAS_OPENAI_API_KEY` — Firebase Secret Manager secret
+- `ATLAS_TEXT_MODEL` — approved text/vision model (default `gpt-4.1-mini`)
+- `ATLAS_IMAGE_MODEL` — approved image model (default `gpt-image-1`)
+
+The provider remains disabled until `system/aiConfiguration.mode` is set to
+`atlas_managed` by a reviewed administrative process. Never place the ATLAS
+provider key in a Vite variable or callable request.
+
 ---
 
 ## Deployment Policy

@@ -38,7 +38,10 @@
     "test:automation:messaging": "vitest run --no-file-parallelism tests/automation.messaging.test.js",
     "test:attachment:metadata": "vitest run --no-file-parallelism tests/attachment.metadata.test.js",
     "test:messaging:runtime-config": "vitest run --no-file-parallelism tests/messaging.runtime.config.test.js",
-    "test:phase9:final": "npm run test:messaging:providers && npm run test:message:delivery && npm run test:message:repository && npm run test:message:callable"
+    "test:phase9:final": "npm run test:messaging:providers && npm run test:message:delivery && npm run test:message:repository && npm run test:message:callable",
+    "test:atlas:provider": "vitest run --no-file-parallelism tests/atlas.ai.provider.test.js tests/atlas.ai.artifacts.test.js",
+    "test:atlas:gateway": "vitest run --no-file-parallelism --testTimeout=30000 tests/atlas.ai.gateway.test.js",
+    "test:phase11": "npm run test:atlas:provider && npx --no-install firebase emulators:exec --only firestore,storage \"npm run test:atlas:gateway && npm run test:storage:rules\""
   },
   "dependencies": {
     "@hello-pangea/dnd": "^17.0.0",

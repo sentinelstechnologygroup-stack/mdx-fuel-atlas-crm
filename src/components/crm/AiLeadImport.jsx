@@ -31,7 +31,6 @@ export default function AiLeadImport({ open, onOpenChange, onLeadCreated }) {
       if (mode === "image" && selectedFile) {
         // AI lead import workflow
         const uploadResult = await uploadFileToFirebase({ file: selectedFile });
-        const fileUrl = uploadResult.file_url;
 
         // AI lead import workflow
         const visionResult = await atlas.integrations.Core.InvokeLLM({
@@ -49,7 +48,7 @@ Notes:
 - If blurry, try to decipher by context.
 - If multiple phones, take the main one.
 - Do not invent information.`,
-          file_urls: [fileUrl],
+          storage_paths: [uploadResult.storage_path],
           response_json_schema: {
             type: "object",
             properties: {

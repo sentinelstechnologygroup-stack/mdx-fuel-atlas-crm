@@ -1,5 +1,5 @@
-import React, { useCallback, useState } from 'react';
-import { Upload, FileSpreadsheet, Loader2, FileType } from 'lucide-react';
+import { useCallback, useState } from 'react';
+import { Upload, FileSpreadsheet, Loader2 } from 'lucide-react';
 import { atlas } from "@/api/atlasClient";
 import { uploadFileToFirebase } from "@/firebase/storageService";
 
@@ -35,11 +35,11 @@ export default function StepUpload({ onDataParsed }) {
       } else {
         // For Excel, we use the integration
         // 1. Upload
-        const { file_url } = await uploadFileToFirebase({ file });
+        const { storage_path } = await uploadFileToFirebase({ file });
         
         // 2. Extract (asking for raw array of objects)
         const res = await atlas.integrations.Core.ExtractDataFromUploadedFile({
-            file_url,
+            storage_path,
             json_schema: {
                 type: "array",
                 items: {
