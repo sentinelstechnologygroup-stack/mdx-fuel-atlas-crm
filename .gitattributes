@@ -1,0 +1,2 @@
+functions/**/*.js text eol=lf
+functions/**/*.ts text eol=lf
