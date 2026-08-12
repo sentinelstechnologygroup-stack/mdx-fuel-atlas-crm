@@ -25,7 +25,7 @@ const firebaseAdminApp = getApps().length > 0 ?
   initializeApp();
 
 const firestore = getFirestore(firebaseAdminApp);
-const storageBucket = getStorage(firebaseAdminApp).bucket();
+const storage = getStorage(firebaseAdminApp);
 
 const CANONICAL_ROLES = new Set([
   "super_admin",
@@ -4181,7 +4181,7 @@ export const invokeAtlasAi = onCall(
       {
         firestore,
         provider,
-        artifacts: new AtlasAiArtifactService(storageBucket),
+        artifacts: new AtlasAiArtifactService(storage.bucket()),
       },
       request.auth?.uid,
       request.data
