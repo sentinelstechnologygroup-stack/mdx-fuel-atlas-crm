@@ -62,11 +62,14 @@ The Phase 11 production closeout used a scoped deploy for `functions:invokeAtlas
 | Phase 12 aggregate remote-safe suite | `npm run test:phase12` | Passed: Functions build plus 10 unit files/66 tests, 10 rules-storage files/459 tests, 3 entity files/16 tests, 5 workflow files/38 tests |
 | Focused new Phase 12 rules test | `tests/firestore.phase12.rules.test.js` | Passed: 13 tests; included in aggregate rules-storage group |
 | Full Functions emulator callable/trigger suite | `npm run test:phase12:functions-emulator` | Passed: 12 files, 82 tests; added ignored local emulator env files for non-interactive parameter loading and provider-secret disabling |
+| Local production preview route smoke | `npm run preview -- --host 127.0.0.1 --port 4173` plus HTTP checks | Passed: `/`, `/Dashboard`, `/Leads`, `/Opportunities`, `/Tasks`, `/Reports`, `/Settings`, `/ActNow`, `/ImportLeads`, and unknown-route SPA fallback all returned `200` with root app container and module script |
 | Root typecheck | `npm run typecheck` | Failed with known backlog, led by Three.js/jsconfig and broad JSX/UI typing errors |
 | Root lint | `npm run lint` | Failed with known backlog: 254 problems, including generated `functions/lib` rule-resolution errors and unused imports |
 | Git diff check | `git diff --check` | Passed after final documentation update |
 
-## Manual verification deferred to end
+## Final desktop/browser verification
+
+Remote-safe local production preview smoke is complete. The remaining checks require an interactive authenticated browser session because the production app correctly lands unauthenticated users on the Firebase login shell.
 
 Complete after returning to the desktop/browser session:
 
@@ -90,4 +93,4 @@ These files are gitignored and contain placeholder-only values. `MDX_EMULATOR_DI
 
 ## Phase 12 go/no-go
 
-Phase 12 automated remote verification is complete and ready to commit. Phase 13 should remain blocked until the deferred manual desktop/browser checklist is completed and Patrick explicitly authorizes any deployment or cutover action.
+Phase 12 automated remote verification and local production preview smoke are complete. Phase 13 should remain blocked until the authenticated desktop/browser checklist is completed and Patrick explicitly authorizes any deployment or cutover action.
