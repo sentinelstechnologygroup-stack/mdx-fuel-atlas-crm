@@ -80,6 +80,24 @@ async function setPreference(label, user, enabled) {
   });
 }
 
+async function activeAdminRecipientIds() {
+  const snapshot = await firestore
+    .collection('userProfiles')
+    .where('account_status', '==', 'active')
+    .get();
+
+  return snapshot.docs
+    .filter((document) => {
+      const role = document.data().application_role;
+
+      return role === 'administrator' ||
+        role === 'admin' ||
+        role === 'super_admin';
+    })
+    .map((document) => document.id)
+    .sort();
+}
+
 async function createRecipientFixture({
   disableOwner = false,
   disableAdministrator = false,
@@ -239,19 +257,24 @@ describe('server-controlled new-lead notifications', () => {
       });
 
       const notifications =
-        await waitForNotificationCount(lead.id, 4);
+        await waitForNotificationCount(
+          lead.id,
+          2 + (await activeAdminRecipientIds()).length
+        );
       const recipientIds = notifications
         .map((notification) => notification.user_id)
         .sort();
-
-      expect(recipientIds).toEqual([
-        fixture.administrator.id,
+      const expectedRecipientIds = [
         fixture.owner.id,
-        fixture.superAdministrator.id,
         fixture.supervisor.id,
-      ].sort());
+        ...(await activeAdminRecipientIds()),
+      ].sort();
 
-      expect(new Set(recipientIds).size).toBe(4);
+      expect(recipientIds).toEqual(expectedRecipientIds);
+
+      expect(new Set(recipientIds).size).toBe(
+        expectedRecipientIds.length
+      );
     },
     30000
   );
@@ -269,15 +292,23 @@ describe('server-controlled new-lead notifications', () => {
       });
 
       const notifications =
-        await waitForNotificationCount(lead.id, 2);
+        await waitForNotificationCount(
+          lead.id,
+          1 +
+            (await activeAdminRecipientIds())
+              .filter((id) => id !== fixture.administrator.id)
+              .length
+        );
       const recipientIds = notifications
         .map((notification) => notification.user_id)
         .sort();
-
-      expect(recipientIds).toEqual([
-        fixture.superAdministrator.id,
+      const expectedRecipientIds = [
         fixture.supervisor.id,
-      ].sort());
+        ...(await activeAdminRecipientIds())
+          .filter((id) => id !== fixture.administrator.id),
+      ].sort();
+
+      expect(recipientIds).toEqual(expectedRecipientIds);
     },
     30000
   );
@@ -299,7 +330,10 @@ describe('server-controlled new-lead notifications', () => {
       });
 
       const notifications =
-        await waitForNotificationCount(lead.id, 4);
+        await waitForNotificationCount(
+          lead.id,
+          2 + (await activeAdminRecipientIds()).length
+        );
 
       for (const notification of notifications) {
         expect(notification.title)
@@ -342,7 +376,10 @@ describe('server-controlled new-lead notifications', () => {
       );
 
       const initialNotifications =
-        await waitForNotificationCount(lead.id, 4);
+        await waitForNotificationCount(
+          lead.id,
+          2 + (await activeAdminRecipientIds()).length
+        );
       const initialIds = initialNotifications
         .map((notification) => notification.id)
         .sort();
@@ -369,7 +406,9 @@ describe('server-controlled new-lead notifications', () => {
         .map((notification) => notification.id)
         .sort();
 
-      expect(finalNotifications).toHaveLength(4);
+      expect(finalNotifications).toHaveLength(
+        initialNotifications.length
+      );
       expect(finalIds).toEqual(initialIds);
     },
     30000

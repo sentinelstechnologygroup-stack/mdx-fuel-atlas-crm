@@ -279,6 +279,10 @@ export async function processNewLeadNotifications(
   lead: EntityData,
   eventTime?: string
 ): Promise<number> {
+  if (!lead || typeof lead !== "object") {
+    return 0;
+  }
+
   const firestore = getFirestore();
   const [profiles, disabledPreferenceKeys] =
     await Promise.all([
@@ -385,9 +389,17 @@ export const createNewLeadNotifications =
         return;
       }
 
+      const lead = event.data.data() as
+        | EntityData
+        | undefined;
+
+      if (!lead) {
+        return;
+      }
+
       await processNewLeadNotifications(
         event.params.leadId,
-        event.data.data() as EntityData,
+        lead,
         event.time
       );
     }

@@ -55,9 +55,9 @@ A replacement reaches parity only when:
 9. Files, import/export, notifications, email
 10. Workflows and automations
 11. Independent ATLAS
-12. Data migration and reconciliation
-13. Remove legacy provider runtime dependencies
-14. Full security, role, workflow, visual, and production audit
+12. Full parity, security, role, regression, and emulator testing
+13. Controlled legacy provider cutover and dependency retirement
+14. Production validation and migration closeout
 
 ## Gates
 
