@@ -1,19 +1,24 @@
 # Migration Status
 
-Last updated: 2026-08-11
+Last updated: 2026-08-17
 
 ## Current state
 
-- Active phase: Phase 11 — Independent ATLAS
+- Active phase: Phase 12 - automated parity, security, role, regression, and emulator testing complete; manual desktop verification pending
 - Baseline verified: tag and commit identity verified
 - Firebase development project: `mdx-fuel-atlas-crm-dev` (`485940537312`)
 - Firestore location: `nam5`
 - Firebase foundation added: yes; Phase 1 foundation commit `c89f440` pushed
 - Frontend connected to Firebase runtime: yes
+- Phase 11 merged to `main`: yes; merge commit `2d1e15f`
+- Phase 11 production activation: complete for scoped `functions:invokeAtlasAi` deployment per Patrick's Phase 12 start note
+- Vercel production state: reported stable at Phase 12 start
+- Firebase Storage provisioned: yes
+- Firestore rules/indexes and Storage rules deployed: yes
 - legacy provider removed: no
-- Production cutover authorized: no
+- Production cutover/legacy retirement authorized: no
 - `retired-provider/` rename authorized: no; unsafe until runtime and reference material are separated and Phase 13 gates pass
-- Deployment performed: no
+- Deployment authorized for Phase 12: no
 
 ## Phase status
 
@@ -22,9 +27,10 @@ Last updated: 2026-08-11
 | 0 | Complete | Baseline inventory and migration documentation committed; baseline production build passed; pre-existing typecheck and lint findings recorded |
 | 1 | Complete | Foundation commit `c89f440` pushed to `migration/phase-1-firebase-foundation`; Firebase dev project and Emulator Suite verified |
 | 2 | Complete | Firebase Authentication and employee profile checkpoint committed and superseded by later migration phases |
-| 3–10 | Complete | Firebase entity, permission, workflow, storage, messaging, notification, and automation checkpoints are present in branch history through commit `6e66de2` |
-| 11 | Complete locally — production activation pending | Provider, artifact, authorization, auditing, frontend adapters, and safe failure UI verified by 43 focused tests, Functions lint/build, production build, and authenticated manual regression |
-| 12–14 | Not started | Phase 11 production activation remains separately gated; no deployment or legacy cleanup is authorized |
+| 3-10 | Complete | Firebase entity, permission, workflow, storage, messaging, notification, and automation checkpoints are present in branch history through commit `6e66de2` |
+| 11 | Complete, merged, and scoped production activation complete | Merge commit `2d1e15f`; follow-up commits `a27a743` and `7e30f2e`; `invokeAtlasAi` deployed without broad Functions deployment |
+| 12 | Automated verification complete; manual verification pending | Phase 12 branch `migration/phase-12-parity-security-regression-testing`; automated remote evidence passes including full Functions emulator suite; see `docs/PHASE_12_VERIFICATION.md` |
+| 13-14 | Not started | No deployment, broad retry-policy change, legacy cleanup, or `retired-provider/` movement is authorized in Phase 12 |
 
 ## Phase 1 foundation implemented
 
@@ -139,4 +145,8 @@ Phase 1 was completed and pushed as commit `c89f440`. Deterministic role fixture
 
 ## Phase 11 go/no-go
 
-**Phase 11 implementation: complete. Production activation: no-go pending runtime configuration.** All local automated and focused UI verification gates pass. Activation still requires a reviewed Secret Manager credential, an explicit deployment authorization, and a post-deployment provider smoke test.
+**Phase 11: complete.** Phase 11 was merged to `main` and production was activated through the scoped `functions:invokeAtlasAi` deployment. Do not infer authorization for broad Firebase Functions deployment from that scoped deployment.
+
+## Phase 12 checkpoint
+
+Phase 12 remote automated verification and hardening is complete. The working evidence file is `docs/PHASE_12_VERIFICATION.md`. Manual desktop/browser verification remains deferred to the final checklist before Phase 13 authorization.

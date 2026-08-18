@@ -33,11 +33,11 @@ export default function OpportunityForm({ opportunity, initialLead, onSubmit, on
       lead_name: initialLead?.full_name || "",
       phone_number: initialLead?.phone_number || "",
       email: initialLead?.email || "",
-      product_type: "Consulting",
+      product_type: "New Business",
       deal_type: "Business",
       amount: "",
       estimated_monthly_gallons: "",
-      deal_stage: "New",
+      deal_stage: "Prospect",
       probability: 20,
       expected_close_date: "",
       next_task: "",
@@ -324,20 +324,19 @@ export default function OpportunityForm({ opportunity, initialLead, onSubmit, on
           {/* Phone and Email removed as they appear in Original Lead Details */}
 
           <div className="space-y-2">
-            <Label className={labelClass}>Product Type</Label>
+            <Label className={labelClass}>Opportunity Type</Label>
             <Select
-                  defaultValue={opportunity?.product_type || "Consulting"}
+                  defaultValue={opportunity?.product_type || "New Business"}
                   onValueChange={(val) => handleSelectChange("product_type", val)}>
 
               <SelectTrigger className={inputClass}>
-                <SelectValue placeholder="Select Product" />
+                <SelectValue placeholder="Select opportunity type" />
               </SelectTrigger>
               <SelectContent className={theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : ''}>
-                <SelectItem value="Consulting">Consulting</SelectItem>
-                <SelectItem value="Service">Service</SelectItem>
-                <SelectItem value="Product">Product</SelectItem>
-                <SelectItem value="Software">Software</SelectItem>
-                <SelectItem value="Other">Other</SelectItem>
+                <SelectItem value="New Business">New Business</SelectItem>
+                <SelectItem value="Expansion">Expansion</SelectItem>
+                <SelectItem value="Renewal">Renewal</SelectItem>
+                <SelectItem value="Win-Back">Win-Back</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -345,7 +344,7 @@ export default function OpportunityForm({ opportunity, initialLead, onSubmit, on
           <div className="space-y-2">
             <Label className={labelClass}>Deal Stage</Label>
             <Select
-                  defaultValue={opportunity?.deal_stage || "New"}
+                  defaultValue={opportunity?.deal_stage || "Prospect"}
                   onValueChange={(val) => handleSelectChange("deal_stage", val)}>
 
               <SelectTrigger className={inputClass}>
@@ -433,8 +432,8 @@ export default function OpportunityForm({ opportunity, initialLead, onSubmit, on
         </div>
 
         <div className="space-y-2">
-          <Label className={labelClass}>Next Task</Label>
-          <Input {...register("next_task")} placeholder="e.g., Return to client with bank answer..." className={inputClass} />
+          <Label className={labelClass}>Next Step</Label>
+          <Input {...register("next_task")} placeholder="e.g., Send quote, schedule site visit, confirm supplier pricing..." className={inputClass} />
         </div>
 
         {/* Sales Strategy Section */}
@@ -448,20 +447,21 @@ export default function OpportunityForm({ opportunity, initialLead, onSubmit, on
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label className={labelClass}>Main Pain Point</Label>
+            <Label className={labelClass}>Why Looking</Label>
             <Select
                     defaultValue={opportunity?.main_pain_point}
                     onValueChange={(val) => handleSelectChange("main_pain_point", val)}>
 
               <SelectTrigger className={inputClass}>
-                <SelectValue placeholder="Select Pain Point" />
+                <SelectValue placeholder="Select reason" />
               </SelectTrigger>
               <SelectContent className={theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : ''}>
-                <SelectItem value="Budget">Budget</SelectItem>
-                <SelectItem value="Timeline">Timeline</SelectItem>
-                <SelectItem value="Features">Features</SelectItem>
-                <SelectItem value="Authority">Authority</SelectItem>
-                <SelectItem value="Need">Need</SelectItem>
+                <SelectItem value="Price">Price</SelectItem>
+                <SelectItem value="Service">Service</SelectItem>
+                <SelectItem value="Availability">Availability</SelectItem>
+                <SelectItem value="Relationship">Relationship</SelectItem>
+                <SelectItem value="Tank Program">Tank Program</SelectItem>
+                <SelectItem value="Delivery Capability">Delivery Capability</SelectItem>
                 <SelectItem value="Other">Other</SelectItem>
               </SelectContent>
             </Select>

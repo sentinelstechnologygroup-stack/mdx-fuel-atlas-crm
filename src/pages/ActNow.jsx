@@ -70,8 +70,8 @@ export default function ActNowPage() {
 
         try {
             // Prepare context data (limit to avoid token limits if necessary, but sending relevant fields)
-            const openOpps = opportunities.filter(o => !['Closed Won', 'Closed Lost'].includes(o.deal_stage));
-            const activeLeads = leads.filter(l => !['Converted', 'Lost / Unqualified'].includes(l.lead_status));
+            const openOpps = opportunities.filter(o => !['Closed Won', 'Closed Lost', 'Won', 'Lost'].includes(o.deal_stage));
+            const activeLeads = leads.filter(l => !['Converted', 'Disqualified', 'Lost / Unqualified'].includes(l.lead_status));
 
             const contextData = {
                 opportunities: openOpps.slice(0, 20).map(o => ({

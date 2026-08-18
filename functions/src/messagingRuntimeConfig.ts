@@ -50,12 +50,41 @@ export const ALL_MESSAGING_SECRETS = [
 ];
 
 /**
+ * Detects the local Firebase emulator runtime.
+ * @return {boolean} Whether provider secrets should come from process.env.
+ */
+function isLocalEmulatorRuntime(): boolean {
+  return (
+    process.env.FUNCTIONS_EMULATOR === "true" ||
+    Boolean(process.env.FIRESTORE_EMULATOR_HOST) ||
+    Boolean(process.env.FIREBASE_AUTH_EMULATOR_HOST)
+  );
+}
+
+/**
+ * Detects local emulator runs that must not use provider secrets.
+ * @return {boolean} Whether configured provider secrets should be ignored.
+ */
+function providerSecretsDisabled(): boolean {
+  return (
+    process.env.MDX_EMULATOR_DISABLE_PROVIDER_SECRETS === "true"
+  );
+}
+
+/**
  * Returns the runtime environment required for email delivery.
  * @return {MessagingEnvironment} Email provider configuration.
  */
 export function emailMessagingEnvironment(): MessagingEnvironment {
+  const useLocalEnvironment = isLocalEmulatorRuntime();
+  const disableProviderSecrets = providerSecretsDisabled();
+
   return {
-    RESEND_API_KEY: resendApiKey.value(),
+    RESEND_API_KEY: disableProviderSecrets ?
+      undefined :
+      useLocalEnvironment ?
+        process.env.RESEND_API_KEY :
+        resendApiKey.value(),
     RESEND_FROM_EMAIL: resendFromEmail.value(),
     RESEND_REPLY_TO: resendReplyTo.value() || undefined,
   };
@@ -66,10 +95,17 @@ export function emailMessagingEnvironment(): MessagingEnvironment {
  * @return {MessagingEnvironment} Email and SMS provider configuration.
  */
 export function messagingEnvironment(): MessagingEnvironment {
+  const useLocalEnvironment = isLocalEmulatorRuntime();
+  const disableProviderSecrets = providerSecretsDisabled();
+
   return {
     ...emailMessagingEnvironment(),
     TWILIO_ACCOUNT_SID: twilioAccountSid.value(),
-    TWILIO_AUTH_TOKEN: twilioAuthToken.value(),
+    TWILIO_AUTH_TOKEN: disableProviderSecrets ?
+      undefined :
+      useLocalEnvironment ?
+        process.env.TWILIO_AUTH_TOKEN :
+        twilioAuthToken.value(),
     TWILIO_FROM_NUMBER: twilioFromNumber.value(),
   };
 }

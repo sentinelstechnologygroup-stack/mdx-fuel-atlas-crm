@@ -500,9 +500,10 @@ export default function LeadForm({ lead, onSaveAndClose, onSaveAndStay, onCancel
                   <SelectContent className={theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : ''}>
                     <SelectItem value="New">New</SelectItem>
                     <SelectItem value="Attempting Contact">Attempting Contact</SelectItem>
-                    <SelectItem value="Contacted - Qualifying">Contacted - Qualifying</SelectItem>
-                    <SelectItem value="Sales Ready">Sales Ready</SelectItem>
-                    <SelectItem value="Lost / Unqualified">Lost / Unqualified</SelectItem>
+                    <SelectItem value="Contacted">Contacted</SelectItem>
+                    <SelectItem value="Qualified">Qualified</SelectItem>
+                    <SelectItem value="Nurturing">Nurturing</SelectItem>
+                    <SelectItem value="Disqualified">Disqualified</SelectItem>
                     <SelectItem value="Converted" className="text-emerald-600 font-bold">Converted</SelectItem>
                   </SelectContent>
                 </Select>

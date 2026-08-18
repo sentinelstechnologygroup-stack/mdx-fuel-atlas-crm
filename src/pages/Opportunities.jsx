@@ -148,9 +148,9 @@ export default function OpportunitiesPage() {
     },
     {
         key: 'product_type',
-        label: 'Product',
+        label: 'Opportunity Type',
         type: 'select',
-        options: ['Consulting', 'Service', 'Product', 'Software', 'Other'].map(p => ({ label: p, value: p }))
+        options: ['New Business', 'Expansion', 'Renewal', 'Win-Back'].map(p => ({ label: p, value: p }))
     },
     { key: 'amount', label: 'Value >', type: 'number' } // Simple text input for now
   ], [pipelineStages]);
@@ -158,8 +158,8 @@ export default function OpportunitiesPage() {
   const views = [
       { id: 'all', label: 'All Deals' },
       { id: 'pipeline', label: 'Active Pipeline' },
-      { id: 'won', label: 'Closed Won' },
-      { id: 'lost', label: 'Closed Lost' }
+      { id: 'won', label: 'Won' },
+      { id: 'lost', label: 'Lost' }
   ];
 
   const handleViewChange = (viewId) => {
@@ -442,6 +442,28 @@ export default function OpportunitiesPage() {
             </SmartFilterBar>
       </div>
 
+      <div className={`mb-6 rounded-2xl border p-4 backdrop-blur-xl ${
+        theme === 'dark'
+          ? 'bg-slate-800/60 border-slate-700/50 text-slate-300'
+          : 'bg-white/60 border-white/50 text-slate-600'
+      }`}>
+        <div className="flex items-start gap-3">
+          <AlertCircle className={`w-5 h-5 mt-0.5 flex-shrink-0 ${
+            theme === 'dark' ? 'text-cyan-400' : 'text-purple-600'
+          }`} />
+          <div>
+            <div className={`font-bold ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>
+              Opportunity focus: qualified deal execution
+            </div>
+            <p className="text-sm mt-1">
+              Use this board for qualified fuel deals: current supplier, why they are looking,
+              pricing/tank/delivery economics, next step, follow-up date, and win/loss reason.
+              Raw customer intake belongs in Leads.
+            </p>
+          </div>
+        </div>
+      </div>
+
       {/* Stats Header (New!) */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
           <div className={`p-4 rounded-2xl border flex items-center gap-3 shadow-lg backdrop-blur-xl transition-colors ${
@@ -603,7 +625,22 @@ export default function OpportunitiesPage() {
                                       </div>
                                     )}
 
-                                    {/* Notes */}
+                                    {/* Deal diagnosis */}
+                                    {(opp.current_objection || opp.main_pain_point || opp.next_task) && (
+                                      <div className={`text-[10px] p-1.5 rounded-md space-y-1 leading-tight ${theme === 'dark' ? 'text-slate-300 bg-slate-900/60' : 'text-neutral-700 bg-amber-50 border border-amber-100'}`}>
+                                        {opp.main_pain_point && (
+                                          <div><span className="font-semibold">Gap:</span> {opp.main_pain_point}</div>
+                                        )}
+                                        {opp.current_objection && (
+                                          <div><span className="font-semibold">Objection:</span> {opp.current_objection}</div>
+                                        )}
+                                        {opp.next_task && (
+                                          <div><span className="font-semibold">Next:</span> {opp.next_task}</div>
+                                        )}
+                                      </div>
+                                    )}
+
+                                    {/* Original lead context */}
                                     {lead?.notes && (
                                       <div className={`text-[10px] p-1.5 rounded-md line-clamp-2 leading-tight ${theme === 'dark' ? 'text-slate-400 bg-slate-900/50' : 'text-neutral-600 bg-neutral-50'}`}>
                                         {lead.notes}

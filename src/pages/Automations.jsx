@@ -437,13 +437,13 @@ function RuleForm({ onSuccess, editingRule }) {
 
   // Dynamic field options based on entity
   const leadFields = [
-    { value: 'lead_status', label: 'Lead Status', values: ['New', 'Attempting Contact', 'Contacted - Qualifying', 'Sales Ready', 'Converted', 'Lost / Unqualified'] },
+    { value: 'lead_status', label: 'Lead Status', values: ['New', 'Attempting Contact', 'Contacted', 'Qualified', 'Nurturing', 'Disqualified', 'Converted'] },
             { value: 'city', label: 'City', type: 'text' },
         { value: 'lead_temperature', label: 'Lead Temperature', values: ['Cold', 'Warm', 'Hot'] }
   ];
 
   const opportunityFields = [
-    { value: 'deal_stage', label: 'Opportunity Stage', values: ['New', 'Discovery', 'Proposal', 'Negotiation', 'Closed Won', 'Closed Lost'] },
+    { value: 'deal_stage', label: 'Opportunity Stage', values: ['Prospect', 'Contacted', 'Meeting Scheduled', 'Quote Requested', 'Proposal Sent', 'Negotiation', 'Closed Won', 'Closed Lost'] },
     { value: 'product_type', label: 'Fuel Product', values: ['On-Road Diesel', 'Off-Road Diesel', 'Gasoline', 'DEF', 'Lubricants', 'Other'] },
     { value: 'probability', label: 'Probability', type: 'number' },
           ];
@@ -476,8 +476,8 @@ function RuleForm({ onSuccess, editingRule }) {
                 - trigger_event: "create" or "update"
                 - condition_field: "lead_status", "deal_stage", "estimated_monthly_gallons", etc.
                 - condition_value: translate Hebrew terms to exact English Enums below:
-                    Lead Statuses: "New", "Attempting Contact", "Contacted - Qualifying", "Sales Ready", "Converted", "Lost / Unqualified"
-                    Deal Stages: "New", "Discovery", "Proposal", "Negotiation", "Closed Won", "Closed Lost"
+                    Lead Statuses: "New", "Attempting Contact", "Contacted", "Qualified", "Nurturing", "Disqualified", "Converted"
+                    Deal Stages: "Prospect", "Contacted", "Meeting Scheduled", "Quote Requested", "Proposal Sent", "Negotiation", "Closed Won", "Closed Lost"
                 - action_type: "create_task" or "send_email"
                 - action_config: {
                      email_to: string (use {{full_name}} or {{email}} placeholders),
@@ -573,7 +573,7 @@ function RuleForm({ onSuccess, editingRule }) {
                             <Textarea
                                 value={aiPrompt}
                                 onChange={(e) => setAiPrompt(e.target.value)}
-                                placeholder="E.g. When a lead becomes 'Sales Ready', send them a welcome email..."
+                                placeholder="E.g. When a lead becomes 'Qualified', send them a welcome email..."
                                 className={`resize-none h-20 text-sm rounded-xl transition-all focus:ring-2 ${
                                     theme === 'dark'
                                         ? 'bg-slate-800 border-slate-700 text-white placeholder:text-slate-500 focus:ring-red-900 focus:bg-slate-800'
