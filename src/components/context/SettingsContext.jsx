@@ -8,53 +8,68 @@ const SettingsContext = createContext();
 // Defaults
 export const defaultLeadStatuses = [
   { value: "New", label: "New", color: "bg-cyan-50 text-cyan-700 border-cyan-200" },
-  { value: "Attempting Contact", label: "In Progress", color: "bg-violet-50 text-violet-700 border-violet-200" },
-  { value: "Contacted - Qualifying", label: "Qualifying", color: "bg-fuchsia-50 text-fuchsia-700 border-fuchsia-200" },
-  { value: "Sales Ready", label: "Sales Ready", color: "bg-yellow-50 text-yellow-700 border-yellow-200" },
+  { value: "Attempting Contact", label: "Attempting Contact", color: "bg-violet-50 text-violet-700 border-violet-200" },
+  { value: "Contacted", label: "Contacted", color: "bg-fuchsia-50 text-fuchsia-700 border-fuchsia-200" },
+  { value: "Qualified", label: "Qualified", color: "bg-yellow-50 text-yellow-700 border-yellow-200" },
+  { value: "Nurturing", label: "Nurturing", color: "bg-blue-50 text-blue-700 border-blue-200" },
+  { value: "Disqualified", label: "Disqualified", color: "bg-slate-100 text-slate-500 border-slate-200" },
   { value: "Converted", label: "Converted", color: "bg-emerald-50 text-emerald-700 border-emerald-200" },
-  { value: "Lost / Unqualified", label: "Lost / Unqualified", color: "bg-slate-100 text-slate-500 border-slate-200" }
 ];
 
 export const defaultPipelineStages = [
-  { 
-    id: "New", 
-    label: "New", 
-    color: "bg-blue-400", 
+  {
+    id: "Prospect",
+    label: "Prospect",
+    color: "bg-blue-400",
     light: "bg-blue-50 text-blue-700",
     checklist: [{ id: "c1", text: "Verify Lead Details" }]
   },
-  { 
-    id: "Discovery", 
-    label: "Discovery", 
-    color: "bg-indigo-400", 
+  {
+    id: "Contacted",
+    label: "Contacted",
+    color: "bg-indigo-400",
     light: "bg-indigo-50 text-indigo-700",
-    checklist: [{ id: "c2", text: "Identify Needs" }]
+    checklist: [{ id: "c2", text: "Confirm decision maker and current supplier" }]
   },
-  { 
-    id: "Proposal", 
-    label: "Proposal", 
-    color: "bg-purple-400", 
+  {
+    id: "Meeting Scheduled",
+    label: "Meeting Scheduled",
+    color: "bg-cyan-400",
+    light: "bg-cyan-50 text-cyan-700",
+    checklist: [{ id: "c3", text: "Schedule site review or pricing discussion" }]
+  },
+  {
+    id: "Quote Requested",
+    label: "Quote Requested",
+    color: "bg-purple-400",
     light: "bg-purple-50 text-purple-700",
-    checklist: [{ id: "c3", text: "Send Proposal" }]
+    checklist: [{ id: "c4", text: "Collect gallons, delivery, tank, and pricing inputs" }]
   },
-  { 
-    id: "Negotiation", 
-    label: "Negotiation", 
-    color: "bg-amber-400", 
+  {
+    id: "Proposal Sent",
+    label: "Proposal Sent",
+    color: "bg-pink-400",
+    light: "bg-pink-50 text-pink-700",
+    checklist: [{ id: "c5", text: "Send proposal and confirm follow-up date" }]
+  },
+  {
+    id: "Negotiation",
+    label: "Negotiation",
+    color: "bg-amber-400",
     light: "bg-amber-50 text-amber-700",
-    checklist: []
+    checklist: [{ id: "c6", text: "Resolve objection, margin, or delivery gap" }]
   },
-  { 
-    id: "Closed Won", 
-    label: "Closed Won", 
-    color: "bg-emerald-500", 
+  {
+    id: "Closed Won",
+    label: "Won",
+    color: "bg-emerald-500",
     light: "bg-emerald-50 text-emerald-700",
     checklist: []
   },
-  { 
-    id: "Closed Lost", 
-    label: "Closed Lost", 
-    color: "bg-slate-300", 
+  {
+    id: "Closed Lost",
+    label: "Lost",
+    color: "bg-slate-300",
     light: "bg-slate-50 text-slate-500",
     checklist: []
   }
@@ -65,6 +80,42 @@ export const defaultBranding = {
   logoUrl: "/images/mdx-fuel-atlas-logo.png", 
   primaryColor: "red",
   currency: "$"
+};
+
+const legacyLeadStatusValues = new Set([
+  "Contacted - Qualifying",
+  "Sales Ready",
+  "Lost / Unqualified"
+]);
+
+const legacyPipelineStageValues = new Set([
+  "New",
+  "Discovery",
+  "Proposal"
+]);
+
+const normalizeLeadStatusesForInterimCrm = (statuses) => {
+  if (!Array.isArray(statuses) || statuses.length === 0) {
+    return defaultLeadStatuses;
+  }
+
+  if (statuses.some((status) => legacyLeadStatusValues.has(status?.value))) {
+    return defaultLeadStatuses;
+  }
+
+  return statuses;
+};
+
+const normalizePipelineStagesForInterimCrm = (stages) => {
+  if (!Array.isArray(stages) || stages.length === 0) {
+    return defaultPipelineStages;
+  }
+
+  if (stages.some((stage) => legacyPipelineStageValues.has(stage?.id))) {
+    return defaultPipelineStages;
+  }
+
+  return stages;
 };
 
 export function SettingsProvider({ children }) {
@@ -129,8 +180,8 @@ export function SettingsProvider({ children }) {
     supportEmail: orgSettings?.support_email || ""
   };
 
-  const pipelineStages = orgSettings?.pipeline_stages || defaultPipelineStages;
-  const leadStatuses = orgSettings?.lead_statuses || defaultLeadStatuses;
+  const pipelineStages = normalizePipelineStagesForInterimCrm(orgSettings?.pipeline_stages);
+  const leadStatuses = normalizeLeadStatusesForInterimCrm(orgSettings?.lead_statuses);
   const systemTags = orgSettings?.system_tags || [];
 
   // 4. Update Functions

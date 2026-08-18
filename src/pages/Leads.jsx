@@ -3,11 +3,13 @@ import { atlas } from "@/api/atlasClient";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Phone, CheckCircle2, Pencil, ArrowUp, ArrowDown, ArrowUpDown, Trash2, Eye
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Phone, CheckCircle2, Pencil, ArrowUp, ArrowDown, ArrowUpDown, Trash2, Eye, Plus, Sparkles, LayoutGrid, List as ListIcon
 } from "lucide-react";
 
 
 import LeadsKanban from "@/components/crm/LeadsKanban";
+import LeadForm from "@/components/crm/LeadForm";
 import { processAutomation } from "@/components/automation/rulesEngine";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
@@ -16,6 +18,7 @@ import { useSettings } from "@/components/context/SettingsContext";
 import AiLeadImport from "@/components/crm/AiLeadImport";
 import { usePermissions } from '@/components/hooks/usePermissions';
 import { useUrlFilters } from '@/components/hooks/useUrlFilters';
+import SmartFilterBar from "@/components/common/SmartFilterBar";
 
 import { useLocation } from "react-router-dom";
 
@@ -30,19 +33,21 @@ export default function LeadsPage() {
       return [
         { value: "New", label: "New", color: "bg-cyan-950/40 text-cyan-300 border-cyan-800 ring-1 ring-cyan-500/50 shadow-[0_0_8px_rgba(34,211,238,0.2)]" },
         { value: "Attempting Contact", label: "Attempting Contact", mobileLabel: "Attempting", color: "bg-violet-950/40 text-violet-300 border-violet-800 ring-1 ring-violet-500/50 shadow-[0_0_8px_rgba(167,139,250,0.2)]" },
-        { value: "Contacted - Qualifying", label: "Qualifying", color: "bg-fuchsia-950/40 text-fuchsia-300 border-fuchsia-800 ring-1 ring-fuchsia-500/50 shadow-[0_0_8px_rgba(232,121,249,0.2)]" },
-        { value: "Sales Ready", label: "Sales Ready", color: "bg-yellow-950/40 text-yellow-300 border-yellow-800 ring-1 ring-yellow-500/50 shadow-[0_0_8px_rgba(250,204,21,0.2)]" },
+        { value: "Contacted", label: "Contacted", color: "bg-fuchsia-950/40 text-fuchsia-300 border-fuchsia-800 ring-1 ring-fuchsia-500/50 shadow-[0_0_8px_rgba(232,121,249,0.2)]" },
+        { value: "Qualified", label: "Qualified", color: "bg-yellow-950/40 text-yellow-300 border-yellow-800 ring-1 ring-yellow-500/50 shadow-[0_0_8px_rgba(250,204,21,0.2)]" },
+        { value: "Nurturing", label: "Nurturing", color: "bg-blue-950/40 text-blue-300 border-blue-800 ring-1 ring-blue-500/50 shadow-[0_0_8px_rgba(59,130,246,0.2)]" },
+        { value: "Disqualified", label: "Disqualified", color: "bg-slate-900/50 text-slate-500 border-slate-800" },
         { value: "Converted", label: "Converted", color: "bg-emerald-950/40 text-emerald-300 border-emerald-800 ring-1 ring-emerald-500/50 shadow-[0_0_8px_rgba(52,211,153,0.2)]" },
-        { value: "Lost / Unqualified", label: "Lost / Unqualified", color: "bg-slate-900/50 text-slate-500 border-slate-800" }
       ];
     }
     return [
       { value: "New", label: "New", color: "bg-cyan-50 text-cyan-700 border-cyan-200" },
       { value: "Attempting Contact", label: "Attempting Contact", mobileLabel: "Attempting", color: "bg-violet-50 text-violet-700 border-violet-200" },
-      { value: "Contacted - Qualifying", label: "Qualifying", color: "bg-fuchsia-50 text-fuchsia-700 border-fuchsia-200" },
-      { value: "Sales Ready", label: "Sales Ready", color: "bg-yellow-50 text-yellow-700 border-yellow-200" },
+      { value: "Contacted", label: "Contacted", color: "bg-fuchsia-50 text-fuchsia-700 border-fuchsia-200" },
+      { value: "Qualified", label: "Qualified", color: "bg-yellow-50 text-yellow-700 border-yellow-200" },
+      { value: "Nurturing", label: "Nurturing", color: "bg-blue-50 text-blue-700 border-blue-200" },
+      { value: "Disqualified", label: "Disqualified", color: "bg-slate-100 text-slate-500 border-slate-200" },
       { value: "Converted", label: "Converted", color: "bg-emerald-50 text-emerald-700 border-emerald-200" },
-      { value: "Lost / Unqualified", label: "Lost / Unqualified", color: "bg-slate-100 text-slate-500 border-slate-200" }
     ];
   }, [theme]);
 
@@ -170,7 +175,7 @@ export default function LeadsPage() {
   // Lead workflow
   const stats = useMemo(() => {
     const total = leads.length;
-    const convertedCount = leads.filter((l) => l.lead_status.includes('Converted')).length;
+    const convertedCount = leads.filter((l) => l.lead_status?.includes('Converted')).length;
     const conversionRate = total > 0 ? (convertedCount / total * 100).toFixed(1) : 0;
     return { total, conversionRate };
   }, [leads]);
@@ -180,6 +185,8 @@ export default function LeadsPage() {
     mutationFn: (data) => atlas.entities.Lead.create(data),
     onSuccess: async (data) => {
       queryClient.invalidateQueries(['leads']);
+      setShowLeadForm(false);
+      setEditingLead(null);
       // No automatic close - handled by handlers
       processAutomation('Lead', 'create', data);
 
@@ -347,6 +354,72 @@ export default function LeadsPage() {
 
   return (
     <div className={`flex flex-col transition-colors duration-300 ${viewMode === 'kanban' ? 'min-h-[calc(100dvh-100px)] md:h-[calc(100vh-140px)]' : 'min-h-full pb-24 md:pb-0'} ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>
+
+      <div className="mb-6">
+        <SmartFilterBar
+          views={views}
+          activeView={activeView}
+          onViewChange={handleViewChange}
+          schema={filterSchema}
+          filters={activeFilters}
+          onFilterChange={setActiveFilters}
+          search={search}
+          onSearchChange={setSearch}
+        >
+          <div className={`flex items-center gap-1 p-1 rounded-lg ${
+            theme === 'dark' ? 'bg-slate-900/70 border border-slate-700' : 'bg-slate-100 border border-slate-200'
+          }`}>
+            <Button
+              variant={viewMode === 'kanban' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setViewMode('kanban')}
+              className="h-8 px-2"
+              title="Kanban view"
+            >
+              <LayoutGrid className="w-4 h-4" />
+            </Button>
+            <Button
+              variant={viewMode === 'list' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setViewMode('list')}
+              className="h-8 px-2"
+              title="List view"
+            >
+              <ListIcon className="w-4 h-4" />
+            </Button>
+          </div>
+
+          {canCreate && (
+            <>
+              <Button
+                onClick={() => setShowAiImport(true)}
+                size="sm"
+                variant="outline"
+                className={`h-8 rounded-lg ${
+                  theme === 'dark'
+                    ? 'border-cyan-800 text-cyan-300 hover:bg-cyan-950/40'
+                    : 'border-purple-200 text-purple-700 hover:bg-purple-50'
+                }`}
+              >
+                <Sparkles className="w-4 h-4 mr-2" />
+                <span className="text-xs font-medium">AI Import</span>
+              </Button>
+              <Button
+                onClick={() => { setEditingLead(null); setShowLeadForm(true); }}
+                size="sm"
+                className={`h-8 text-white shadow-lg rounded-lg ${
+                  theme === 'dark'
+                    ? 'bg-cyan-500 hover:bg-cyan-600 shadow-cyan-500/30'
+                    : 'bg-red-600 hover:bg-red-700 shadow-red-900/10'
+                }`}
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                <span className="text-xs font-medium">New Lead</span>
+              </Button>
+            </>
+          )}
+        </SmartFilterBar>
+      </div>
 
       {/* Lead workflow */}
       {viewMode === 'kanban' && (
@@ -576,6 +649,42 @@ export default function LeadsPage() {
         onOpenChange={setShowAiImport}
         onLeadCreated={(leadData) => createLead.mutate(leadData)}
       />
+
+      <Dialog open={showLeadForm} onOpenChange={(open) => { setShowLeadForm(open); if (!open) setEditingLead(null); }}>
+        <DialogContent className={`fixed right-0 top-0 left-auto translate-x-0 translate-y-0 h-full w-full sm:w-[720px] max-w-none p-0 border-l shadow-2xl transition-all duration-300 gap-0 data-[state=open]:slide-in-from-right data-[state=closed]:slide-out-to-right sm:rounded-none ${
+          theme === 'dark' ? 'bg-slate-900 border-slate-700' : 'bg-white border-slate-200'
+        }`}>
+          {(showLeadForm || editingLead) && (
+            <LeadForm
+              lead={editingLead}
+              onSaveAndClose={(data) => {
+                if (editingLead) {
+                  updateLead.mutate(
+                    { id: editingLead.id, data },
+                    {
+                      onSuccess: () => {
+                        setShowLeadForm(false);
+                        setEditingLead(null);
+                      }
+                    }
+                  );
+                } else {
+                  createLead.mutate(data);
+                }
+              }}
+              onSaveAndStay={(data) => {
+                if (editingLead) {
+                  updateLead.mutate({ id: editingLead.id, data });
+                } else {
+                  createLead.mutate(data);
+                }
+              }}
+              onCancel={() => setShowLeadForm(false)}
+              isSubmitting={createLead.isPending || updateLead.isPending}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

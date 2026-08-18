@@ -218,7 +218,7 @@ export default function LeadsKanban({ leads, statuses, onStatusChange, onEdit, o
                                 )}
 
                                 {moment(lead.updated_date).isBefore(moment().subtract(7, 'days')) &&
-                                 !['Converted', 'Lost / Unqualified'].includes(lead.lead_status) && (
+                                 !['Converted', 'Disqualified', 'Lost / Unqualified'].includes(lead.lead_status) && (
                                     <div className="text-[10px] text-amber-500 flex items-center gap-1 font-medium mt-1">
                                         <AlertCircle className="w-3 h-3" /> Stale ({moment(lead.updated_date).fromNow(true)})
                                     </div>
