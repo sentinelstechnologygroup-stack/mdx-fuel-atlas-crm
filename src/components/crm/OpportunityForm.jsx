@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { motion } from "framer-motion";
-import { Loader2, Briefcase, Sparkles, BrainCircuit, User, CheckSquare, AlertCircle, X } from "lucide-react";
+import { Loader2, Briefcase, Sparkles, User, CheckSquare, AlertCircle, X } from "lucide-react";
 import { useSettings } from "@/components/context/SettingsContext";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ActivityLog from "./ActivityLog";
@@ -34,9 +34,18 @@ export default function OpportunityForm({ opportunity, initialLead, onSubmit, on
       phone_number: initialLead?.phone_number || "",
       email: initialLead?.email || "",
       product_type: "New Business",
-      deal_type: "Business",
       amount: "",
       estimated_monthly_gallons: "",
+      primary_fuel_type: "On-Road Diesel",
+      delivery_type: "Scheduled",
+      pricing_method: "Rack Plus",
+      deliveries_per_month: "",
+      delivery_fee_per_delivery: "",
+      tank_rental: "No",
+      number_of_tanks: "",
+      monthly_rental_fee_per_tank: "",
+      fuel_margin_per_gallon: "",
+      current_supplier: "",
       deal_stage: "Prospect",
       probability: 20,
       expected_close_date: "",
@@ -106,12 +115,16 @@ export default function OpportunityForm({ opportunity, initialLead, onSubmit, on
 
       // Strategy Prompt
       const strategyPrompt = `
-        Act as an expert sales consultant.
-        Analyze this lead:
-        - Product Interest: ${values.product_type}
+        Act as an MDX Fuel sales manager.
+        Analyze this fuel opportunity:
+        - Opportunity Type: ${values.product_type}
+        - Fuel Type: ${values.primary_fuel_type}
+        - Monthly Gallons: ${values.estimated_monthly_gallons}
+        - Current Supplier: ${values.current_supplier}
+        - Why Looking: ${values.main_pain_point}
 
         Rules:
-        - Provide a general tailored strategy based on the data.
+        - Focus on pricing, service reliability, delivery logistics, tank program, and next follow-up.
 
         Output in English. Be concise.
       `;
@@ -121,7 +134,7 @@ export default function OpportunityForm({ opportunity, initialLead, onSubmit, on
         Act as an expert sales trainer.
         Handle this objection: "${values.current_objection}"
 
-        Context: General Sales.
+        Context: MDX Fuel bulk fuel, delivery, tank rental, and fleet account sales.
 
         Rules:
         - Provide a short, empathetic, professional counter-argument.
@@ -319,9 +332,17 @@ export default function OpportunityForm({ opportunity, initialLead, onSubmit, on
             </div>
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className={`p-5 rounded-2xl border space-y-5 ${sectionBg}`}>
+          <div>
+            <h3 className={`font-bold ${theme === 'dark' ? 'text-white' : 'text-slate-800'}`}>
+              Fuel Opportunity
+            </h3>
+            <p className={`text-xs mt-1 ${theme === 'dark' ? 'text-slate-400' : 'text-slate-500'}`}>
+              Match the interim CRM: opportunity type, stage, fuel need, supplier, and follow-up.
+            </p>
+          </div>
 
-          {/* Phone and Email removed as they appear in Original Lead Details */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
 
           <div className="space-y-2">
             <Label className={labelClass}>Opportunity Type</Label>
@@ -361,17 +382,7 @@ export default function OpportunityForm({ opportunity, initialLead, onSubmit, on
           </div>
 
           <div className="space-y-2">
-            <Label className={labelClass}>Deal Value ($)</Label>
-            <Input
-                  type="number"
-                  {...register("amount", { valueAsNumber: true })}
-                  placeholder="0.00"
-                  className={inputClass} />
-
-          </div>
-
-          <div className="space-y-2">
-            <Label className={labelClass}>Estimated Monthly Gallons</Label>
+            <Label className={labelClass}>Estimated Gallons / Month</Label>
             <Input
                   type="number"
                   min="0"
@@ -383,7 +394,7 @@ export default function OpportunityForm({ opportunity, initialLead, onSubmit, on
                   placeholder="e.g., 25,000"
                   className={inputClass} />
             <p className={`text-[11px] ${theme === 'dark' ? 'text-slate-500' : 'text-slate-400'}`}>
-              Used for gallon quota attainment, forecasts, and sales rankings.
+              Drives forecast, delivery plan, tank program, and sales rankings.
             </p>
             {errors.estimated_monthly_gallons && (
               <span className="text-red-500 text-xs">{errors.estimated_monthly_gallons.message}</span>
@@ -391,146 +402,192 @@ export default function OpportunityForm({ opportunity, initialLead, onSubmit, on
           </div>
 
           <div className="space-y-2">
-            <Label className={labelClass}>Closing Probability (%)</Label>
-            <Input
-                  type="number"
-                  min="0" max="100"
-                  {...register("probability", { valueAsNumber: true })}
-                  className={inputClass} />
+            <Label className={labelClass}>Primary Fuel Type</Label>
+            <Select
+              defaultValue={opportunity?.primary_fuel_type || "On-Road Diesel"}
+              onValueChange={(val) => handleSelectChange("primary_fuel_type", val)}
+            >
+              <SelectTrigger className={inputClass}>
+                <SelectValue placeholder="Select fuel type" />
+              </SelectTrigger>
+              <SelectContent className={theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : ''}>
+                <SelectItem value="On-Road Diesel">On-Road Diesel</SelectItem>
+                <SelectItem value="Off-Road Diesel">Off-Road Diesel</SelectItem>
+                <SelectItem value="Gasoline">Gasoline</SelectItem>
+                <SelectItem value="DEF">DEF</SelectItem>
+                <SelectItem value="Lubricants">Lubricants</SelectItem>
+                <SelectItem value="Racing Fuel">Racing Fuel</SelectItem>
+                <SelectItem value="Specialty Petroleum">Specialty Petroleum</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
+          <div className="space-y-2">
+            <Label className={labelClass}>Current Supplier</Label>
+            <Input {...register("current_supplier")} placeholder="e.g., Pilot, Sunoco, Mansfield, local supplier..." className={inputClass} />
+          </div>
+
+          <div className="space-y-2">
+            <Label className={labelClass}>Pricing Method</Label>
+            <Select
+              defaultValue={opportunity?.pricing_method || "Rack Plus"}
+              onValueChange={(val) => handleSelectChange("pricing_method", val)}
+            >
+              <SelectTrigger className={inputClass}>
+                <SelectValue placeholder="Select pricing method" />
+              </SelectTrigger>
+              <SelectContent className={theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : ''}>
+                <SelectItem value="Rack Plus">Rack Plus</SelectItem>
+                <SelectItem value="Fixed Price">Fixed Price</SelectItem>
+                <SelectItem value="Cost Plus">Cost Plus</SelectItem>
+                <SelectItem value="Contract">Contract</SelectItem>
+                <SelectItem value="Spot">Spot</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="space-y-2">
             <Label className={labelClass}>Expected Close Date</Label>
             <Input type="date" {...register("expected_close_date")} className={inputClass} />
           </div>
-
-          <div className="space-y-2">
-            <Label className={labelClass}>Deal Type</Label>
-            <div className={`grid grid-cols-2 p-1 rounded-xl ${theme === 'dark' ? 'bg-slate-800/50 border border-slate-700' : 'bg-slate-100 border border-slate-200'}`}>
-                {['Business', 'Private'].map((type) => {
-                    const isSelected = watch('deal_type') === type;
-                    return (
-                        <button
-                            key={type}
-                            type="button"
-                            onClick={() => setValue('deal_type', type)}
-                            className={`flex items-center justify-center py-2 text-sm font-medium rounded-lg transition-all ${
-                                isSelected
-                                    ? (theme === 'dark' ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/20' : 'bg-white text-blue-700 shadow-sm border border-slate-100')
-                                    : (theme === 'dark' ? 'text-slate-400 hover:text-slate-200' : 'text-slate-500 hover:text-slate-700')
-                            }`}
-                        >
-                            {type}
-                        </button>
-                    )
-                })}
-            </div>
-            {/* Hidden input to ensure value is registered */}
-            <input type="hidden" {...register("deal_type")} />
-          </div>
+        </div>
         </div>
 
-        <div className="space-y-2">
-          <Label className={labelClass}>Next Step</Label>
-          <Input {...register("next_task")} placeholder="e.g., Send quote, schedule site visit, confirm supplier pricing..." className={inputClass} />
-        </div>
-
-        {/* Sales Strategy Section */}
         <div className={`p-5 rounded-2xl border space-y-4 ${sectionBg}`}>
         <h3 className={`font-bold flex items-center gap-2 ${theme === 'dark' ? 'text-white' : 'text-slate-800'}`}>
-          <div className={`p-1.5 rounded-lg ${theme === 'dark' ? 'bg-purple-500/20 text-purple-400' : 'bg-purple-100 text-purple-600'}`}>
-             <Sparkles className="w-4 h-4" />
+          <div className={`p-1.5 rounded-lg ${theme === 'dark' ? 'bg-cyan-500/20 text-cyan-400' : 'bg-cyan-100 text-cyan-600'}`}>
+             <Briefcase className="w-4 h-4" />
           </div>
-          Sales Strategy
+          Delivery, Tanks & Margin
         </h3>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label className={labelClass}>Why Looking</Label>
+            <Label className={labelClass}>Delivery Type</Label>
             <Select
-                    defaultValue={opportunity?.main_pain_point}
-                    onValueChange={(val) => handleSelectChange("main_pain_point", val)}>
-
+              defaultValue={opportunity?.delivery_type || "Scheduled"}
+              onValueChange={(val) => handleSelectChange("delivery_type", val)}
+            >
               <SelectTrigger className={inputClass}>
-                <SelectValue placeholder="Select reason" />
+                <SelectValue placeholder="Select delivery type" />
               </SelectTrigger>
               <SelectContent className={theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : ''}>
-                <SelectItem value="Price">Price</SelectItem>
-                <SelectItem value="Service">Service</SelectItem>
-                <SelectItem value="Availability">Availability</SelectItem>
-                <SelectItem value="Relationship">Relationship</SelectItem>
-                <SelectItem value="Tank Program">Tank Program</SelectItem>
-                <SelectItem value="Delivery Capability">Delivery Capability</SelectItem>
-                <SelectItem value="Other">Other</SelectItem>
+                <SelectItem value="Scheduled">Scheduled</SelectItem>
+                <SelectItem value="Keep Full">Keep Full</SelectItem>
+                <SelectItem value="Call In">Call In</SelectItem>
+                <SelectItem value="Emergency">Emergency</SelectItem>
+                <SelectItem value="On Demand">On Demand</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
           <div className="space-y-2">
-            <Label className={labelClass}>Current Objection</Label>
-            <Input {...register("current_objection")} placeholder="What is the client saying? (e.g., Interest is high)" className={inputClass} />
+            <Label className={labelClass}>Deliveries / Month</Label>
+            <Input type="number" min="0" step="1" {...register("deliveries_per_month", { valueAsNumber: true })} placeholder="e.g., 8" className={inputClass} />
+          </div>
+
+          <div className="space-y-2">
+            <Label className={labelClass}>Delivery Fee / Delivery</Label>
+            <Input type="number" min="0" step="0.01" {...register("delivery_fee_per_delivery", { valueAsNumber: true })} placeholder="e.g., 75.00" className={inputClass} />
+          </div>
+
+          <div className="space-y-2">
+            <Label className={labelClass}>Tank Rental?</Label>
+            <Select
+              defaultValue={opportunity?.tank_rental || "No"}
+              onValueChange={(val) => handleSelectChange("tank_rental", val)}
+            >
+              <SelectTrigger className={inputClass}>
+                <SelectValue placeholder="Tank rental?" />
+              </SelectTrigger>
+              <SelectContent className={theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : ''}>
+                <SelectItem value="Yes">Yes</SelectItem>
+                <SelectItem value="No">No</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label className={labelClass}>Number of Tanks</Label>
+            <Input type="number" min="0" step="1" {...register("number_of_tanks", { valueAsNumber: true })} placeholder="e.g., 2" className={inputClass} />
+          </div>
+
+          <div className="space-y-2">
+            <Label className={labelClass}>Rental Fee / Tank</Label>
+            <Input type="number" min="0" step="0.01" {...register("monthly_rental_fee_per_tank", { valueAsNumber: true })} placeholder="e.g., 250.00" className={inputClass} />
+          </div>
+
+          <div className="space-y-2">
+            <Label className={labelClass}>Fuel Margin / Gallon</Label>
+            <Input type="number" min="0" step="0.0001" {...register("fuel_margin_per_gallon", { valueAsNumber: true })} placeholder="e.g., 0.1250" className={inputClass} />
           </div>
         </div>
+        </div>
 
-        {/* AI Section */}
-        <div className="space-y-4 pt-2">
-          <div className="flex justify-between items-center flex-wrap gap-2">
-            <Label className={`font-medium flex items-center gap-2 ${theme === 'dark' ? 'text-purple-400' : 'text-purple-700'}`}>
-              <BrainCircuit className="w-4 h-4" />
-              AI Consultant
-            </Label>
-            <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    onClick={generateAiInsights}
-                    disabled={aiLoading} className={`px-3 text-xs font-medium rounded-md inline-flex items-center justify-center gap-2 whitespace-nowrap transition-colors border shadow-sm w-full md:w-auto ${
-                      theme === 'dark'
-                        ? 'bg-purple-900/20 text-purple-300 border-purple-800 hover:bg-purple-900/40'
-                        : 'bg-slate-50 text-purple-600 border-purple-200 hover:bg-purple-50'
-                    }`}>
-
-
-              {aiLoading ? <Loader2 className="w-3 h-3 animate-spin mr-2" /> : <Sparkles className="w-3 h-3 mr-2" />}
-              Generate AI Insights
-            </Button>
-          </div>
+        <div className={`p-5 rounded-2xl border space-y-4 ${sectionBg}`}>
+          <h3 className={`font-bold flex items-center gap-2 ${theme === 'dark' ? 'text-white' : 'text-slate-800'}`}>
+            <div className={`p-1.5 rounded-lg ${theme === 'dark' ? 'bg-purple-500/20 text-purple-400' : 'bg-purple-100 text-purple-600'}`}>
+              <Sparkles className="w-4 h-4" />
+            </div>
+            Qualification & Follow-Up
+          </h3>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label className={`text-xs ${theme === 'dark' ? 'text-slate-400' : 'text-neutral-600'}`}>Recommended Strategy</Label>
-              <div className="relative">
-                <textarea
-                        readOnly
-                        {...register("ai_sales_strategy")}
-                        className={`w-full min-h-[80px] p-3 rounded-md border text-sm focus:outline-none resize-none ${
-                          theme === 'dark'
-                            ? 'bg-slate-900/50 border-slate-700 text-slate-300 placeholder:text-slate-600'
-                            : 'bg-purple-50/50 border-slate-200 text-slate-900 placeholder:text-slate-400'
-                        }`}
-                        placeholder="Click 'Generate Insights' for strategy..." />
-
-              </div>
+              <Label className={labelClass}>Why Looking</Label>
+              <Select
+                defaultValue={opportunity?.main_pain_point}
+                onValueChange={(val) => handleSelectChange("main_pain_point", val)}
+              >
+                <SelectTrigger className={inputClass}>
+                  <SelectValue placeholder="Select reason" />
+                </SelectTrigger>
+                <SelectContent className={theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : ''}>
+                  <SelectItem value="Price">Price</SelectItem>
+                  <SelectItem value="Service">Service</SelectItem>
+                  <SelectItem value="Availability">Availability</SelectItem>
+                  <SelectItem value="Relationship">Relationship</SelectItem>
+                  <SelectItem value="Tank Program">Tank Program</SelectItem>
+                  <SelectItem value="Delivery Capability">Delivery Capability</SelectItem>
+                  <SelectItem value="Other">Other</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="space-y-2">
-              <Label className={`text-xs ${theme === 'dark' ? 'text-slate-400' : 'text-neutral-600'}`}>Objection Handler</Label>
-              <div className="relative">
-                <textarea
-                        readOnly
-                        {...register("ai_objection_handler")}
-                        className={`w-full min-h-[80px] p-3 rounded-md border text-sm focus:outline-none resize-none ${
-                          theme === 'dark'
-                            ? 'bg-slate-900/50 border-slate-700 text-slate-300 placeholder:text-slate-600'
-                            : 'bg-purple-50/50 border-slate-200 text-slate-900 placeholder:text-slate-400'
-                        }`}
-                        placeholder="Handler will appear here..." />
+              <Label className={labelClass}>Current Objection</Label>
+              <Input {...register("current_objection")} placeholder="e.g., Price, credit, supplier contract, tank setup..." className={inputClass} />
+            </div>
 
-              </div>
+            <div className="space-y-2">
+              <Label className={labelClass}>Closing Probability (%)</Label>
+              <Input type="number" min="0" max="100" {...register("probability", { valueAsNumber: true })} className={inputClass} />
+            </div>
+
+            <div className="space-y-2">
+              <Label className={labelClass}>Estimated Monthly Revenue</Label>
+              <Input type="number" {...register("amount", { valueAsNumber: true })} placeholder="Optional forecast $" className={inputClass} />
             </div>
           </div>
-        </div>
+
+          <div className="space-y-2">
+            <Label className={labelClass}>Next Step</Label>
+            <Input {...register("next_task")} placeholder="e.g., Send quote, schedule site visit, confirm supplier pricing..." className={inputClass} />
+          </div>
+
+          <div className="flex justify-end">
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={generateAiInsights}
+              disabled={aiLoading}
+              className={theme === 'dark' ? 'border-purple-800 text-purple-300 hover:bg-purple-900/40' : 'border-purple-200 text-purple-700 hover:bg-purple-50'}
+            >
+              {aiLoading ? <Loader2 className="w-3 h-3 animate-spin mr-2" /> : <Sparkles className="w-3 h-3 mr-2" />}
+              Generate Fuel Sales Notes
+            </Button>
+          </div>
         </div>
 
         <div className="flex justify-end gap-4 pt-4 border-t">

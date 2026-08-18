@@ -40,7 +40,8 @@ export default function ClientList({ clients, onSelectClient }) {
     };
 
     const filteredClients = clients.filter(c => 
-        c.full_name?.toLowerCase().includes(search.toLowerCase()) || 
+        c.company_name?.toLowerCase().includes(search.toLowerCase()) ||
+        c.full_name?.toLowerCase().includes(search.toLowerCase()) ||
         c.email?.toLowerCase().includes(search.toLowerCase())
     );
 
@@ -53,11 +54,11 @@ export default function ClientList({ clients, onSelectClient }) {
     return (
         <div className={`rounded-xl border shadow-lg backdrop-blur-xl ${isDark ? 'bg-slate-800/60 border-slate-700/50' : 'bg-white/60 border-white/50'}`}>
             <div className="p-4 border-b border-slate-200/50 dark:border-slate-700/50 flex justify-between items-center">
-                <h3 className={`font-bold text-lg ${isDark ? 'text-white' : 'text-slate-900'}`}>Clients</h3>
+                <h3 className={`font-bold text-lg ${isDark ? 'text-white' : 'text-slate-900'}`}>Customer Accounts</h3>
                 <div className="relative w-64">
                     <Search className="absolute left-2 top-2.5 h-4 w-4 text-slate-400" />
                     <Input 
-                        placeholder="Search clients..." 
+                        placeholder="Search customers..."
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
                         className={`pl-8 ${isDark ? 'bg-slate-900 border-slate-700 text-white' : ''}`}
@@ -101,11 +102,11 @@ export default function ClientList({ clients, onSelectClient }) {
                 <Table>
                     <TableHeader className={isDark ? 'bg-slate-900/50' : 'bg-slate-50'}>
                         <TableRow className={isDark ? 'border-slate-700' : ''}>
-                            <TableHead className={isDark ? 'text-slate-400' : ''}>Client Name</TableHead>
-                            <TableHead className={isDark ? 'text-slate-400' : ''}>Segment</TableHead>
-                            <TableHead className={isDark ? 'text-slate-400' : ''}>Onboarding</TableHead>
-                            <TableHead className={isDark ? 'text-slate-400' : ''}>Health</TableHead>
-                            <TableHead className={isDark ? 'text-slate-400' : ''}>Renewal</TableHead>
+                            <TableHead className={isDark ? 'text-slate-400' : ''}>Company</TableHead>
+                            <TableHead className={isDark ? 'text-slate-400' : ''}>Fuel Type</TableHead>
+                            <TableHead className={isDark ? 'text-slate-400' : ''}>Gallons / Month</TableHead>
+                            <TableHead className={isDark ? 'text-slate-400' : ''}>Credit</TableHead>
+                            <TableHead className={isDark ? 'text-slate-400' : ''}>Next Follow-Up</TableHead>
                             <TableHead className={isDark ? 'text-slate-400' : ''}>Action</TableHead>
                         </TableRow>
                     </TableHeader>
@@ -113,24 +114,20 @@ export default function ClientList({ clients, onSelectClient }) {
                         {filteredClients.map((client) => (
                             <TableRow key={client.id} className={`cursor-pointer transition-colors ${isDark ? 'border-slate-700 hover:bg-slate-700/50' : 'hover:bg-slate-50'}`} onClick={() => onSelectClient(client)}>
                                 <TableCell className="font-medium">
-                                    <div className={isDark ? 'text-white' : 'text-slate-900'}>{client.full_name}</div>
-                                    <div className="text-xs text-slate-500">{client.product_type}</div>
+                                    <div className={isDark ? 'text-white' : 'text-slate-900'}>{client.company_name || client.full_name}</div>
+                                    <div className="text-xs text-slate-500">{client.full_name}</div>
                                 </TableCell>
                                 <TableCell>
-                                    <Badge variant="outline" className={isDark ? 'border-slate-600 text-slate-300' : ''}>{client.customer_segment}</Badge>
+                                    <Badge variant="outline" className={isDark ? 'border-slate-600 text-slate-300' : ''}>{client.primary_fuel_type || client.product_type || 'Fuel Account'}</Badge>
                                 </TableCell>
                                 <TableCell>
-                                    <span className={`text-sm ${
-                                        client.onboarding_status === 'Completed' ? 'text-green-600' : 
-                                        client.onboarding_status === 'In Progress' ? 'text-blue-600' : 
-                                        'text-slate-500'
-                                    }`}>
-                                        {client.onboarding_status}
+                                    <span className={isDark ? 'text-slate-300' : 'text-slate-600'}>
+                                        {Number(client.estimated_monthly_gallons || 0).toLocaleString()} gal
                                     </span>
                                 </TableCell>
-                                <TableCell>{getHealthBadge(client.health_score)}</TableCell>
+                                <TableCell>{client.credit_status || getHealthBadge(client.health_score)}</TableCell>
                                 <TableCell className={isDark ? 'text-slate-300' : 'text-slate-600'}>
-                                    {moment(client.renewal_date).format("MMM D, YYYY")}
+                                    {client.next_follow_up ? moment(client.next_follow_up).format("MMM D, YYYY") : '-'}
                                 </TableCell>
                                 <TableCell>
                                     <Button variant="ghost" size="icon" className={isDark ? 'text-slate-400 hover:text-white' : ''}>
