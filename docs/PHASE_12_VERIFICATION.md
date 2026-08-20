@@ -94,3 +94,7 @@ These files are gitignored and contain placeholder-only values. `MDX_EMULATOR_DI
 ## Phase 12 go/no-go
 
 Phase 12 automated remote verification and local production preview smoke are complete. Phase 13 should remain blocked until the authenticated desktop/browser checklist is completed and Patrick explicitly authorizes any deployment or cutover action.
+
+## Closeout reconciliation
+
+Patrick's Phase 13 start handoff records Phase 12 as complete and merged through PR #3 at merge commit `57fbf374953150e2d9560bcb5aeac7aa11739f40`. The production build, `npm run test:phase12`, Functions lint, and Vercel preview checks passed during closeout. This historical file preserves the earlier point-in-time statement that the authenticated checklist was pending; Phase 13 re-runs the applicable gates and records current manual evidence separately.

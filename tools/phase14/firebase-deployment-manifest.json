@@ -1,0 +1,16 @@
+{
+  "manifestVersion": 1,
+  "codebase": "default",
+  "region": "us-central1",
+  "functions": [
+    "qualifyNewLead",
+    "scanStaleOpportunities",
+    "recheckStaleOpportunity",
+    "generateWeeklySalesReport"
+  ],
+  "excludedRetrySensitiveFunctions": [
+    "createNewLeadNotifications",
+    "deliverNotificationEmail",
+    "createDailyReminderNotifications"
+  ]
+}

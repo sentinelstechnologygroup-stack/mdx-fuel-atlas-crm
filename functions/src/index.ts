@@ -4159,6 +4159,20 @@ export {
   deliverNotificationEmail,
   processNotificationDelivery,
 } from "./notificationDeliveryBridge.js";
+export {
+  processLeadQualification,
+  qualifyNewLead,
+} from "./leadQualification.js";
+export {
+  processStaleOpportunityRecheck,
+  processStaleOpportunityScan,
+  recheckStaleOpportunity,
+  scanStaleOpportunities,
+} from "./staleOpportunity.js";
+export {
+  generateWeeklySalesReport,
+  processWeeklySalesReport,
+} from "./weeklySalesReport.js";
 export {executeAtlasAiCallable} from "./atlasAiGateway.js";
 export const invokeAtlasAi = onCall(
   {

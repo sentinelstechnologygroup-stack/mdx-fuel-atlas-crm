@@ -1,10 +1,10 @@
 # Migration Status
 
-Last updated: 2026-08-17
+Last updated: 2026-08-18
 
 ## Current state
 
-- Active phase: Phase 12 - automated parity, security, role, regression, and emulator testing complete; manual desktop verification pending
+- Active phase: Phase 13 - controlled Base44 cutover and dependency retirement assessment
 - Baseline verified: tag and commit identity verified
 - Firebase development project: `mdx-fuel-atlas-crm-dev` (`485940537312`)
 - Firestore location: `nam5`
@@ -12,13 +12,14 @@ Last updated: 2026-08-17
 - Frontend connected to Firebase runtime: yes
 - Phase 11 merged to `main`: yes; merge commit `2d1e15f`
 - Phase 11 production activation: complete for scoped `functions:invokeAtlasAi` deployment per Patrick's Phase 12 start note
+- Phase 12 merged to `main`: yes; merge commit `57fbf374953150e2d9560bcb5aeac7aa11739f40`
 - Vercel production state: reported stable at Phase 12 start
 - Firebase Storage provisioned: yes
 - Firestore rules/indexes and Storage rules deployed: yes
 - legacy provider removed: no
 - Production cutover/legacy retirement authorized: no
 - `retired-provider/` rename authorized: no; unsafe until runtime and reference material are separated and Phase 13 gates pass
-- Deployment authorized for Phase 12: no
+- Deployment authorized for Phase 13: no; planning, implementation, emulator verification, and local walkthrough work only
 
 ## Phase status
 
@@ -29,8 +30,15 @@ Last updated: 2026-08-17
 | 2 | Complete | Firebase Authentication and employee profile checkpoint committed and superseded by later migration phases |
 | 3-10 | Complete | Firebase entity, permission, workflow, storage, messaging, notification, and automation checkpoints are present in branch history through commit `6e66de2` |
 | 11 | Complete, merged, and scoped production activation complete | Merge commit `2d1e15f`; follow-up commits `a27a743` and `7e30f2e`; `invokeAtlasAi` deployed without broad Functions deployment |
-| 12 | Automated verification complete; manual verification pending | Phase 12 branch `migration/phase-12-parity-security-regression-testing`; automated remote evidence passes including full Functions emulator suite; see `docs/PHASE_12_VERIFICATION.md` |
-| 13-14 | Not started | No deployment, broad retry-policy change, legacy cleanup, or `retired-provider/` movement is authorized in Phase 12 |
+| 12 | Complete and merged | Merge commit `57fbf374953150e2d9560bcb5aeac7aa11739f40`; production build, `test:phase12`, Functions lint, and Vercel preview checks passed; see `docs/PHASE_12_VERIFICATION.md` |
+| 13 | In progress; cutover no-go | Branch `migration/phase-13-controlled-base44-cutover`; all three preserved workflows have Firebase-native implementations and focused tests; unused app logging retired by scope decision; PR #4, manual, deployment, and production-acceptance gates remain |
+| 14 | Not started | Production validation and migration closeout remain blocked on the Phase 13 go/no-go |
+
+Phase 14 remote-safe planning is recorded in `docs/PHASE_14_PRODUCTION_VALIDATION.md`. No Phase 14 deployment or production mutation has been performed.
+
+On 2026-08-18 Patrick approved the Phase 14 validation plan, its four-function scoped manifest, preservation of Base44 reference material in place, and closeout/release tagging after the documented gates pass. Deployment remains blocked on target-project confirmation and backup/export evidence. Salesperson and superadmin walkthroughs and the PR #4 merge-or-defer decision remain under review.
+
+On 2026-08-20 the remaining target-independent Phase 14 operations were automated: fail-closed managed-export, privacy-safe reconciliation, exact-manifest deployment, evidence template, safeguard tests, and a desktop-only handoff. All local Phase 12-14 release gates passed. No cloud mutation or deployment was performed.
 
 ## Phase 1 foundation implemented
 

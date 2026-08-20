@@ -1,0 +1,23 @@
+{
+  "projectId": "REPLACE_WITH_CONFIRMED_PROJECT",
+  "capturedAt": "REPLACE_WITH_UTC_TIMESTAMP",
+  "operator": "REPLACE_WITH_OPERATOR_EMAIL",
+  "sourceCommit": "REPLACE_WITH_COMMIT_SHA",
+  "firestoreExport": {
+    "status": "REPLACE_WITH_SUCCESSFUL",
+    "operationName": "REPLACE_WITH_OPERATION_NAME",
+    "outputUriPrefix": "REPLACE_WITH_GS_URI"
+  },
+  "authentication": {
+    "snapshotComplete": false,
+    "userCount": null,
+    "profileCount": null,
+    "unmatchedAuthUsers": null,
+    "unmatchedProfiles": null
+  },
+  "storage": {
+    "snapshotComplete": false,
+    "bucket": "REPLACE_WITH_BUCKET",
+    "objectCount": null
+  }
+}

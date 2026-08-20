@@ -17,10 +17,11 @@ firebase/
   firestore.indexes.json
   storage.rules
   emulator-tests/
-legacy/retired-provider/          eventual reference-only location; not created/renamed yet
+atlas/                            current preserved Base44 reference project
+legacy/retired-provider/          possible eventual reference-only location; not created/renamed yet
 ```
 
-The current `retired-provider/` directory remains untouched while it is runtime/deployment reference. The proposed `legacy/retired-provider/` move occurs only after path consumers are eliminated and verified; it must not be renamed to `atlas/`, because legacy provider schemas and functions are not the ATLAS assistant.
+The current preserved Base44 reference project is under `atlas/`; the name predates this migration documentation and must not be interpreted as provider-neutral ATLAS runtime code. It remains untouched while replacement and reference dispositions are unresolved. A possible `legacy/retired-provider/` move occurs only after path consumers are eliminated and verified, every capability has an accepted replacement or retirement, and Patrick approves the exact move.
 
 ## Runtime boundaries
 
