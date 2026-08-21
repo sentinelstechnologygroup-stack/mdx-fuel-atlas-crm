@@ -4,9 +4,6 @@ import { Toaster } from '@/components/ui/toaster';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 
-import { AuthProvider, useAuth } from '@/auth/AuthContext';
-import FirebaseLogin from '@/auth/FirebaseLogin';
-import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import NavigationTracker from '@/lib/NavigationTracker';
 import PageNotFound from '@/lib/PageNotFound';
 import VisualEditAgent from '@/lib/VisualEditAgent';
@@ -24,24 +21,10 @@ const LayoutWrapper = ({ children, currentPageName }) =>
     <>{children}</>
   );
 
-function AuthenticatedApp() {
-  const { isLoadingAuth, authError, isAuthenticated } = useAuth();
-
-  if (isLoadingAuth) {
-    return (
-      <div className="fixed inset-0 flex items-center justify-center">
-        <div className="w-8 h-8 border-4 border-slate-200 border-t-slate-800 rounded-full animate-spin" />
-      </div>
-    );
-  }
-
-  if (!isAuthenticated) {
-    if (authError?.type === 'user_not_registered') {
-      return <UserNotRegisteredError />;
-    }
-    return <FirebaseLogin />;
-  }
-
+// TEMPORARY: Authentication gate is intentionally bypassed while the CRM is
+// under active development. Restore AuthProvider/useAuth/FirebaseLogin before
+// production use.
+function CrmApp() {
   return (
     <Routes>
       <Route
@@ -70,16 +53,14 @@ function AuthenticatedApp() {
 
 function App() {
   return (
-    <AuthProvider>
-      <QueryClientProvider client={queryClientInstance}>
-        <Router>
-          <NavigationTracker />
-          <AuthenticatedApp />
-        </Router>
-        <Toaster />
-        <VisualEditAgent />
-      </QueryClientProvider>
-    </AuthProvider>
+    <QueryClientProvider client={queryClientInstance}>
+      <Router>
+        <NavigationTracker />
+        <CrmApp />
+      </Router>
+      <Toaster />
+      <VisualEditAgent />
+    </QueryClientProvider>
   );
 }
 
