@@ -1,66 +1,16 @@
-import { useState, useRef, useEffect } from "react";
+import React from "react";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Phone, Trash2, CheckCircle2, ChevronLeft, ChevronRight, AlertCircle, Clock } from "lucide-react";
-import moment from "moment";
+import { Phone, Trash2, CheckCircle2 } from "lucide-react";
 import { useSettings } from "@/components/context/SettingsContext";
 
 export default function LeadsKanban({ leads, statuses, onStatusChange, onEdit, onDelete, onConvert, activities }) {
   const { theme } = useSettings();
 
-  // Scroll Logic
-  const scrollContainerRef = useRef(null);
-  const [showLeftArrow, setShowLeftArrow] = useState(false);
-  const [showRightArrow, setShowRightArrow] = useState(false);
-
-  const checkScroll = () => {
-    if (scrollContainerRef.current) {
-      const { scrollLeft, scrollWidth, clientWidth } = scrollContainerRef.current;
-      const scrollAbs = Math.abs(scrollLeft);
-      const maxScroll = scrollWidth - clientWidth;
-
-      if (scrollWidth <= clientWidth) {
-        setShowLeftArrow(false);
-        setShowRightArrow(false);
-        return;
-      }
-
-      const isAtStart = scrollAbs < 5;
-      const isAtEnd = scrollAbs >= maxScroll - 5;
-
-      setShowLeftArrow(!isAtStart);
-      setShowRightArrow(!isAtEnd);
-    }
-  };
-
-  useEffect(() => {
-    checkScroll();
-    window.addEventListener('resize', checkScroll);
-    return () => window.removeEventListener('resize', checkScroll);
-  }, [leads, statuses]);
-
-  const scroll = (direction) => {
-    if (scrollContainerRef.current) {
-      const scrollAmount = 200;
-      scrollContainerRef.current.scrollBy({
-        left: direction === 'left' ? -scrollAmount : scrollAmount,
-        behavior: 'smooth'
-      });
-      setTimeout(checkScroll, 300);
-    }
-  };
 
   const getLeadsByStatus = (statusValue) => {
     return leads.filter(l => l.lead_status === statusValue);
-  };
-
-  const getLastActivityDate = (leadId) => {
-    if (!activities) return null;
-    const leadActivities = activities.filter(a => a.lead_id === leadId);
-    if (!leadActivities.length) return null;
-    const sorted = leadActivities.sort((a, b) => new Date(b.date) - new Date(a.date));
-    return sorted[0]?.date;
   };
 
   const onDragEnd = (result) => {
@@ -77,41 +27,14 @@ export default function LeadsKanban({ leads, statuses, onStatusChange, onEdit, o
   return (
     <DragDropContext onDragEnd={onDragEnd}>
       <div className="relative h-full group/kanban isolate">
-         {/* Scroll Hints */}
-         {showRightArrow && (
-            <Button
-                variant="secondary"
-                size="icon"
-                className={`absolute right-0 top-1/2 -translate-y-1/2 z-20 h-16 w-8 rounded-l-xl rounded-r-none shadow-lg border transition-all ${
-                  theme === 'dark'
-                    ? 'bg-slate-800/90 border-slate-700 text-slate-400 hover:text-white hover:bg-slate-700 backdrop-blur-sm'
-                    : 'bg-white/90 border-slate-200 text-slate-400 hover:text-slate-600 hover:bg-slate-50 backdrop-blur-sm'
-                }`}
-                onClick={() => scroll('right')}
-            >
-                <ChevronRight className="w-5 h-5" />
-            </Button>
-            )}
 
-            {showLeftArrow && (
-            <Button
-                variant="secondary"
-                size="icon"
-                className={`absolute left-0 top-1/2 -translate-y-1/2 z-20 h-16 w-8 rounded-r-xl rounded-l-none shadow-lg border transition-all ${
-                  theme === 'dark'
-                    ? 'bg-slate-800/90 border-slate-700 text-slate-400 hover:text-white hover:bg-slate-700 backdrop-blur-sm'
-                    : 'bg-white/90 border-slate-200 text-slate-400 hover:text-slate-600 hover:bg-slate-50 backdrop-blur-sm'
-                }`}
-                onClick={() => scroll('left')}
-            >
-                <ChevronLeft className="w-5 h-5" />
-            </Button>
-            )}
 
       <div
-        ref={scrollContainerRef}
-        onScroll={checkScroll}
-        className="flex gap-4 overflow-x-auto pb-6 h-full items-start px-1 scroll-smooth"
+        className="
+          grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3
+          xl:grid-cols-7 gap-2 pb-4 h-full items-start px-1
+          overflow-x-hidden
+        "
       >
         {statuses.map((status) => {
           const statusLeads = getLeadsByStatus(status.value);
@@ -121,9 +44,9 @@ export default function LeadsKanban({ leads, statuses, onStatusChange, onEdit, o
           const lightClass = status.color.split(' ').filter(c => c.startsWith('bg-') || c.startsWith('text-')).join(' ');
 
           return (
-            <div key={status.value} className="flex-shrink-0 w-[40vw] sm:w-[40vw] md:w-48 lg:w-52 flex flex-col max-h-full">
+            <div key={status.value} className="min-w-0 w-full flex flex-col max-h-full">
               {/* Stage Header - Matched to Opportunities */}
-              <div className="mb-3 px-1">
+              <div className="mb-2 px-0.5">
                 <div className="flex items-center justify-between mb-2">
                     <span className={`px-2.5 py-1 rounded-md text-xs font-bold ${lightClass} border border-transparent bg-opacity-20`}>
                         <span className="md:hidden">{status.mobileLabel || status.label}</span>
@@ -166,63 +89,73 @@ export default function LeadsKanban({ leads, statuses, onStatusChange, onEdit, o
                              {/* Side Indicator */}
                             <div className={`absolute top-0 right-0 w-1 h-full ${colorClass}`} />
 
-                            <CardContent className="p-3 space-y-2">
-                                <div className="absolute top-1 left-1 opacity-0 group-hover:opacity-100 transition-opacity z-10 flex gap-1">
-                                    <Button variant="ghost" size="icon" className="h-6 w-6 text-neutral-400 hover:text-red-600 hover:bg-red-50"
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            if(window.confirm('Are you sure you want to delete this lead?')) onDelete(lead.id);
-                                        }}
+                            <CardContent className="p-2 pr-3 space-y-1 min-h-[52px]">
+                                <div className="absolute top-1 right-2 opacity-0 group-hover:opacity-100 transition-opacity z-10 flex gap-1">
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-5 w-5 text-neutral-400 hover:text-red-600 hover:bg-red-50"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      if (
+                                        window.confirm(
+                                          'Are you sure you want to delete this lead?'
+                                        )
+                                      ) {
+                                        onDelete(lead.id);
+                                      }
+                                    }}
+                                    title="Archive lead"
+                                  >
+                                    <Trash2 className="w-3 h-3" />
+                                  </Button>
+
+                                  {status.value !== 'Converted' && (
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-5 w-5 text-neutral-400 hover:text-emerald-600 hover:bg-emerald-50"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        onConvert(lead);
+                                      }}
+                                      title="Convert"
                                     >
-                                        <Trash2 className="w-3 h-3" />
+                                      <CheckCircle2 className="w-3 h-3" />
                                     </Button>
-                                    {status.value !== 'Converted' && (
-                                      <Button variant="ghost" size="icon" className="h-6 w-6 text-neutral-400 hover:text-emerald-600 hover:bg-emerald-50"
-                                          onClick={(e) => {
-                                              e.stopPropagation();
-                                              onConvert(lead);
-                                          }}
-                                          title="Convert"
-                                      >
-                                          <CheckCircle2 className="w-3 h-3" />
-                                      </Button>
-                                    )}
+                                  )}
                                 </div>
 
-                                <div className={`text-sm font-bold transition-colors truncate ${theme === 'dark' ? 'text-white group-hover:text-teal-400' : 'text-neutral-800 group-hover:text-teal-600'}`}>
+                                <div
+                                  className={`text-xs font-bold truncate pr-7 transition-colors ${
+                                    theme === 'dark'
+                                      ? 'text-white group-hover:text-teal-400'
+                                      : 'text-neutral-800 group-hover:text-teal-600'
+                                  }`}
+                                  title={lead.full_name || "Unnamed Lead"}
+                                >
                                   {lead.full_name || "Unnamed Lead"}
                                 </div>
 
-                                {lead.phone_number && (
-                                  <div className={`flex items-center gap-1.5 text-xs font-medium ${theme === 'dark' ? 'text-slate-300' : 'text-neutral-700'}`}>
-                                    <Phone className={`w-3 h-3 ${theme === 'dark' ? 'text-slate-500' : 'text-neutral-400'}`} />
-                                    {lead.phone_number}
-                                  </div>
-                                )}
+                                <div
+                                  className={`flex items-center gap-1 text-[11px] font-medium truncate ${
+                                    theme === 'dark'
+                                      ? 'text-slate-300'
+                                      : 'text-neutral-700'
+                                  }`}
+                                >
+                                  <Phone
+                                    className={`w-3 h-3 flex-shrink-0 ${
+                                      theme === 'dark'
+                                        ? 'text-slate-500'
+                                        : 'text-neutral-400'
+                                    }`}
+                                  />
 
-                                {(lead.city || lead.notes) && (
-                                  <div className={`text-[10px] p-1.5 rounded-md line-clamp-2 leading-tight ${theme === 'dark' ? 'text-slate-400 bg-slate-900/50' : 'text-neutral-600 bg-neutral-50'}`}>
-                                    {lead.notes || lead.city}
-                                  </div>
-                                )}
-
-                                {getLastActivityDate(lead.id) ? (
-                                  <div className={`flex items-center gap-1.5 text-[10px] ${theme === 'dark' ? 'text-slate-500' : 'text-neutral-500'}`}>
-                                    <Clock className="w-3 h-3" />
-                                    <span>Last Activity: {moment(getLastActivityDate(lead.id)).format('MM/DD')}</span>
-                                  </div>
-                                ) : (
-                                  <div className={`flex items-center gap-1.5 text-[10px] ${theme === 'dark' ? 'text-slate-500' : 'text-neutral-400'}`}>
-                                    <Clock className="w-3 h-3" /> No activity
-                                  </div>
-                                )}
-
-                                {moment(lead.updated_date).isBefore(moment().subtract(7, 'days')) &&
-                                 !['Converted', 'Disqualified', 'Lost / Unqualified'].includes(lead.lead_status) && (
-                                    <div className="text-[10px] text-amber-500 flex items-center gap-1 font-medium mt-1">
-                                        <AlertCircle className="w-3 h-3" /> Stale ({moment(lead.updated_date).fromNow(true)})
-                                    </div>
-                                )}
+                                  <span className="truncate">
+                                    {lead.phone_number || "No phone"}
+                                  </span>
+                                </div>
                             </CardContent>
                           </Card>
                         )}
