@@ -71,7 +71,14 @@ $evidence = [ordered]@{
     objectCount = $null
   }
 }
-$evidencePath = [System.IO.Path]::GetFullPath($EvidenceOutput)
+if ([System.IO.Path]::IsPathRooted($EvidenceOutput)) {
+  $evidencePath = [System.IO.Path]::GetFullPath($EvidenceOutput)
+}
+else {
+  $evidencePath = [System.IO.Path]::GetFullPath(
+    (Join-Path -Path $PWD.Path -ChildPath $EvidenceOutput)
+  )
+}
 $evidenceDirectory = Split-Path -Parent $evidencePath
 New-Item -ItemType Directory -Path $evidenceDirectory -Force | Out-Null
 $evidence | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath $evidencePath
