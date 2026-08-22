@@ -290,18 +290,11 @@ export default function LeadsPage() {
     return leads.filter((lead) => {
       // 1. Soft Delete
       if (lead.is_deleted) return false;
-
-      // 2. RLS
-      if (currentUser && currentUser.role !== 'admin') {
-         const isCreator = lead.created_by === currentUser.email;
-         const isAssigned = lead.assigned_to === currentUser.email;
-         if (!isCreator && !isAssigned) return false;
-      }
-
+        // 2. Record visibility is enforced by Firebase authorization.
       // 3. View Logic
       if (activeView === 'my_leads') {
-          if (lead.assigned_to !== currentUser?.email) return false;
-      }
+            if (lead.owner_user_id !== currentUser?.id) return false;
+        }
       if (activeView === 'new') {
            // Simple "New" status check for now, ideally check created_date === today
            // if (lead.lead_status !== 'New') return false;
