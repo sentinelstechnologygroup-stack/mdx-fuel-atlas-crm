@@ -60,7 +60,37 @@ async function invokeAtlasAi(operation, input, context = undefined) {
     const reason = result?.reason || 'provider_unavailable';
     throw new Error(`ATLAS is unavailable (${reason}).`);
   }
+  if (operation === 'conversation' && typeof result.output === 'string') {
+    return enforceConversationFormat(result.output, input);
+  }
   return result.output;
+}
+
+const NUMBER_WORDS = {
+  one: 1, two: 2, three: 3, four: 4, five: 5,
+  six: 6, seven: 7, eight: 8, nine: 9, ten: 10,
+};
+
+function enforceConversationFormat(text, input) {
+  const match = String(input || '').match(
+    /\b(one|two|three|four|five|six|seven|eight|nine|ten|\d+)\s+(?:concise\s+)?(?:markdown\s+)?(?:bullet(?:s|\s+points?)?|items?)\b/i
+  );
+  if (!match) return text;
+  const count = NUMBER_WORDS[match[1].toLowerCase()] || Number(match[1]);
+  if (!Number.isInteger(count) || count < 1 || count > 10) return text;
+  const units = String(text).split(/\r?\n/)
+    .map((line) => line.replace(/^\s*(?:[-*•]|\d+[.)])\s*/, '').trim())
+    .filter(Boolean);
+  const normalized = units.length > 1 ? units : String(text)
+    .split(/(?<=[.!?])\s+(?=[A-Z0-9])/)
+    .map((unit) => unit.trim()).filter(Boolean);
+  if (!normalized.length) return text;
+  const selected = normalized.slice(0, count);
+  if (normalized.length > count) {
+    selected[count - 1] = [selected[count - 1], ...normalized.slice(count)].join(' ');
+  }
+  while (selected.length < count) selected.push('Additional detail unavailable.');
+  return selected.map((unit) => `- ${unit}`).join('\n');
 }
 
 function inferOperation(prompt = '') {
