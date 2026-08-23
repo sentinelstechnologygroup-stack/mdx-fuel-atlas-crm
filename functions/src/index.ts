@@ -3,8 +3,7 @@ import {getApps, initializeApp} from "firebase-admin/app";
 import {getAuth} from "firebase-admin/auth";
 import {FieldValue, getFirestore} from "firebase-admin/firestore";
 import {getStorage} from "firebase-admin/storage";
-import {setGlobalOptions} from "firebase-functions";
-import {logger} from "firebase-functions";
+import {logger, setGlobalOptions} from "firebase-functions";
 import {HttpsError, onCall} from "firebase-functions/v2/https";
 import {randomBytes} from "node:crypto";
 import {
@@ -1769,7 +1768,8 @@ export const updateCurrentProfile = onCall(
 
 export const completePasswordChange = onCall(async (request) => {
   const actor = await requireActiveActor(request.auth?.uid);
-  const payload = request.data && typeof request.data === "object" && !Array.isArray(request.data) ? request.data as ProfileData : {};
+  const payload = request.data && typeof request.data === "object" &&
+    !Array.isArray(request.data) ? request.data as ProfileData : {};
   if (Object.keys(payload).length > 0) {
     throw new HttpsError("invalid-argument", "No profile data is accepted.");
   }
@@ -1981,6 +1981,10 @@ const USER_ACCOUNT_ACTIONS = new Set([
   "reset_password",
 ]);
 
+/**
+ * Generates a one-time password for a managed employee account.
+ * @return {string} Generated temporary password.
+ */
 function generateTemporaryPassword() {
   return `Atlas-${randomBytes(12).toString("base64url")}-2026!`;
 }
@@ -2036,7 +2040,9 @@ export const updateUserAccount = onCall(async (request) => {
     }
 
     if (!CANONICAL_ROLES.has(requestedRole)) {
-      throw new HttpsError("invalid-argument", "A canonical ATLAS role is required.");
+      throw new HttpsError(
+        "invalid-argument", "A canonical ATLAS role is required."
+      );
     }
 
     if (
@@ -2061,7 +2067,10 @@ export const updateUserAccount = onCall(async (request) => {
       });
     } catch (error) {
       if ((error as {code?: string})?.code === "auth/email-already-exists") {
-        throw new HttpsError("already-exists", "An employee already exists for that email.");
+        throw new HttpsError(
+          "already-exists",
+          "An employee already exists for that email."
+        );
       }
       throw error;
     }
@@ -2100,17 +2109,19 @@ export const updateUserAccount = onCall(async (request) => {
       isDeleted: false,
     } satisfies ProfileData;
 
-    await firestore.collection("userProfiles").doc(createdUser.uid).set(profile);
-    await firestore.collection("entities").doc("AuditLog").collection("records").add({
-      action: "user_account_create",
-      actor_user_id: actor.id,
-      actor_email: actor.email,
-      target_user_id: createdUser.uid,
-      target_email: email,
-      requested_value: requestedRole,
-      created_date: now,
-      updated_date: now,
-    });
+    await firestore.collection("userProfiles").doc(createdUser.uid)
+      .set(profile);
+    await firestore.collection("entities").doc("AuditLog")
+      .collection("records").add({
+        action: "user_account_create",
+        actor_user_id: actor.id,
+        actor_email: actor.email,
+        target_user_id: createdUser.uid,
+        target_email: email,
+        requested_value: requestedRole,
+        created_date: now,
+        updated_date: now,
+      });
 
     return {
       success: true,
