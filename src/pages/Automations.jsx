@@ -385,7 +385,7 @@ export default function AutomationsPage() {
         setIsDialogOpen(open);
         if (!open) setEditingRule(null);
       }}>
-        <DialogContent className={`fixed right-0 top-0 left-auto translate-x-0 translate-y-0 h-full w-full sm:w-[550px] max-w-none p-0 border-l shadow-2xl transition-all duration-300 gap-0 data-[state=open]:slide-in-from-right data-[state=closed]:slide-out-to-right sm:rounded-none ${
+        <DialogContent className={`fixed right-0 top-0 left-auto translate-x-0 translate-y-0 h-full w-[min(100vw,550px)] max-w-[100vw] p-0 border-l shadow-2xl transition-all duration-300 gap-0 data-[state=open]:slide-in-from-right data-[state=closed]:slide-out-to-right sm:rounded-none ${
             theme === 'dark' ? 'bg-slate-900 border-slate-700' : 'bg-white border-slate-200'
         }`} dir="ltr">
           <div className={`flex items-center justify-between px-6 py-4 border-b ${theme === 'dark' ? 'border-slate-800' : 'border-slate-100'}`}>
