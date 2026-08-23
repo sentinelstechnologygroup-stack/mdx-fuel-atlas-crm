@@ -485,8 +485,8 @@ export default function LeadForm({ lead, onSaveAndClose, onSaveAndStay, onCancel
           <div className="space-y-6">
             {lead && <LastTouchInfo entity={lead} entityType="Lead" />}
             
-            <div className="grid min-w-0 grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="col-span-1 md:col-span-2">
+            <div className="grid min-w-0 grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="col-span-1 lg:col-span-2">
                   <Label className={labelClass}>Client Tags</Label>
                   <TagManager
                   tags={watch("tags") || []}
@@ -1211,9 +1211,9 @@ export default function LeadForm({ lead, onSaveAndClose, onSaveAndStay, onCancel
 
               {/* Custom Fields Section */}
               {customFields?.length > 0 && (
-                <div className={`col-span-1 md:col-span-2 pt-4 border-t mt-2 ${theme === 'dark' ? 'border-slate-700' : 'border-slate-100'}`}>
+                <div className={`col-span-1 lg:col-span-2 pt-4 border-t mt-2 ${theme === 'dark' ? 'border-slate-700' : 'border-slate-100'}`}>
                     <h3 className={`text-sm font-bold uppercase tracking-wider mb-4 ${theme === 'dark' ? 'text-slate-400' : 'text-slate-500'}`}>Additional Info</h3>
-                    <div className="grid min-w-0 grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="grid min-w-0 grid-cols-1 lg:grid-cols-2 gap-6">
                         {customFields.map((field) => (
                             <div key={field.id} className="space-y-1">
                                 <Label className={labelClass}>{field.label}</Label>
