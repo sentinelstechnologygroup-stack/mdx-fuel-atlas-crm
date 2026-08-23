@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator, DropdownMenuLabel } from '@/components/ui/dropdown-menu';
-import { MoreVertical, Search, Eye, Pencil, ShieldCheck, Users, MapPin, UserCheck, UserX, Pause, RotateCcw, Loader2 } from 'lucide-react';
+import { MoreVertical, Search, Eye, Pencil, ShieldCheck, Users, MapPin, UserCheck, UserX, Pause, RotateCcw, Loader2, KeyRound } from 'lucide-react';
 import { useSettings } from '@/components/context/SettingsContext';
 import { usePermissions } from '@/components/hooks/usePermissions';
 import { useDirectoryData } from '@/components/hooks/useDirectoryData';
@@ -110,6 +110,12 @@ export default function UserDirectory() {
       const res = await atlas.functions.invoke('updateUserAccount', payload);
       if (res?.data?.error) throw new Error(res.data.error);
       toast({ title: 'Action completed' });
+      if (res?.data?.temporary_password) {
+        window.prompt(
+          'Temporary password created. Copy it and deliver it securely to the employee. They must change it after first login.',
+          res.data.temporary_password
+        );
+      }
       refreshAll();
       closeAction();
     } catch (e) {
@@ -126,6 +132,7 @@ export default function UserDirectory() {
     if (type === 'team') return runAccountAction({ action: 'team', target_user_id: user.id, value: formValue === 'none' ? null : formValue });
     if (type === 'supervisor') return runAccountAction({ action: 'supervisor', target_user_id: user.id, value: formValue === 'none' ? null : formValue });
     if (type === 'territory') return runAccountAction({ action: 'territory', target_user_id: user.id, value: formValue.split(',').filter(Boolean) });
+    if (type === 'reset_password') return runAccountAction({ action: 'reset_password', target_user_id: user.id });
     if (type === 'suspend') return runAccountAction({ action: 'suspend', target_user_id: user.id, reason });
     if (type === 'reactivate') return runAccountAction({ action: 'reactivate', target_user_id: user.id });
   };
@@ -265,6 +272,7 @@ export default function UserDirectory() {
                             <DropdownMenuItem onClick={() => openAction('team', u)}><Users className="w-4 h-4 mr-2" /> Assign Team</DropdownMenuItem>
                             <DropdownMenuItem onClick={() => openAction('supervisor', u)}><UserCheck className="w-4 h-4 mr-2" /> Assign Supervisor</DropdownMenuItem>
                             <DropdownMenuItem onClick={() => openAction('territory', u)}><MapPin className="w-4 h-4 mr-2" /> Assign Territory</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => openAction('reset_password', u)}><KeyRound className="w-4 h-4 mr-2" /> Reset Password</DropdownMenuItem>
                             <DropdownMenuSeparator />
                             {status !== 'active' && status !== 'invited' && (
                               <DropdownMenuItem onClick={() => openAction('reactivate', u)} className="text-emerald-600"><RotateCcw className="w-4 h-4 mr-2" /> Reactivate</DropdownMenuItem>
@@ -417,6 +425,23 @@ export default function UserDirectory() {
               <DialogFooter>
                 <Button variant="ghost" onClick={closeAction}>Cancel</Button>
                 <Button onClick={handleSubmit} disabled={saving} className="bg-emerald-600 text-white">{saving ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Reactivate'}</Button>
+              </DialogFooter>
+            </>
+          )}
+
+          {action?.type === 'reset_password' && (
+            <>
+              <DialogHeader>
+                <DialogTitle>Reset Password — {displayName(action.user)}</DialogTitle>
+                <DialogDescription>
+                  ATLAS will create a temporary password and require a change after the employee signs in.
+                </DialogDescription>
+              </DialogHeader>
+              <DialogFooter>
+                <Button variant="ghost" onClick={closeAction}>Cancel</Button>
+                <Button onClick={handleSubmit} disabled={saving} className="bg-slate-900 text-white">
+                  {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Create Temporary Password'}
+                </Button>
               </DialogFooter>
             </>
           )}

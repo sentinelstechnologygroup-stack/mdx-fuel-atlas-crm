@@ -17,7 +17,7 @@ export default function LeadDetailsPage() {
   const queryParams = new URLSearchParams(location.search);
   const leadId = queryParams.get('id') || queryParams.get('leadId');
   const queryClient = useQueryClient();
-  const { canEdit } = usePermissions();
+  const { canEdit, isAdminTier } = usePermissions();
 
   const { data: lead, isLoading } = useQuery({
     queryKey: ['lead', leadId],
@@ -108,7 +108,7 @@ export default function LeadDetailsPage() {
             <OwnershipBadge record={lead} showTeam showStatus size="lg" />
           </div>
           <div className="flex items-center gap-2">
-            {canEdit && lead.lead_status === 'Qualified' && (
+            {canEdit && lead.lead_status !== 'Converted' && (lead.lead_status === 'Qualified' || isAdminTier) && (
               <Button
                 type="button"
                 size="sm"

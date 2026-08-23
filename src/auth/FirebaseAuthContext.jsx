@@ -8,6 +8,8 @@ import React, {
   useState,
 } from 'react';
 import {
+  changeCurrentFirebasePassword,
+  getUserProfile,
   requestFirebasePasswordReset,
   signInWithFirebase,
   signOutFromFirebase,
@@ -76,6 +78,13 @@ export function FirebaseAuthProvider({ children }) {
     }
   }, []);
 
+  const changePassword = useCallback(async (newPassword) => {
+    await changeCurrentFirebasePassword(newPassword);
+    const refreshedProfile = await getUserProfile(firebaseUser.uid);
+    setProfile(refreshedProfile);
+    return refreshedProfile;
+  }, [firebaseUser]);
+
   const value = useMemo(() => ({
     authProvider: 'firebase',
     user: profile,
@@ -89,6 +98,7 @@ export function FirebaseAuthProvider({ children }) {
     login,
     logout,
     requestPasswordReset,
+    changePassword,
     navigateToLogin: () => {},
   }), [
     authError,
@@ -98,6 +108,7 @@ export function FirebaseAuthProvider({ children }) {
     logout,
     profile,
     requestPasswordReset,
+    changePassword,
   ]);
 
   return (

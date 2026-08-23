@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { atlas } from '@/api/atlasClient';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { UserPlus, Loader2, Trash2, Mail } from "lucide-react";
+import { UserPlus, Loader2, Trash2, Mail, UserRoundPlus } from "lucide-react";
 import { useSettings } from '@/components/context/SettingsContext';
 import { usePermissions } from '@/components/hooks/usePermissions';
 import { APPLICATION_ROLES, ASSIGNABLE_ROLES_BY_ADMIN } from '@/lib/roles';
@@ -23,7 +23,7 @@ export default function TeamSettings() {
     const { theme } = useSettings();
     const { canManageUsers, isSuperAdmin, isAdminTier } = usePermissions();
     const queryClient = useQueryClient();
-    const [isInviteOpen, setIsInviteOpen] = useState(false);
+    const [accountDialogMode, setAccountDialogMode] = useState(null);
 
     const { data: invites = [] } = useQuery({
         queryKey: ['invites'],
@@ -42,9 +42,14 @@ export default function TeamSettings() {
                         </CardDescription>
                     </div>
                     {canManageUsers && (
-                        <Button onClick={() => setIsInviteOpen(true)} className="bg-slate-900 text-white">
-                            <UserPlus className="w-4 h-4 mr-2" /> Invite User
-                        </Button>
+                        <div className="flex gap-2">
+                            <Button onClick={() => setAccountDialogMode('create')} className="bg-slate-900 text-white">
+                                <UserRoundPlus className="w-4 h-4 mr-2" /> Create User
+                            </Button>
+                            <Button onClick={() => setAccountDialogMode('invite')} variant="outline">
+                                <UserPlus className="w-4 h-4 mr-2" /> Invite
+                            </Button>
+                        </div>
                     )}
                 </CardHeader>
                 <CardContent>
@@ -109,14 +114,15 @@ export default function TeamSettings() {
                 </Card>
             )}
 
-            <InviteUserDialog open={isInviteOpen} onOpenChange={setIsInviteOpen} canInviteSuperAdmin={isSuperAdmin} />
+            <InviteUserDialog open={!!accountDialogMode} mode={accountDialogMode} onOpenChange={(open) => !open && setAccountDialogMode(null)} canInviteSuperAdmin={isSuperAdmin} />
         </div>
     );
 }
 
-function InviteUserDialog({ open, onOpenChange, canInviteSuperAdmin }) {
+function InviteUserDialog({ open, mode = 'invite', onOpenChange, canInviteSuperAdmin }) {
     const { theme } = useSettings();
     const [email, setEmail] = useState("");
+    const [fullName, setFullName] = useState("");
     const [role, setRole] = useState("viewer_support");
     const [isLoading, setIsLoading] = useState(false);
     const queryClient = useQueryClient();
@@ -134,15 +140,33 @@ function InviteUserDialog({ open, onOpenChange, canInviteSuperAdmin }) {
         setIsLoading(true);
         try {
             const me = await atlas.auth.me();
-            await atlas.entities.Invite.create({
-                email,
-                role: canInviteSuperAdmin ? role : (role === 'super_admin' ? 'administrator' : role),
-                status: 'pending',
-                invited_by: me?.email
-            });
-            queryClient.invalidateQueries(['invites']);
+            const selectedRole = canInviteSuperAdmin ? role : (role === 'super_admin' ? 'administrator' : role);
+            if (mode === 'create') {
+                if (!fullName.trim()) throw new Error('Employee name is required.');
+                const response = await atlas.functions.invoke('updateUserAccount', {
+                    action: 'create',
+                    email,
+                    display_name: fullName,
+                    role: selectedRole,
+                });
+                const temporaryPassword = response?.data?.temporary_password;
+                if (temporaryPassword) {
+                    window.prompt('Employee created. Copy this temporary password and deliver it securely. It must be changed after first login.', temporaryPassword);
+                }
+                queryClient.invalidateQueries(['directoryUsers']);
+                queryClient.invalidateQueries(['users_management']);
+            } else {
+                await atlas.entities.Invite.create({
+                    email,
+                    role: selectedRole,
+                    status: 'pending',
+                    invited_by: me?.email
+                });
+                queryClient.invalidateQueries(['invites']);
+            }
             onOpenChange(false);
             setEmail("");
+            setFullName("");
             setRole("viewer_support");
         } catch (error) {
             alert("Failed to send invitation: " + error.message);
@@ -157,10 +181,16 @@ function InviteUserDialog({ open, onOpenChange, canInviteSuperAdmin }) {
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent>
                 <DialogHeader>
-                    <DialogTitle>Invite New User</DialogTitle>
-                    <DialogDescription>Send an invitation to add a new employee to MDX.</DialogDescription>
+                    <DialogTitle>{mode === 'create' ? 'Create Employee Account' : 'Invite New User'}</DialogTitle>
+                    <DialogDescription>{mode === 'create' ? 'Create a Firebase employee account with a temporary password. The employee must change it after first login.' : 'Send an invitation to add a new employee to MDX.'}</DialogDescription>
                 </DialogHeader>
                 <form onSubmit={handleInvite} className="space-y-4 pt-4">
+                    {mode === 'create' && (
+                        <div className="space-y-2">
+                            <Label>Employee Name</Label>
+                            <Input required placeholder="First and last name" value={fullName} onChange={(e) => setFullName(e.target.value)} className={inputClass} />
+                        </div>
+                    )}
                     <div className="space-y-2">
                         <Label>Email Address</Label>
                         <Input type="email" required placeholder="colleague@mdx.com" value={email} onChange={(e) => setEmail(e.target.value)} className={inputClass} />
@@ -183,7 +213,7 @@ function InviteUserDialog({ open, onOpenChange, canInviteSuperAdmin }) {
                         <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>Cancel</Button>
                         <Button type="submit" disabled={isLoading} className="bg-slate-900 text-white">
                             {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Mail className="w-4 h-4 mr-2" />}
-                            Send Invitation
+                            {mode === 'create' ? 'Create Account' : 'Send Invitation'}
                         </Button>
                     </DialogFooter>
                 </form>

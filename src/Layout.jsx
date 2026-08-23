@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { SettingsProvider, useSettings } from '@/components/context/SettingsContext';
 import { ActNowProvider } from '@/components/context/ActNowContext';
 import { AssistantProvider } from '@/components/context/AssistantContext';
@@ -21,7 +22,40 @@ import { useAuth } from '@/auth/AuthContext';
 function LayoutContent({ children, currentPageName }) {
   const [isSidebarOpen, setIsSidebarOpen] = React.useState(false);
   const { branding, theme, toggleTheme } = useSettings();
-  const { logout, isLoadingAuth } = useAuth();
+  const { logout, isLoadingAuth, profile, changePassword } = useAuth();
+  const [passwordPromptOpen, setPasswordPromptOpen] = React.useState(false);
+  const [newPassword, setNewPassword] = React.useState('');
+  const [confirmPassword, setConfirmPassword] = React.useState('');
+  const [passwordSaving, setPasswordSaving] = React.useState(false);
+  const [passwordError, setPasswordError] = React.useState('');
+
+  React.useEffect(() => {
+    setPasswordPromptOpen(Boolean(profile?.must_change_password));
+  }, [profile?.must_change_password]);
+
+  const handlePasswordChange = async (event) => {
+    event.preventDefault();
+    if (newPassword.length < 10) {
+      setPasswordError('Use at least 10 characters.');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setPasswordError('Passwords do not match.');
+      return;
+    }
+    setPasswordSaving(true);
+    setPasswordError('');
+    try {
+      await changePassword(newPassword);
+      setPasswordPromptOpen(false);
+      setNewPassword('');
+      setConfirmPassword('');
+    } catch (error) {
+      setPasswordError(error?.message || 'Unable to change the password.');
+    } finally {
+      setPasswordSaving(false);
+    }
+  };
   // Phase 3C.1 presentation layer: hide navigation for modules with can_view=false.
   // This is UX only — server-enforced authorization arrives in Phase 3C.2.
   const { canView } = useEffectivePermissions();
@@ -82,6 +116,23 @@ function LayoutContent({ children, currentPageName }) {
 
   return (
     <div className={`min-h-screen font-heebo flex transition-colors duration-300 relative overflow-hidden ${theme === 'dark' ? 'bg-[#0f172a] text-slate-100' : 'bg-slate-50 text-neutral-900'}`} dir="ltr">
+
+      {passwordPromptOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-sm">
+          <form onSubmit={handlePasswordChange} className={`w-full max-w-md rounded-2xl border p-6 shadow-2xl ${theme === 'dark' ? 'border-slate-700 bg-slate-900 text-white' : 'border-slate-200 bg-white text-slate-900'}`}>
+            <h2 className="text-xl font-bold">Set your new ATLAS password</h2>
+            <p className="mt-2 text-sm opacity-75">Your administrator created a temporary password. Change it before continuing.</p>
+            <div className="mt-5 space-y-3">
+              <Input type="password" autoComplete="new-password" placeholder="New password" value={newPassword} onChange={(event) => setNewPassword(event.target.value)} />
+              <Input type="password" autoComplete="new-password" placeholder="Confirm new password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} />
+            </div>
+            {passwordError && <p className="mt-3 text-sm text-red-500">{passwordError}</p>}
+            <Button type="submit" disabled={passwordSaving} className="mt-5 w-full bg-slate-900 text-white">
+              {passwordSaving ? 'Saving…' : 'Save new password'}
+            </Button>
+          </form>
+        </div>
+      )}
 
       {/* Ambient Background Blobs for Liquid Glass Effect - Enhanced */}
       <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">

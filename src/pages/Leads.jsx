@@ -19,11 +19,13 @@ import AiLeadImport from "@/components/crm/AiLeadImport";
 import { usePermissions } from '@/components/hooks/usePermissions';
 import { useUrlFilters } from '@/components/hooks/useUrlFilters';
 import SmartFilterBar from "@/components/common/SmartFilterBar";
+import OwnershipAssignControl from "@/components/ownership/OwnershipAssignControl";
+import { recordReportingDate } from "@/lib/reporting";
 
 import { useLocation } from "react-router-dom";
 
 export default function LeadsPage() {
-  const { canCreate, canEdit, canDelete } = usePermissions();
+  const { canCreate, canEdit, canDelete, isAdminTier } = usePermissions();
   const { leadStatuses, theme } = useSettings();
   const location = useLocation();
 
@@ -299,7 +301,8 @@ export default function LeadsPage() {
            // Simple "New" status check for now, ideally check created_date === today
            // if (lead.lead_status !== 'New') return false;
            // Better: Created Today
-           const isToday = new Date(lead.created_date).toDateString() === new Date().toDateString();
+           const createdDate = recordReportingDate(lead);
+           const isToday = createdDate && createdDate.toDateString() === new Date().toDateString();
            if (!isToday) return false;
       }
 
@@ -423,8 +426,9 @@ export default function LeadsPage() {
                 onStatusChange={(id, status) => updateLead.mutate({ id, data: { lead_status: status } })}
                 onEdit={(lead) => { setEditingLead(lead); setShowLeadForm(true); }}
                 onDelete={(id) => { if (window.confirm('Delete this lead?')) deleteLead.mutate(id); }}
+                canConvertAny={isAdminTier}
                 onConvert={(lead) => {
-                  if (lead.lead_status !== 'Qualified') return;
+                  if (lead.lead_status !== 'Qualified' && !isAdminTier) return;
                   convertToOpportunity.mutate(lead);
                 }}
             />
@@ -650,33 +654,44 @@ export default function LeadsPage() {
           theme === 'dark' ? 'bg-slate-900 border-slate-700' : 'bg-white border-slate-200'
         }`}>
           {(showLeadForm || editingLead) && (
-            <LeadForm
-              lead={editingLead}
-              onSaveAndClose={(data) => {
-                if (editingLead) {
-                  updateLead.mutate(
-                    { id: editingLead.id, data },
-                    {
-                      onSuccess: () => {
-                        setShowLeadForm(false);
-                        setEditingLead(null);
+            <div className="space-y-3">
+              {editingLead && (
+                <div className="flex justify-end px-6 pt-4">
+                  <OwnershipAssignControl
+                    entityType="lead"
+                    record={editingLead}
+                    onUpdated={() => queryClient.invalidateQueries(['leads'])}
+                  />
+                </div>
+              )}
+              <LeadForm
+                lead={editingLead}
+                onSaveAndClose={(data) => {
+                  if (editingLead) {
+                    updateLead.mutate(
+                      { id: editingLead.id, data },
+                      {
+                        onSuccess: () => {
+                          setShowLeadForm(false);
+                          setEditingLead(null);
+                        }
                       }
-                    }
-                  );
-                } else {
-                  createLead.mutate(data);
-                }
-              }}
-              onSaveAndStay={(data) => {
-                if (editingLead) {
-                  updateLead.mutate({ id: editingLead.id, data });
-                } else {
-                  createLead.mutate(data);
-                }
-              }}
-              onCancel={() => setShowLeadForm(false)}
-              isSubmitting={createLead.isPending || updateLead.isPending}
-            />
+                    );
+                  } else {
+                    createLead.mutate(data);
+                  }
+                }}
+                onSaveAndStay={(data) => {
+                  if (editingLead) {
+                    updateLead.mutate({ id: editingLead.id, data });
+                  } else {
+                    createLead.mutate(data);
+                  }
+                }}
+                onCancel={() => setShowLeadForm(false)}
+                isSubmitting={createLead.isPending || updateLead.isPending}
+              />
+            </div>
           )}
         </DialogContent>
       </Dialog>

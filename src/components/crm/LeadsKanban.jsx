@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Phone, Trash2, CheckCircle2 } from "lucide-react";
 import { useSettings } from "@/components/context/SettingsContext";
 
-export default function LeadsKanban({ leads, statuses, onStatusChange, onEdit, onDelete, onConvert }) {
+export default function LeadsKanban({ leads, statuses, onStatusChange, onEdit, onDelete, onConvert, canConvertAny = false }) {
   const { theme } = useSettings();
 
 
@@ -114,7 +114,7 @@ export default function LeadsKanban({ leads, statuses, onStatusChange, onEdit, o
                                     <Trash2 className="w-3 h-3" />
                                   </Button>
 
-                                  {lead.lead_status === 'Qualified' && (
+                                  {(lead.lead_status === 'Qualified' || canConvertAny) && lead.lead_status !== 'Converted' && (
                                     <Button
                                       variant="ghost"
                                       size="icon"
@@ -123,7 +123,7 @@ export default function LeadsKanban({ leads, statuses, onStatusChange, onEdit, o
                                         e.stopPropagation();
                                         onConvert(lead);
                                       }}
-                                      title="Convert qualified lead to opportunity"
+                                      title={lead.lead_status === 'Qualified' ? 'Convert qualified lead to opportunity' : 'Convert lead to opportunity (administrator)'}
                                     >
                                       <CheckCircle2 className="w-3 h-3" />
                                     </Button>

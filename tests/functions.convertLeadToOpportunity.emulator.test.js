@@ -478,6 +478,21 @@ describe.sequential(
       expect(opportunity.exists()).toBe(false);
     });
 
+    it('allows an administrator to convert an unqualified lead as an override', async () => {
+      await seedLeadFixture({
+        lead_status: 'Contacted',
+      });
+
+      const convert = await createCallable('admin@example.test');
+      const response = await convert({ leadId: LEAD_ID });
+
+      expect(response.data).toMatchObject({
+        success: true,
+        opportunityId: OPPORTUNITY_ID,
+        created: true,
+      });
+    });
+
     it(
       'allows a supervisor to convert a team lead',
       async () => {
