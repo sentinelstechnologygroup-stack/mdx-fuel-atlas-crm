@@ -9,6 +9,9 @@ import { ATLAS } from './atlasConfig';
 import { useQuery } from '@tanstack/react-query';
 
 function MessageBubble({ message, isUser, theme }) {
+    const listItems = String(message.content || '').split(/\r?\n/)
+        .map((line) => line.match(/^\s*[-*•]\s+(.+)$/)?.[1])
+        .filter(Boolean);
     return (
         <div className={`flex gap-3 ${isUser ? 'justify-end' : 'justify-start'} mb-4 animate-in fade-in slide-in-from-bottom-2 relative z-10`}>
             {!isUser && (
@@ -30,7 +33,11 @@ function MessageBubble({ message, isUser, theme }) {
                         ? 'bg-slate-800/80 text-slate-100 border border-white/5' 
                         : 'bg-white/60 text-slate-700 border border-white/40')
             }`}>
-                <ReactMarkdown 
+                {listItems.length > 0 ? (
+                    <ul className="list-disc pl-5 space-y-1 text-[0.95rem] leading-relaxed">
+                        {listItems.map((item, index) => <li key={`${index}-${item}`}>{item}</li>)}
+                    </ul>
+                ) : <ReactMarkdown 
                     className={`text-[0.95rem] font-sans tracking-wide leading-relaxed prose ${theme === 'dark' ? 'prose-invert' : 'prose-slate'} max-w-none prose-p:mb-2 prose-p:last:mb-0 prose-headings:font-bold prose-headings:text-sm prose-a:text-indigo-400 prose-a:underline hover:prose-a:text-indigo-300 transition-colors`}
                     components={{
                         p: ({children}) => <p className="mb-2 last:mb-0 leading-relaxed">{children}</p>,
@@ -38,7 +45,7 @@ function MessageBubble({ message, isUser, theme }) {
                     }}
                 >
                     {message.content}
-                </ReactMarkdown>
+                </ReactMarkdown>}
             </div>
 
             {isUser && (
