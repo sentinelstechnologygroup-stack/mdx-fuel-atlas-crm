@@ -23,6 +23,25 @@ describe("Phase 11 ATLAS provider", () => {
     )).toBe("- Lead one is new.\n- Lead two is qualified.\n- Lead three is active.");
   });
 
+  it("uses a structured contract for conversation bullet requests", async () => {
+    const fetchImplementation = vi.fn(async (_url, options) => ({
+      ok: true,
+      json: async () => ({
+        output_text: JSON.stringify({items: ["First", "Second", "Third"]}),
+        usage: {},
+      }),
+      status: 200,
+      options,
+    }));
+    const result = await provider(fetchImplementation).execute({
+      operation: "conversation",
+      input: "Summarize the pipeline in three bullets.",
+    });
+    expect(result.output).toBe("- First\n- Second\n- Third");
+    const body = JSON.parse(fetchImplementation.mock.calls[0][1].body);
+    expect(body.text.format.type).toBe("json_schema");
+  });
+
   it("sends credentials server-side and returns text usage", async () => {
     const fetchImplementation = vi.fn(async (_url, options) => ({
       ok: true,

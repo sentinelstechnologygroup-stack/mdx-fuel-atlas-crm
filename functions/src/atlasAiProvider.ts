@@ -84,6 +84,32 @@ function requestedBulletCount(input: string): number | null {
   return Number.isInteger(count) && count > 0 && count <= 10 ? count : null;
 }
 
+function conversationSchema(input: string): JsonRecord | null {
+  const count = requestedBulletCount(input);
+  if (!count) return null;
+  return {
+    type: "object",
+    properties: {
+      items: {
+        type: "array", minItems: count, maxItems: count,
+        items: {type: "string"},
+      },
+    },
+    required: ["items"], additionalProperties: false,
+  };
+}
+
+function renderConversationItems(output: unknown, input: string): string | null {
+  const count = requestedBulletCount(input);
+  const items = asRecord(output).items;
+  if (!count || !Array.isArray(items)) return null;
+  const normalized = items.filter((item): item is string =>
+    typeof item === "string" && item.trim().length > 0
+  ).slice(0, count);
+  if (normalized.length !== count) return null;
+  return normalized.map((item) => `- ${item.trim()}`).join("\n");
+}
+
 function responseUnits(text: string): string[] {
   const lines = text.split(/\r?\n/)
     .map((line) => line.replace(/^\s*(?:[-*•]|\d+[.)])\s*/, "").trim())
@@ -153,7 +179,9 @@ export class OpenAiAtlasProvider implements AtlasAiProvider {
   private async generateText(
     request: AtlasProviderRequest
   ): Promise<AtlasProviderResult> {
-    const schema = responseSchema(request.context);
+    const schema = responseSchema(request.context) ||
+      (request.operation === "conversation" ?
+        conversationSchema(request.input) : null);
     const history = Array.isArray(request.context?.history) ?
       request.context.history.slice(-10) : [];
     const historyText = history.length > 0 ?
@@ -197,6 +225,9 @@ export class OpenAiAtlasProvider implements AtlasAiProvider {
       } catch {
         throw new Error("AI provider returned invalid structured output.");
       }
+      const rendered = request.operation === "conversation" ?
+        renderConversationItems(output, request.input) : null;
+      if (rendered) output = rendered;
     }
     const usage = asRecord(payload.usage);
     return {
