@@ -89,6 +89,30 @@ function readString(
 }
 
 /**
+ * Reads a canonical non-negative numeric value from a stored entity field.
+ * @param {ProfileData} data Stored entity data.
+ * @param {string} key Numeric field name.
+ * @return {number|null} The normalized number or null.
+ */
+function readNonNegativeNumber(
+  data: ProfileData,
+  key: string
+): number | null {
+  const rawValue = data[key];
+  const value =
+    typeof rawValue === "number" ?
+      rawValue :
+      (
+        typeof rawValue === "string" &&
+        rawValue.trim().length > 0 ?
+          Number(rawValue) :
+          Number.NaN
+      );
+
+  return Number.isFinite(value) && value >= 0 ? value : null;
+}
+
+/**
  * Reads the first populated string array from compatible profile fields.
  * @param {ProfileData} data Stored employee profile data.
  * @param {...string} keys Compatible profile field names.
@@ -3671,14 +3695,34 @@ export const convertLeadToOpportunity = onCall(
         const opportunityData: EntityData = {
           lead_id: leadId,
           lead_name: fullName,
+          company_name: readString(
+            lead,
+            "company_name"
+          ),
           phone_number: readString(
             lead,
             "phone_number",
             "phone"
           ),
+          mobile_phone: readString(
+            lead,
+            "mobile_phone",
+            "mobile"
+          ),
           email: readString(
             lead,
             "email"
+          ),
+          title: readString(lead, "title"),
+          website: readString(lead, "website"),
+          industry: readString(lead, "industry"),
+          lead_source: readString(
+            lead,
+            "lead_source"
+          ),
+          referral_source: readString(
+            lead,
+            "referral_source"
           ),
           product_type:
             readString(
@@ -3686,6 +3730,46 @@ export const convertLeadToOpportunity = onCall(
               "product_type",
               "service_type"
             ) || "Fuel Service",
+          estimated_unleaded_87_gallons:
+            readNonNegativeNumber(
+              lead,
+              "estimated_unleaded_87_gallons"
+            ),
+          estimated_unleaded_89_gallons:
+            readNonNegativeNumber(
+              lead,
+              "estimated_unleaded_89_gallons"
+            ),
+          estimated_unleaded_93_gallons:
+            readNonNegativeNumber(
+              lead,
+              "estimated_unleaded_93_gallons"
+            ),
+          estimated_clear_diesel_gallons:
+            readNonNegativeNumber(
+              lead,
+              "estimated_clear_diesel_gallons"
+            ),
+          estimated_dyed_diesel_gallons:
+            readNonNegativeNumber(
+              lead,
+              "estimated_dyed_diesel_gallons"
+            ),
+          estimated_tank_rentals:
+            readNonNegativeNumber(
+              lead,
+              "estimated_tank_rentals"
+            ),
+          estimated_deliveries_per_month:
+            readNonNegativeNumber(
+              lead,
+              "estimated_deliveries_per_month"
+            ),
+          estimated_monthly_gallons:
+            readNonNegativeNumber(
+              lead,
+              "estimated_monthly_gallons"
+            ),
           deal_stage: "New (חדש)",
           probability: 10,
           owner_user_id: ownerUserId,
