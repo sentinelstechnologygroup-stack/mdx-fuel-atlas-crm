@@ -108,6 +108,14 @@ function readString(
     null;
 }
 
+function humanizeIdentifier(value: string | null): string | null {
+  if (!value || value.includes("@")) return null;
+  if (!/^[a-z0-9]+(?:[-_][a-z0-9]+)+$/i.test(value)) return null;
+  return value.split(/[-_]+/).map((part) =>
+    part ? `${part[0].toUpperCase()}${part.slice(1)}` : part
+  ).join(" ");
+}
+
 /**
  * Creates a privacy-safe identifier for an AI request.
  * @param {string} uid Authenticated user identifier.
@@ -638,8 +646,10 @@ async function loadAuthorizedCrmContext(
       readString(data, "ownerId");
     const assignedTo = readString(data, "assigned_to") ||
       readString(data, "assignedTo");
-    const ownerName = ownerId ? profileNames.get(ownerId) : undefined;
-    const assignedName = assignedTo ? profileNames.get(assignedTo) : undefined;
+    const ownerName = ownerId ? profileNames.get(ownerId) ||
+      humanizeIdentifier(ownerId) : undefined;
+    const assignedName = assignedTo ? profileNames.get(assignedTo) ||
+      humanizeIdentifier(assignedTo) : undefined;
     if (ownerName) {
       aiData.owner_user_id = ownerName;
       aiData.owner_name = ownerName;
