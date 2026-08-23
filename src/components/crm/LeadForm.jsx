@@ -402,7 +402,7 @@ export default function LeadForm({ lead, onSaveAndClose, onSaveAndStay, onCancel
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className={`rounded-xl shadow-lg border flex flex-col max-h-[80vh] w-[95vw] md:w-full mx-auto overflow-hidden ${
+      className={`rounded-xl shadow-lg border flex flex-col max-h-[80vh] w-full max-w-full min-w-0 mx-auto overflow-hidden ${
         theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-100'
       }`}
       dir="ltr">
@@ -485,7 +485,7 @@ export default function LeadForm({ lead, onSaveAndClose, onSaveAndStay, onCancel
           <div className="space-y-6">
             {lead && <LastTouchInfo entity={lead} entityType="Lead" />}
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid min-w-0 grid-cols-1 md:grid-cols-2 gap-6">
               <div className="col-span-1 md:col-span-2">
                   <Label className={labelClass}>Client Tags</Label>
                   <TagManager
@@ -576,7 +576,7 @@ export default function LeadForm({ lead, onSaveAndClose, onSaveAndStay, onCancel
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid min-w-0 grid-cols-2 gap-3">
                 <div className="space-y-1">
                   <Label className={labelClass}>State</Label>
                   <Input
@@ -1213,7 +1213,7 @@ export default function LeadForm({ lead, onSaveAndClose, onSaveAndStay, onCancel
               {customFields?.length > 0 && (
                 <div className={`col-span-1 md:col-span-2 pt-4 border-t mt-2 ${theme === 'dark' ? 'border-slate-700' : 'border-slate-100'}`}>
                     <h3 className={`text-sm font-bold uppercase tracking-wider mb-4 ${theme === 'dark' ? 'text-slate-400' : 'text-slate-500'}`}>Additional Info</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="grid min-w-0 grid-cols-1 md:grid-cols-2 gap-6">
                         {customFields.map((field) => (
                             <div key={field.id} className="space-y-1">
                                 <Label className={labelClass}>{field.label}</Label>
