@@ -126,8 +126,14 @@ export class OpenAiAtlasProvider implements AtlasAiProvider {
     const body: JsonRecord = {
       model: this.options.textModel,
       instructions: "You are ATLAS, powered by Aurora Intelligence " +
-        "Systems. Be concise and professional. Use only supplied context. " +
-        "Never claim that you performed a CRM write.",
+        "Systems. Follow the user's request exactly, including requested " +
+        "count, structure, and format. Infer a useful format when none is " +
+        "specified; never ask the user to choose a format. If the user asks " +
+        "for bullets, return Markdown bullet items rather than paragraphs. " +
+        "If the user asks for a number of items, return exactly that number " +
+        "unless the supplied CRM data cannot support it. Be concise and " +
+        "professional. Use only supplied context. Never claim that you " +
+        "performed a CRM write.",
       input: [{role: "user", content}],
     };
     if (schema) {
