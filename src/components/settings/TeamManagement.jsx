@@ -37,7 +37,8 @@ export default function TeamManagement() {
     mutationFn: ({ id, data }) => id ? atlas.entities.Team.update(id, data) : atlas.entities.Team.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries(['teams_mgmt']);
-      queryClient.invalidateQueries(['teams_directory']);
+      queryClient.invalidateQueries(['directoryTeams']);
+      queryClient.invalidateQueries(['teams_for_territories']);
       setOpen(false);
     }
   });
@@ -45,7 +46,8 @@ export default function TeamManagement() {
     mutationFn: ({ id, data }) => atlas.entities.Team.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries(['teams_mgmt']);
-      queryClient.invalidateQueries(['teams_directory']);
+      queryClient.invalidateQueries(['directoryTeams']);
+      queryClient.invalidateQueries(['teams_for_territories']);
     }
   });
 

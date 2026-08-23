@@ -70,6 +70,58 @@ const users = [
   },
 ];
 
+const teams = [
+  {
+    id: "team-alpha",
+    name: "Alpha Sales",
+    code: "ALPHA",
+    department: "Sales",
+    region: "Greater Houston",
+    description: "Primary emulator sales team.",
+    manager_user_id: "supervisor-user",
+    status: "active",
+  },
+  {
+    id: "team-support",
+    name: "Support",
+    code: "SUPPORT",
+    department: "Customer Support",
+    region: "Texas",
+    description: "Emulator viewer and support team.",
+    manager_user_id: "admin-user",
+    status: "active",
+  },
+];
+
+const territories = [
+  {
+    id: "territory-alpha",
+    name: "Greater Houston",
+    code: "HOU",
+    territory_type: "geographic",
+    service_area: "Greater Houston",
+    counties: ["Harris", "Montgomery", "Fort Bend"],
+    cities: ["Houston", "Magnolia", "Tomball"],
+    postal_codes: [],
+    primary_manager_user_id: "supervisor-user",
+    team_id: "team-alpha",
+    status: "active",
+  },
+  {
+    id: "territory-support",
+    name: "Texas Support",
+    code: "TX-SUPPORT",
+    territory_type: "service_area",
+    service_area: "Texas",
+    counties: [],
+    cities: [],
+    postal_codes: [],
+    primary_manager_user_id: "admin-user",
+    team_id: "team-support",
+    status: "active",
+  },
+];
+
 function assertEmulatorSafety() {
   const authHost = process.env.FIREBASE_AUTH_EMULATOR_HOST;
   const firestoreHost = process.env.FIRESTORE_EMULATOR_HOST;
@@ -163,6 +215,36 @@ async function main() {
     });
 
     console.log(`Seeded ${user.uid} (${user.role}, ${user.status})`);
+  }
+
+  for (const team of teams) {
+    const {id, ...data} = team;
+    await firestore
+      .collection("entities/Team/records")
+      .doc(id)
+      .set({
+        ...data,
+        created_date: fixedTimestamp,
+        updated_date: fixedTimestamp,
+        created_by_user_id: "system-emulator-seed",
+        last_modified_by_user_id: "system-emulator-seed",
+      });
+    console.log(`Seeded ${id} (team)`);
+  }
+
+  for (const territory of territories) {
+    const {id, ...data} = territory;
+    await firestore
+      .collection("entities/Territory/records")
+      .doc(id)
+      .set({
+        ...data,
+        created_date: fixedTimestamp,
+        updated_date: fixedTimestamp,
+        created_by_user_id: "system-emulator-seed",
+        last_modified_by_user_id: "system-emulator-seed",
+      });
+    console.log(`Seeded ${id} (territory)`);
   }
 
   console.log("");

@@ -1106,6 +1106,7 @@ export default function LeadForm({ lead, onSaveAndClose, onSaveAndStay, onCancel
                 <Label className={labelClass}>Lead Status</Label>
                 <Select
                   defaultValue={lead?.lead_status || "New"}
+                  disabled={leadStatus === 'Converted'}
                   onValueChange={(val) => handleSelectChange("lead_status", val)}>
 
                   <SelectTrigger className={`${inputClass} ${leadStatus === 'Converted' ? (theme === 'dark' ? 'bg-emerald-900/30 border-emerald-500 text-emerald-400' : 'bg-emerald-50 border-emerald-500 text-emerald-700') : ''}`}>
@@ -1118,13 +1119,15 @@ export default function LeadForm({ lead, onSaveAndClose, onSaveAndStay, onCancel
                     <SelectItem value="Qualified">Qualified</SelectItem>
                     <SelectItem value="Nurturing">Nurturing</SelectItem>
                     <SelectItem value="Disqualified">Disqualified</SelectItem>
-                    <SelectItem value="Converted" className="text-emerald-600 font-bold">Converted</SelectItem>
+                    {leadStatus === 'Converted' && (
+                      <SelectItem value="Converted" className="text-emerald-600 font-bold">Converted</SelectItem>
+                    )}
                   </SelectContent>
                 </Select>
                 {leadStatus === 'Converted' &&
                 <p className="text-xs text-emerald-600 font-medium mt-1 flex items-center gap-1">
                     <Activity className="w-3 h-3" />
-                    Saving will create a new opportunity
+                    Historical status — this lead is linked to an opportunity
                   </p>
                 }
               </div>
@@ -1198,8 +1201,8 @@ export default function LeadForm({ lead, onSaveAndClose, onSaveAndStay, onCancel
 
                 <div>
                   <strong>Opportunity ID:</strong>{' '}
-                  {lead?.opportunity_id ||
-                    'Created during conversion'}
+                  {lead?.converted_opportunity_id ||
+                    'Not converted'}
                 </div>
               </div>
 

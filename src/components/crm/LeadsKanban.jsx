@@ -1,11 +1,10 @@
-import React from "react";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Phone, Trash2, CheckCircle2 } from "lucide-react";
 import { useSettings } from "@/components/context/SettingsContext";
 
-export default function LeadsKanban({ leads, statuses, onStatusChange, onEdit, onDelete, onConvert, activities }) {
+export default function LeadsKanban({ leads, statuses, onStatusChange, onEdit, onDelete, onConvert }) {
   const { theme } = useSettings();
 
 
@@ -20,6 +19,11 @@ export default function LeadsKanban({ leads, statuses, onStatusChange, onEdit, o
     const lead = leads.find(l => l.id === draggableId);
 
     if (lead && lead.lead_status !== newStatus) {
+      if (lead.lead_status === 'Converted') return;
+      if (newStatus === 'Converted') {
+        onConvert(lead);
+        return;
+      }
       onStatusChange(lead.id, newStatus);
     }
   };
@@ -110,7 +114,7 @@ export default function LeadsKanban({ leads, statuses, onStatusChange, onEdit, o
                                     <Trash2 className="w-3 h-3" />
                                   </Button>
 
-                                  {status.value !== 'Converted' && (
+                                  {lead.lead_status === 'Qualified' && (
                                     <Button
                                       variant="ghost"
                                       size="icon"
@@ -119,7 +123,7 @@ export default function LeadsKanban({ leads, statuses, onStatusChange, onEdit, o
                                         e.stopPropagation();
                                         onConvert(lead);
                                       }}
-                                      title="Convert"
+                                      title="Convert qualified lead to opportunity"
                                     >
                                       <CheckCircle2 className="w-3 h-3" />
                                     </Button>

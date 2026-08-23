@@ -453,6 +453,31 @@ describe.sequential(
       });
     });
 
+    it('rejects a lead that is not Qualified', async () => {
+      await seedLeadFixture({
+        lead_status: 'Contacted',
+      });
+
+      const convert = await createCallable(
+        'salesperson@example.test'
+      );
+
+      await expect(
+        convert({
+          leadId: LEAD_ID,
+        })
+      ).rejects.toMatchObject({
+        code: 'functions/failed-precondition',
+      });
+
+      const opportunity = await readFixture(
+        'Opportunity',
+        OPPORTUNITY_ID
+      );
+
+      expect(opportunity.exists()).toBe(false);
+    });
+
     it(
       'allows a supervisor to convert a team lead',
       async () => {
@@ -529,7 +554,7 @@ describe.sequential(
           estimated_tank_rentals: 3,
           estimated_deliveries_per_month: 12,
           estimated_monthly_gallons: 25000,
-          deal_stage: 'New (חדש)',
+          deal_stage: 'Prospect',
           probability: 10,
           owner_user_id: 'salesperson-user',
           assigned_team_id: 'team-alpha',

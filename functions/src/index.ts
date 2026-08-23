@@ -3660,6 +3660,19 @@ export const convertLeadToOpportunity = onCall(
           };
         }
 
+        const leadStatus = readString(
+          lead,
+          "lead_status",
+          "status"
+        );
+
+        if (leadStatus !== "Qualified") {
+          throw new HttpsError(
+            "failed-precondition",
+            "Only a Qualified lead can be converted to an opportunity."
+          );
+        }
+
         const fullName =
           readString(
             lead,
@@ -3770,7 +3783,7 @@ export const convertLeadToOpportunity = onCall(
               lead,
               "estimated_monthly_gallons"
             ),
-          deal_stage: "New (חדש)",
+          deal_stage: "Prospect",
           probability: 10,
           owner_user_id: ownerUserId,
           assigned_team_id: assignedTeamId,

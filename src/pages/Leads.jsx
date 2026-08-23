@@ -420,11 +420,13 @@ export default function LeadsPage() {
             <LeadsKanban
                 leads={filteredLeads}
                 statuses={displayStatuses}
-                activities={activities}
                 onStatusChange={(id, status) => updateLead.mutate({ id, data: { lead_status: status } })}
                 onEdit={(lead) => { setEditingLead(lead); setShowLeadForm(true); }}
                 onDelete={(id) => { if (window.confirm('Delete this lead?')) deleteLead.mutate(id); }}
-                onConvert={(lead) => convertToOpportunity.mutate(lead)}
+                onConvert={(lead) => {
+                  if (lead.lead_status !== 'Qualified') return;
+                  convertToOpportunity.mutate(lead);
+                }}
             />
         </div>
       )}
@@ -504,7 +506,7 @@ export default function LeadsPage() {
                          </div>
                     </div>
                     <div className="col-span-2">
-                        <StatusBadge lead={lead} statuses={displayStatuses} updateLead={updateLead} convert={convertToOpportunity} />
+                        <StatusBadge lead={lead} statuses={displayStatuses} updateLead={updateLead} />
                     </div>
                     <div className={`col-span-2 text-sm flex items-center gap-2 ${theme === 'dark' ? 'text-slate-200' : 'text-slate-600'}`}>
                         <Phone className={`w-4 h-4 ${theme === 'dark' ? 'text-cyan-400' : 'text-slate-400'}`} />
@@ -545,9 +547,9 @@ export default function LeadsPage() {
                                     <CheckCircle2 className="w-5 h-5 fill-emerald-100" />
                                 </div> :
 
-                        <Button variant="ghost" size="sm" onClick={() => convertToOpportunity.mutate(lead)} className="h-8 px-2 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50" title="Convert to Opportunity">
+                        lead.lead_status === 'Qualified' ? <Button variant="ghost" size="sm" onClick={() => convertToOpportunity.mutate(lead)} className="h-8 px-2 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50" title="Convert qualified lead to opportunity">
                                     <CheckCircle2 className="w-4 h-4" />
-                                </Button>
+                                </Button> : null
                             )}
                         </div>
                     </div>
@@ -602,9 +604,9 @@ export default function LeadsPage() {
                                 <CheckCircle2 className="w-5 h-5 fill-emerald-100" />
                             </div> :
 
-              <Button variant="ghost" size="icon" onClick={() => convertToOpportunity.mutate(lead)} className="h-8 w-8 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50">
+              lead.lead_status === 'Qualified' ? <Button variant="ghost" size="icon" onClick={() => convertToOpportunity.mutate(lead)} className="h-8 w-8 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50" title="Convert qualified lead to opportunity">
                                 <CheckCircle2 className="w-4 h-4" />
-                            </Button>
+                            </Button> : null
               }
                     </div>
                     </div>
@@ -683,13 +685,20 @@ export default function LeadsPage() {
 }
 
 // Lead workflow
-function StatusBadge({ lead, statuses, updateLead, convert }) {
+function StatusBadge({ lead, statuses, updateLead }) {
+  if (lead.lead_status === 'Converted') {
+    const convertedStatus = statuses.find((status) => status.value === 'Converted');
+    return <Badge variant="outline" className={`${convertedStatus?.color || 'bg-emerald-50 text-emerald-700'} border-0 px-3 py-1 w-full justify-start`}>Converted</Badge>;
+  }
+
+  const editableStatuses = statuses.filter((status) => status.value !== 'Converted');
+
   return (
     <InlineEdit
       type="select"
       value={lead.lead_status}
-      options={statuses}
-      onSave={(val) => val === 'Converted' ? convert.mutate(lead) : updateLead.mutate({ id: lead.id, data: { lead_status: val } })}
+      options={editableStatuses}
+      onSave={(val) => updateLead.mutate({ id: lead.id, data: { lead_status: val } })}
       formatDisplay={(val) => {
         const s = statuses.find((o) => o.value === val);
         const isRevival = val === 'revival_2023' || s?.label?.includes('Revival');

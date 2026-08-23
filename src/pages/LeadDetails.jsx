@@ -2,10 +2,12 @@ import React from 'react';
 import { atlas } from '@/api/atlasClient';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { CheckCircle2, Loader2 } from "lucide-react";
 import LeadForm from "@/components/crm/LeadForm";
 import OwnershipBadge from "@/components/ownership/OwnershipBadge";
 import OwnershipAssignControl from "@/components/ownership/OwnershipAssignControl";
+import { usePermissions } from '@/components/hooks/usePermissions';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 
@@ -15,6 +17,7 @@ export default function LeadDetailsPage() {
   const queryParams = new URLSearchParams(location.search);
   const leadId = queryParams.get('id') || queryParams.get('leadId');
   const queryClient = useQueryClient();
+  const { canEdit } = usePermissions();
 
   const { data: lead, isLoading } = useQuery({
     queryKey: ['lead', leadId],
@@ -104,30 +107,34 @@ export default function LeadDetailsPage() {
           <div className="min-w-0 flex-1">
             <OwnershipBadge record={lead} showTeam showStatus size="lg" />
           </div>
-          <OwnershipAssignControl entityType="lead" record={lead} onUpdated={() => queryClient.invalidateQueries(['lead', leadId])} />
+          <div className="flex items-center gap-2">
+            {canEdit && lead.lead_status === 'Qualified' && (
+              <Button
+                type="button"
+                size="sm"
+                disabled={convertToOpportunity.isPending}
+                onClick={() => convertToOpportunity.mutate(lead)}
+                className="bg-emerald-600 text-white hover:bg-emerald-700"
+              >
+                {convertToOpportunity.isPending ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <CheckCircle2 className="mr-2 h-4 w-4" />
+                )}
+                Convert to Opportunity
+              </Button>
+            )}
+            <OwnershipAssignControl entityType="lead" record={lead} onUpdated={() => queryClient.invalidateQueries(['lead', leadId])} />
+          </div>
         </div>
         <LeadForm
           lead={lead}
           onSaveAndClose={(data) => {
-            const wasConverted = lead.lead_status === 'Converted';
-            const isNowConverted = data.lead_status === 'Converted';
-
-            if (isNowConverted && !wasConverted) {
-              convertToOpportunity.mutate({ ...lead, ...data });
-            } else {
-              updateLead.mutate({ id: lead.id, data });
-            }
+            updateLead.mutate({ id: lead.id, data });
             handleClose();
           }}
           onSaveAndStay={(data) => {
-            const wasConverted = lead.lead_status === 'Converted';
-            const isNowConverted = data.lead_status === 'Converted';
-
-            if (isNowConverted && !wasConverted) {
-              convertToOpportunity.mutate({ ...lead, ...data });
-            } else {
-              updateLead.mutate({ id: lead.id, data });
-            }
+            updateLead.mutate({ id: lead.id, data });
           }}
           onCancel={handleClose}
           isSubmitting={updateLead.isPending || convertToOpportunity.isPending}
