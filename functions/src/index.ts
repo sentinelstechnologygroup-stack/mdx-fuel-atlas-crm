@@ -4,6 +4,7 @@ import {getAuth} from "firebase-admin/auth";
 import {FieldValue, getFirestore} from "firebase-admin/firestore";
 import {getStorage} from "firebase-admin/storage";
 import {setGlobalOptions} from "firebase-functions";
+import {logger} from "firebase-functions";
 import {HttpsError, onCall} from "firebase-functions/v2/https";
 import {randomBytes} from "node:crypto";
 import {
@@ -2065,6 +2066,21 @@ export const updateUserAccount = onCall(async (request) => {
       throw error;
     }
 
+    await firebaseAuth.setCustomUserClaims(createdUser.uid, {
+      role: requestedRole,
+      application_role: requestedRole,
+      account_status: "active",
+    });
+    let passwordResetLink: string | null = null;
+    try {
+      passwordResetLink = await firebaseAuth.generatePasswordResetLink(email);
+    } catch (error) {
+      logger.warn("Could not generate employee password reset link", {
+        email,
+        error: error instanceof Error ? error.message : "unknown",
+      });
+    }
+
     const now = new Date().toISOString();
     const profile = {
       uid: createdUser.uid,
@@ -2100,6 +2116,7 @@ export const updateUserAccount = onCall(async (request) => {
       success: true,
       action,
       temporary_password: temporaryPassword,
+      password_reset_link: passwordResetLink,
       user: normalizeDirectoryUser(createdUser.uid, profile),
     };
   }

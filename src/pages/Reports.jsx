@@ -1,9 +1,7 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { atlas } from '@/api/atlasClient';
 import { listEmployeeLookup } from '@/api/userDirectoryService';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Loader2, TrendingUp, Users, CheckCircle2, Calendar, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -63,7 +61,7 @@ export default function ReportsPage() {
           setIsExporting(true);
           const response = await atlas.functions.invoke('exportReport', { reportId: activeReport, timeRange });
           
-          if (response.status === 200 && response.data?.file) {
+          if (response?.data?.file) {
               // Decode base64 to binary
               const binaryString = window.atob(response.data.file);
               const len = binaryString.length;

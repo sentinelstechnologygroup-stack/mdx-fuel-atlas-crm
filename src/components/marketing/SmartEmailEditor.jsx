@@ -1,14 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
-    ArrowLeft, MoreHorizontal, Sparkles, Zap, 
-    MessageSquare, User, Send, X, ChevronDown,
+    ArrowLeft, Sparkles, Zap, MessageSquare, User,
     Bold, Italic, List, Link as LinkIcon, AlertTriangle,
-    CheckCircle2, AlertCircle, Info, Split, Save
+    Split, Save
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useNavigate, useSearchParams } from 'react-router-dom';
@@ -17,6 +14,7 @@ import 'react-quill/dist/quill.snow.css';
 import { atlas } from '@/api/atlasClient';
 import { toast } from 'sonner';
 import { useSettings } from '@/components/context/SettingsContext';
+import { uploadFileToFirebase } from '@/firebase/storageService';
 import { useQuery } from '@tanstack/react-query';
 
 // Custom Toolbar for Quill
@@ -44,7 +42,8 @@ const CustomToolbar = ({ theme }) => (
     </div>
 );
 
-const MOCK_TEMPLATES = [
+const MOCK_TEMPLATES = [];
+/*
   {
     "id": "t_001",
     "name": "Enterprise Value Prop (Optimized)",
@@ -80,7 +79,7 @@ const MOCK_TEMPLATES = [
       { "word": "cheap", "suggestion": "cost-effective" }
     ]
   }
-];
+]; */
 
 const MOCK_PERSONAS = [
   {
@@ -143,6 +142,8 @@ export default function SmartEmailEditor() {
     ]);
     const [isSimulating, setIsSimulating] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
+    const [sourceDocument, setSourceDocument] = useState(null);
+    const [sourceDocumentPath, setSourceDocumentPath] = useState('');
 
     const quillRef = useRef(null);
 
@@ -154,7 +155,10 @@ export default function SmartEmailEditor() {
                 subject_line: subject,
                 body_content: content,
                 ai_resonance_score: resonanceScore,
-                channel: 'EMAIL' // Default for now
+                channel: 'EMAIL',
+                template_type: sourceDocumentPath ? 'docx' : 'email',
+                source_document_path: sourceDocumentPath || null,
+                source_document_name: sourceDocument?.name || null,
             };
 
             if (templateId && !templateId.startsWith('t_')) {
@@ -169,6 +173,26 @@ export default function SmartEmailEditor() {
         } catch (error) {
             console.error("Failed to save template:", error);
             toast.error("Failed to save template");
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    const handleSourceDocument = async (event) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+        if (!file.name.toLowerCase().endsWith('.docx')) {
+            toast.error('Upload a .docx template file.');
+            return;
+        }
+        try {
+            setIsSaving(true);
+            const uploaded = await uploadFileToFirebase({ file });
+            setSourceDocument(file);
+            setSourceDocumentPath(uploaded.storage_path);
+            toast.success('DOCX template uploaded. Save the template to keep it linked.');
+        } catch (error) {
+            toast.error(error?.message || 'DOCX upload failed.');
         } finally {
             setIsSaving(false);
         }
@@ -232,7 +256,7 @@ export default function SmartEmailEditor() {
     // Initial Load
     useEffect(() => {
         if (templateId) {
-            // Check Mocks first
+            // Load the saved Firebase template.
             const mock = MOCK_TEMPLATES.find(t => t.id === templateId);
             if (mock) {
                 setTemplateName(mock.name);
@@ -387,6 +411,10 @@ export default function SmartEmailEditor() {
                 </div>
 
                 <div className="flex items-center gap-3">
+                    <label className={`cursor-pointer rounded-full border px-3 py-1.5 text-xs font-medium ${theme === 'dark' ? 'border-slate-700 text-slate-300 hover:bg-slate-800' : 'border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
+                        Upload DOCX
+                        <input type="file" accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" className="hidden" onChange={handleSourceDocument} />
+                    </label>
                     {/* Compact Status Indicator */}
                     <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full border text-xs font-medium transition-all ${scoreMeta.badge}`}>
                         <div className={`w-2 h-2 rounded-full ${scoreMeta.dot}`} />

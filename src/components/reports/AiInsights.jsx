@@ -12,6 +12,7 @@ export default function AiInsights() {
   const { theme } = useSettings();
   const [insights, setInsights] = React.useState(null);
   const [isLoadingAI, setIsLoadingAI] = React.useState(false);
+  const [aiError, setAiError] = React.useState('');
 
   // Fetch data for analysis
   const { data: leads } = useQuery({ queryKey: ['leads'], queryFn: () => atlas.entities.Lead.list() });
@@ -20,6 +21,7 @@ export default function AiInsights() {
   const generateInsights = async () => {
     if (!leads || !opportunities) return;
     setIsLoadingAI(true);
+    setAiError('');
 
     try {
       const totalLeads = leads.length;
@@ -80,6 +82,7 @@ export default function AiInsights() {
       setInsights(result);
     } catch (err) {
       console.error("AI Analysis failed", err);
+      setAiError(err?.message || 'ATLAS AI is unavailable. Confirm the AI provider is configured by an administrator.');
     } finally {
       setIsLoadingAI(false);
     }
@@ -107,6 +110,12 @@ export default function AiInsights() {
           {insights ? 'Refresh Insights' : 'Generate New Insights'}
         </Button>
       </div>
+
+      {aiError && (
+        <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          {aiError}
+        </div>
+      )}
 
       {isLoadingAI && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

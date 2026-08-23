@@ -150,8 +150,13 @@ function InviteUserDialog({ open, mode = 'invite', onOpenChange, canInviteSuperA
                     role: selectedRole,
                 });
                 const temporaryPassword = response?.data?.temporary_password;
+                const passwordResetLink = response?.data?.password_reset_link;
                 if (temporaryPassword) {
-                    window.prompt('Employee created. Copy this temporary password and deliver it securely. It must be changed after first login.', temporaryPassword);
+                    const handoff = [
+                        `Temporary password: ${temporaryPassword}`,
+                        passwordResetLink ? `Password reset link: ${passwordResetLink}` : null,
+                    ].filter(Boolean).join('\n');
+                    window.prompt('Employee created. Copy these onboarding credentials and deliver them securely. The password must be changed after first login.', handoff);
                 }
                 queryClient.invalidateQueries(['directoryUsers']);
                 queryClient.invalidateQueries(['users_management']);

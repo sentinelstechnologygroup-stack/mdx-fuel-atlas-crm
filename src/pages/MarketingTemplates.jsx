@@ -3,15 +3,16 @@ import { useQuery } from '@tanstack/react-query';
 import { atlas } from '@/api/atlasClient';
 import { listEmployeeLookup } from '@/api/userDirectoryService';
 import { Button } from "@/components/ui/button";
-import { Plus, Mail, MessageSquare, Edit2, Trash2, LayoutTemplate, Filter, User } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Plus, Mail, MessageSquare, Edit2, LayoutTemplate, User } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useSettings } from '@/components/context/SettingsContext';
 
-const MOCK_TEMPLATES = [
+const MOCK_TEMPLATES = [];
+/*
   {
     "id": "t_001",
     "name": "Enterprise Value Prop (Optimized)",
@@ -45,7 +46,7 @@ const MOCK_TEMPLATES = [
     "channel": "SMS",
     "created_date": new Date().toISOString()
   }
-];
+]; */
 
 export default function MarketingTemplates() {
     const navigate = useNavigate();
