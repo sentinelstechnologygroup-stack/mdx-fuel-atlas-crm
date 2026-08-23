@@ -6,6 +6,7 @@ import { Send, Bot, User, Loader2, Sparkles } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { useSettings } from '@/components/context/SettingsContext';
 import { ATLAS } from './atlasConfig';
+import { useQuery } from '@tanstack/react-query';
 
 function MessageBubble({ message, isUser, theme }) {
     return (
@@ -60,6 +61,8 @@ export default function SalesAssistantChat() {
     const [isLoading, setIsLoading] = useState(false);
     const [conversation, setConversation] = useState(null);
     const scrollRef = useRef(null);
+    const { data: leads = [] } = useQuery({ queryKey: ['atlas_chat_leads'], queryFn: () => atlas.entities.Lead.list(), staleTime: 60000 });
+    const { data: opportunities = [] } = useQuery({ queryKey: ['atlas_chat_opportunities'], queryFn: () => atlas.entities.Opportunity.list(), staleTime: 60000 });
 
     // Initialize conversation
     useEffect(() => {
@@ -116,14 +119,18 @@ export default function SalesAssistantChat() {
         try {
             await atlas.agents.addMessage(conversation, {
                 role: "user",
-                content: userMsg
+                content: userMsg,
+                context: {
+                    record_refs: [...leads.slice(0, 10).map((record) => ({ entity: 'Lead', id: record.id })),
+                        ...opportunities.slice(0, 10).map((record) => ({ entity: 'Opportunity', id: record.id }))]
+                }
             });
             // The subscription will update the state with the new message and the AI response
         } catch (error) {
             console.error("Failed to send message:", error);
             setMessages((current) => [...current, {
                 role: 'assistant',
-                content: 'ATLAS is temporarily unavailable. Please try again later.'
+                content: `ATLAS could not complete that request. ${error?.message || 'Please try again later.'}`
             }]);
         } finally {
             setIsLoading(false);

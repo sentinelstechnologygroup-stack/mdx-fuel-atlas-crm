@@ -110,7 +110,8 @@ const firebaseAgents = Object.freeze({
     conversation.messages = messages;
     conversationSubscribers.get(conversation.id)?.({ messages });
     const output = await invokeAtlasAi('conversation', message.content, {
-      history: messages.slice(-10),
+      history: messages.slice(-10).map(({ role, content }) => ({ role, content })),
+      ...(message.context?.record_refs ? { record_refs: message.context.record_refs } : {}),
     });
     conversation.messages = [...messages, {
       role: 'assistant',

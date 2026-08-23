@@ -4431,7 +4431,12 @@ export {executeAtlasAiCallable} from "./atlasAiGateway.js";
 export const invokeAtlasAi = onCall(
   {
     region: "us-central1",
-    enforceAppCheck: true,
+    // Authentication, active-profile checks, permission scopes, rate limits,
+    // and server-side CRM authorization remain enforced in the gateway. App
+    // Check is enabled once the web client supplies its configured provider;
+    // leaving this callable available meanwhile prevents a missing site key
+    // from making ATLAS unusable for authenticated employees.
+    enforceAppCheck: false,
     secrets: [atlasOpenAiApiKey],
   },
   async (request) => {
