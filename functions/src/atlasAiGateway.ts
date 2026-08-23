@@ -598,6 +598,20 @@ async function loadAuthorizedCrmContext(
     context.record_refs.slice(0, 20) : [];
   const allowedEntities = new Set(["Lead", "Opportunity", "Activity", "Task"]);
   const records: DataRecord[] = [];
+  const profileSnapshot = await firestore.collection("userProfiles").get();
+  const profileNames = new Map<string, string>();
+  for (const profile of profileSnapshot.docs) {
+    const data = profile.data() || {};
+    const name = readString(data, "display_name") ||
+      readString(data, "full_name") || readString(data, "name") ||
+      readString(data, "email");
+    if (!name) continue;
+    profileNames.set(profile.id, name);
+    const uid = readString(data, "uid");
+    const email = readString(data, "email");
+    if (uid) profileNames.set(uid, name);
+    if (email) profileNames.set(email, name);
+  }
   for (const raw of references) {
     if (!raw || typeof raw !== "object" || Array.isArray(raw)) continue;
     const reference = raw as DataRecord;
@@ -619,7 +633,28 @@ async function loadAuthorizedCrmContext(
     if (!authorized) {
       throw new HttpsError("permission-denied", "CRM context is not authorized.");
     }
-    records.push({entity, id, ...data});
+    const aiData = {...data};
+    const ownerId = readString(data, "owner_user_id") ||
+      readString(data, "ownerId");
+    const assignedTo = readString(data, "assigned_to") ||
+      readString(data, "assignedTo");
+    const ownerName = ownerId ? profileNames.get(ownerId) : undefined;
+    const assignedName = assignedTo ? profileNames.get(assignedTo) : undefined;
+    if (ownerName) {
+      aiData.owner_user_id = ownerName;
+      aiData.owner_name = ownerName;
+    } else {
+      delete aiData.owner_user_id;
+      delete aiData.ownerId;
+    }
+    if (assignedName) {
+      aiData.assigned_to = assignedName;
+      aiData.assigned_to_name = assignedName;
+    } else if (assignedTo) {
+      delete aiData.assigned_to;
+      delete aiData.assignedTo;
+    }
+    records.push({entity, id, ...aiData});
   }
   return records;
 }
