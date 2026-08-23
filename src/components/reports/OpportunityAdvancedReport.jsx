@@ -9,7 +9,7 @@ import moment from 'moment';
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useSettings } from "@/components/context/SettingsContext";
-import { formatGallons, getOpportunityGallons } from "@/lib/fuelVolume";
+import { formatGallons, getOpportunityGallons, getOpportunityOwnerKey, isOpenOpportunity, isWonOpportunity } from "@/lib/fuelVolume";
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d', '#ff6b6b', '#4ecdc4'];
 
@@ -36,13 +36,13 @@ export default function OpportunityAdvancedReport({ leads, opportunities }) {
       });
     }
 
-    if (filterRep !== 'all') filtered = filtered.filter(o => o.created_by === filterRep);
+    if (filterRep !== 'all') filtered = filtered.filter(o => getOpportunityOwnerKey(o) === filterRep);
     if (filterStage !== 'all') filtered = filtered.filter(o => o.deal_stage === filterStage);
 
     return filtered;
   }, [opportunities, dateRange, filterRep, filterStage]);
 
-  const salesReps = useMemo(() => Array.from(new Set(opportunities.map(o => o.created_by).filter(Boolean))), [opportunities]);
+  const salesReps = useMemo(() => Array.from(new Set(opportunities.map(getOpportunityOwnerKey).filter((owner) => owner !== 'Unassigned'))), [opportunities]);
   const stages = useMemo(() => Array.from(new Set(opportunities.map(o => o.deal_stage).filter(Boolean))), [opportunities]);
 
   const progressionData = useMemo(() => {
@@ -57,7 +57,7 @@ export default function OpportunityAdvancedReport({ leads, opportunities }) {
   }, [filteredData]);
 
   const sourceData = useMemo(() => {
-    const wonDeals = filteredData.filter(o => o.deal_stage?.includes('Won'));
+    const wonDeals = filteredData.filter(isWonOpportunity);
     const counts = {};
     wonDeals.forEach(o => {
       const lead = leads.find(l => l.id === o.lead_id);
@@ -75,7 +75,7 @@ export default function OpportunityAdvancedReport({ leads, opportunities }) {
         const month = moment(o.expected_close_date).format('YYYY-MM');
         if (!data[month]) data[month] = { month, expected: 0, actual: 0 };
         data[month].expected += getOpportunityGallons(o) * ((o.probability || 0) / 100);
-        if (o.deal_stage?.includes('Won')) {
+        if (isWonOpportunity(o)) {
             data[month].actual += getOpportunityGallons(o);
         }
     });
@@ -86,7 +86,7 @@ export default function OpportunityAdvancedReport({ leads, opportunities }) {
     const productCycles = {};
     filteredData.forEach(o => {
         const createdDate = o.custom_data?.simulated_date || o.created_date;
-        if ((o.deal_stage?.includes('Won')) && createdDate) {
+        if (isWonOpportunity(o) && createdDate) {
             const start = moment(createdDate);
             const end = o.updated_date ? moment(o.updated_date) : moment();
             const days = end.diff(start, 'days');
@@ -101,9 +101,10 @@ export default function OpportunityAdvancedReport({ leads, opportunities }) {
     }));
   }, [filteredData]);
 
-  const totalPipelineGallons = filteredData.reduce((sum, o) => sum + getOpportunityGallons(o), 0);
-  const weightedPipelineGallons = filteredData.reduce((sum, o) => sum + (getOpportunityGallons(o) * ((o.probability || 0) / 100)), 0);
-  const winRate = filteredData.length > 0 ? (filteredData.filter(o => o.deal_stage?.includes('Won')).length / filteredData.length) * 100 : 0;
+  const openPipeline = filteredData.filter(isOpenOpportunity);
+  const totalPipelineGallons = openPipeline.reduce((sum, o) => sum + getOpportunityGallons(o), 0);
+  const weightedPipelineGallons = openPipeline.reduce((sum, o) => sum + (getOpportunityGallons(o) * ((o.probability || 0) / 100)), 0);
+  const winRate = filteredData.length > 0 ? (filteredData.filter(isWonOpportunity).length / filteredData.length) * 100 : 0;
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
@@ -297,7 +298,7 @@ export default function OpportunityAdvancedReport({ leads, opportunities }) {
                               <TableCell className={theme === 'dark' ? 'text-cyan-400 font-mono' : ''}>${o.amount?.toLocaleString()}</TableCell>
                               <TableCell className={theme === 'dark' ? 'text-slate-300' : ''}>{o.probability}%</TableCell>
                               <TableCell className={`whitespace-nowrap ${theme === 'dark' ? 'text-slate-400' : ''}`}>{o.expected_close_date ? moment(o.expected_close_date).format('MMM D, YYYY') : '-'}</TableCell>
-                              <TableCell className={`text-xs max-w-[150px] truncate ${theme === 'dark' ? 'text-slate-500' : 'text-neutral-500'}`} title={o.created_by}>{o.created_by}</TableCell>
+                              <TableCell className={`text-xs max-w-[150px] truncate ${theme === 'dark' ? 'text-slate-500' : 'text-neutral-500'}`} title={getOpportunityOwnerKey(o)}>{getOpportunityOwnerKey(o)}</TableCell>
                           </TableRow>
                       ))}
                       {filteredData.length === 0 && (

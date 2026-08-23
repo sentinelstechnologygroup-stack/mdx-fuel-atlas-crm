@@ -7,6 +7,7 @@ import { Loader2, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { format } from "date-fns";
 import { useSettings } from '@/components/context/SettingsContext';
+import { normalizeAuditLog } from '@/lib/auditLog';
 
 export default function AuditLogSettings() {
     const { theme } = useSettings();
@@ -15,14 +16,18 @@ export default function AuditLogSettings() {
     // In a real scenario, we would use backend filtering, but for now fetching all (usually limited by default)
     const { data: logs, isLoading } = useQuery({
         queryKey: ['audit_logs'],
-        queryFn: () => atlas.entities.AuditLog.list('-timestamp', 50),
+        queryFn: async () => {
+            const records = await atlas.entities.AuditLog.list('-created_date', 50);
+            return records.map(normalizeAuditLog);
+        },
         initialData: []
     });
 
     const filteredLogs = logs.filter(log =>
-        (log.user_email && log.user_email.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (log.action && log.action.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (log.entity && log.entity.toLowerCase().includes(searchTerm.toLowerCase()))
+        log.display_user.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        log.display_action.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        log.display_entity.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        log.display_details.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
     return (
@@ -72,17 +77,17 @@ export default function AuditLogSettings() {
                                 ) : filteredLogs.map((log) => (
                                     <TableRow key={log.id} className={theme === 'dark' ? 'border-slate-700 hover:bg-slate-700/50' : ''}>
                                         <TableCell className="text-slate-600 dark:text-slate-400 font-mono text-xs">
-                                            {log.timestamp ? format(new Date(log.timestamp), 'MM/dd/yyyy h:mm a') : '-'}
+                                            {log.display_timestamp ? format(new Date(log.display_timestamp), 'MM/dd/yyyy h:mm a') : '-'}
                                         </TableCell>
-                                        <TableCell className={`font-medium ${theme === 'dark' ? 'text-slate-200' : ''}`}>{log.user_email}</TableCell>
+                                        <TableCell className={`font-medium ${theme === 'dark' ? 'text-slate-200' : ''}`}>{log.display_user}</TableCell>
                                         <TableCell>
                                             <span className={`inline-flex items-center px-2 py-1 rounded-md text-xs font-medium ${theme === 'dark' ? 'bg-slate-700 text-slate-200' : 'bg-slate-100 text-slate-700'}`}>
-                                                {log.action}
+                                                {log.display_action}
                                             </span>
                                         </TableCell>
-                                        <TableCell className={theme === 'dark' ? 'text-slate-300' : ''}>{log.entity} #{log.entity_id}</TableCell>
-                                        <TableCell className={`max-w-xs truncate text-xs ${theme === 'dark' ? 'text-slate-400' : 'text-slate-500'}`} title={log.details}>
-                                            {log.details}
+                                        <TableCell className={theme === 'dark' ? 'text-slate-300' : ''}>{log.display_entity}{log.display_entity_id ? ` #${log.display_entity_id}` : ''}</TableCell>
+                                        <TableCell className={`max-w-xs truncate text-xs ${theme === 'dark' ? 'text-slate-400' : 'text-slate-500'}`} title={log.display_details}>
+                                            {log.display_details}
                                         </TableCell>
                                     </TableRow>
                                 ))}

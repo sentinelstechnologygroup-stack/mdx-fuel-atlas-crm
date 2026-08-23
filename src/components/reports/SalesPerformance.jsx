@@ -3,11 +3,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
 import { Fuel, Trophy, Target, TrendingUp } from "lucide-react";
 import { useSettings } from "@/components/context/SettingsContext";
-import { formatGallons, getOpportunityGallons } from "@/lib/fuelVolume";
+import { formatGallons, getOpportunityGallons, isOpenOpportunity, isWonOpportunity } from "@/lib/fuelVolume";
+import { filterRecordsByTimeRange } from '@/lib/reporting';
 
 const COLORS = ['#ef4444', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d'];
 
-export default function SalesPerformance({ leads, opportunities, timeRange }) {
+export default function SalesPerformance({ opportunities, timeRange }) {
   const { theme, pipelineStages } = useSettings();
 
   const getStageColor = (stageName) => {
@@ -35,12 +36,13 @@ export default function SalesPerformance({ leads, opportunities, timeRange }) {
   };
 
   const stats = useMemo(() => {
-    const closedWon = opportunities.filter(o => o.deal_stage?.includes("Won"));
+    const periodOpportunities = filterRecordsByTimeRange(opportunities, timeRange);
+    const closedWon = periodOpportunities.filter(isWonOpportunity);
     const totalGallons = closedWon.reduce((sum, o) => sum + getOpportunityGallons(o), 0);
     const avgGallons = closedWon.length > 0 ? totalGallons / closedWon.length : 0;
 
-    const pipelineGallons = opportunities
-      .filter(o => !o.deal_stage?.includes("Won") && !o.deal_stage?.includes("Lost"))
+    const pipelineGallons = periodOpportunities
+      .filter(isOpenOpportunity)
       .reduce((sum, o) => sum + getOpportunityGallons(o), 0);
 
     return {
@@ -53,16 +55,16 @@ export default function SalesPerformance({ leads, opportunities, timeRange }) {
 
   const productData = useMemo(() => {
     const counts = {};
-    opportunities.forEach(o => {
+    filterRecordsByTimeRange(opportunities, timeRange).forEach(o => {
       const prod = o.product_type || "Other";
       counts[prod] = (counts[prod] || 0) + 1;
     });
     return Object.entries(counts).map(([name, value]) => ({ name, value }));
-  }, [opportunities]);
+  }, [opportunities, timeRange]);
 
   const stageData = useMemo(() => {
     const counts = {};
-    opportunities.forEach(o => {
+    filterRecordsByTimeRange(opportunities, timeRange).forEach(o => {
       const stageName = o.deal_stage?.split('(')[0]?.trim() || "Unknown";
       counts[stageName] = (counts[stageName] || 0) + 1;
     });
@@ -71,7 +73,7 @@ export default function SalesPerformance({ leads, opportunities, timeRange }) {
       value,
       fill: getStageColor(name)
     }));
-  }, [opportunities, pipelineStages]);
+  }, [opportunities, pipelineStages, timeRange]);
 
   return (
     <div className="space-y-6">

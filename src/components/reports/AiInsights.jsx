@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Loader2, BrainCircuit, TrendingUp, AlertTriangle, Lightbulb } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useSettings } from "@/components/context/SettingsContext";
+import { isLostOpportunity, isWonOpportunity } from '@/lib/fuelVolume';
 
 export default function AiInsights() {
   const { theme } = useSettings();
@@ -30,8 +31,8 @@ export default function AiInsights() {
         if (l.city) leadsByCity[l.city] = (leadsByCity[l.city] || 0) + 1;
       });
 
-      const wonOpps = opportunities.filter(o => o.deal_stage?.includes('Won'));
-      const lostOpps = opportunities.filter(o => o.deal_stage?.includes('Lost'));
+      const wonOpps = opportunities.filter(isWonOpportunity);
+      const lostOpps = opportunities.filter(isLostOpportunity);
 
       const analysisPayload = {
         stats: {

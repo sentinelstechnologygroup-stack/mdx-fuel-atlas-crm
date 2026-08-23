@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AlertTriangle, Clock, ArrowRight, Mail } from "lucide-react";
 import { useSettings } from "@/components/context/SettingsContext";
@@ -6,6 +6,7 @@ import { differenceInDays } from 'date-fns';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { Badge } from "@/components/ui/badge";
+import { isOpenOpportunity } from '@/lib/fuelVolume';
 
 export default function StagnantDealsWidget({ opportunities }) {
     const { theme, branding } = useSettings();
@@ -31,7 +32,7 @@ export default function StagnantDealsWidget({ opportunities }) {
         const now = new Date();
 
         return opportunities
-            .filter(o => !['Closed Won', 'Closed Lost'].includes(o.deal_stage))
+            .filter(isOpenOpportunity)
             .map(o => ({
                 ...o,
                 daysInStage: differenceInDays(now, new Date(o.updated_date || o.created_date))

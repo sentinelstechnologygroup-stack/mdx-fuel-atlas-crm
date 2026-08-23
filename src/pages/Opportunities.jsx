@@ -18,6 +18,7 @@ import { usePermissions } from '@/components/hooks/usePermissions';
 import moment from "moment";
 import SmartFilterBar from "@/components/common/SmartFilterBar";
 import { useUrlFilters } from '@/components/hooks/useUrlFilters';
+import { getOpportunityGallons, isLostOpportunity, isOpenOpportunity, isWonOpportunity } from '@/lib/fuelVolume';
 
 export default function OpportunitiesPage() {
   const { canCreate, canEdit, canDelete } = usePermissions();
@@ -32,7 +33,7 @@ export default function OpportunitiesPage() {
   const [transitionInput, setTransitionInput] = useState(''); // reason or date
 
   // Smart Filters with URL Sync
-  const { view: activeView, setView: setActiveView, filters: activeFilters, setFilters: setActiveFilters, setViewState, search, setSearch } = useUrlFilters('all');
+  const { view: activeView, filters: activeFilters, setFilters: setActiveFilters, setViewState, search, setSearch } = useUrlFilters('all');
 
   const queryClient = useQueryClient();
   const location = useLocation();
@@ -130,10 +131,10 @@ export default function OpportunitiesPage() {
 
   // --- Statistics Logic (New!) ---
   const stats = useMemo(() => {
-    const totalPipeline = opportunities.reduce((acc, o) => acc + (Number(o.estimated_monthly_gallons) || 0), 0);
+    const totalPipeline = opportunities.reduce((acc, opportunity) => acc + getOpportunityGallons(opportunity), 0);
     const totalDeals = opportunities.length;
-    const wonDeals = opportunities.filter(o => o.deal_stage.includes('Won')).length;
-    const activeDeals = opportunities.filter(o => !o.deal_stage.includes('Won') && !o.deal_stage.includes('Lost')).length;
+    const wonDeals = opportunities.filter(isWonOpportunity).length;
+    const activeDeals = opportunities.filter(isOpenOpportunity).length;
 
     return { totalPipeline, totalDeals, wonDeals, activeDeals };
   }, [opportunities]);
@@ -373,10 +374,10 @@ export default function OpportunitiesPage() {
     return opportunities.filter(opp => {
         // 1. View Logic
         if (activeView === 'pipeline') {
-            if (opp.deal_stage?.includes('Won') || opp.deal_stage?.includes('Lost')) return false;
+            if (!isOpenOpportunity(opp)) return false;
         }
-        if (activeView === 'won' && !opp.deal_stage?.includes('Won')) return false;
-        if (activeView === 'lost' && !opp.deal_stage?.includes('Lost')) return false;
+        if (activeView === 'won' && !isWonOpportunity(opp)) return false;
+        if (activeView === 'lost' && !isLostOpportunity(opp)) return false;
 
         // 2. Smart Filters
         if (activeFilters.deal_stage && opp.deal_stage !== activeFilters.deal_stage) return false;
@@ -404,7 +405,7 @@ export default function OpportunitiesPage() {
   }, [opportunities, search, activeView, activeFilters]);
 
   const getStageOpportunities = (stageId) => filteredOpportunities.filter(o => o.deal_stage === stageId);
-  const calculateTotal = (stageId) => getStageOpportunities(stageId).reduce((acc, curr) => acc + (Number(curr.estimated_monthly_gallons) || 0), 0);
+  const calculateTotal = (stageId) => getStageOpportunities(stageId).reduce((acc, opportunity) => acc + getOpportunityGallons(opportunity), 0);
 
   if (isLoading) return <div className="flex justify-center h-96 items-center"><Loader2 className="animate-spin w-8 h-8 text-teal-600" /></div>;
 
@@ -657,7 +658,7 @@ export default function OpportunitiesPage() {
 
                                     {/* Stale Warning */}
                                     {moment(opp.updated_date).isBefore(moment().subtract(7, 'days')) &&
-                                     !opp.deal_stage.includes('Won') && !opp.deal_stage.includes('Lost') && (
+                                     isOpenOpportunity(opp) && (
                                         <div className="text-[10px] text-amber-500 flex items-center gap-1 font-medium mt-1">
                                             <AlertCircle className="w-3 h-3" /> Stagnant ({moment(opp.updated_date).fromNow(true)})
                                         </div>
@@ -697,7 +698,6 @@ export default function OpportunitiesPage() {
 
           <div className={`divide-y transition-colors ${theme === 'dark' ? 'divide-slate-700' : 'divide-slate-100'}`}>
             {filteredOpportunities.map((opp) => {
-              const stage = activeStages.find(s => s.id === opp.deal_stage);
               return (
                 <div key={opp.id} className={`grid grid-cols-12 gap-4 px-6 py-4 items-start transition-colors group ${
                   theme === 'dark' ? 'hover:bg-slate-700/50' : 'hover:bg-slate-50/80'

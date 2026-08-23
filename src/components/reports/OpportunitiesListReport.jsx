@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import moment from 'moment';
 import { Search, DollarSign, Briefcase, CheckCircle2 } from 'lucide-react';
 import { useSettings } from "@/components/context/SettingsContext";
+import { isLostOpportunity, isWonOpportunity } from '@/lib/fuelVolume';
 
 export default function OpportunitiesListReport({ opportunities = [] }) {
   const { theme } = useSettings();
@@ -42,8 +43,8 @@ export default function OpportunitiesListReport({ opportunities = [] }) {
     let wonCount = 0;
     let wonAmount = 0;
     filteredData.forEach((o) => {
-      const isWon = o.deal_stage?.includes('Won');
-      const isLost = o.deal_stage?.includes('Lost');
+      const isWon = isWonOpportunity(o);
+      const isLost = isLostOpportunity(o);
       if (isWon) {
         wonCount++;
         wonAmount += o.amount || 0;

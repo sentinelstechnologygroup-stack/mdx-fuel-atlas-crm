@@ -4,18 +4,17 @@ import { Target } from "lucide-react";
 import { useSettings } from "@/components/context/SettingsContext";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
-import { formatGallons, getOpportunityGallons } from "@/lib/fuelVolume";
+import { formatGallons, getOpportunityGallons, isOpenOpportunity, isWonOpportunity } from "@/lib/fuelVolume";
 
 export default function ForecastWidget({ opportunities, timeRange, periodTarget = 0, scopeLabel = 'My' }) {
     const { theme } = useSettings();
 
     const { wonGallons, weightedPipeline, pipelineCoverage, gapToQuota } = useMemo(() => {
-        const won = opportunities.filter(o => o.deal_stage === 'Closed Won').reduce((acc, o) => acc + getOpportunityGallons(o), 0);
+        const won = opportunities.filter(isWonOpportunity).reduce((acc, o) => acc + getOpportunityGallons(o), 0);
         
-        const open = opportunities.filter(o => !['Closed Won', 'Closed Lost'].includes(o.deal_stage));
+        const open = opportunities.filter(isOpenOpportunity);
         const weighted = open.reduce((acc, o) => acc + (getOpportunityGallons(o) * (o.probability || 0) / 100), 0);
         
-        const totalForecast = won + weighted;
         const gap = Math.max(0, periodTarget - won);
         const coverage = gap > 0 ? (open.reduce((acc, o) => acc + getOpportunityGallons(o), 0) / gap).toFixed(1) : '∞';
 

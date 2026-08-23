@@ -5,7 +5,7 @@ import { Trophy, Medal, Crown } from "lucide-react";
 import { useSettings } from "@/components/context/SettingsContext";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
-import { formatGallons, getOpportunityGallons } from "@/lib/fuelVolume";
+import { formatGallons, getOpportunityGallons, getOpportunityOwnerKey, isOpenOpportunity, isWonOpportunity } from "@/lib/fuelVolume";
 
 export default function LeaderboardWidget({ opportunities }) {
     const { theme } = useSettings();
@@ -15,15 +15,15 @@ export default function LeaderboardWidget({ opportunities }) {
         const stats = {};
         
         opportunities.forEach(opp => {
-            const agent = opp.assigned_to || 'Unassigned';
+            const agent = getOpportunityOwnerKey(opp);
             if (!stats[agent]) {
                 stats[agent] = { name: agent, gallons: 0, deals: 0, pipelineGallons: 0 };
             }
             
-            if (opp.deal_stage === 'Closed Won') {
+            if (isWonOpportunity(opp)) {
                 stats[agent].gallons += getOpportunityGallons(opp);
                 stats[agent].deals += 1;
-            } else if (!['Closed Lost'].includes(opp.deal_stage)) {
+            } else if (isOpenOpportunity(opp)) {
                 stats[agent].pipelineGallons += getOpportunityGallons(opp);
             }
         });
