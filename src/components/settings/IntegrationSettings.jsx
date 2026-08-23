@@ -100,8 +100,8 @@ export default function IntegrationSettings() {
                                     <div className={`w-12 h-12 shrink-0 rounded-xl p-2 flex items-center justify-center ${theme === 'dark' ? 'bg-slate-700' : 'bg-slate-50'}`}>
                                         <img src={integration.icon} alt={integration.name} className="w-full h-full object-contain" />
                                     </div>
-                                    <Badge variant={integration.connected ? "default" : "outline"} className={integration.connected ? "bg-green-500 hover:bg-green-600" : "bg-red-50 text-red-600 border-red-200 hover:bg-red-100"}>
-                                        {integration.connected ? "Connected" : "Not Connected"}
+                                    <Badge variant={integration.connected ? "default" : "outline"} className={integration.connected ? "bg-green-500 hover:bg-green-600" : "bg-amber-50 text-amber-700 border-amber-200"}>
+                                        {integration.connected ? "Connected" : "Setup required"}
                                     </Badge>
                                 </div>
                                 
@@ -123,7 +123,7 @@ export default function IntegrationSettings() {
                                         className={`w-full mt-auto ${theme === 'dark' ? 'bg-slate-700 hover:bg-slate-600 text-white' : 'bg-slate-900 hover:bg-slate-800 text-white'}`}
                                     >
                                         <Zap className="w-4 h-4 mr-2" />
-                                        Connect
+                                        View setup requirements
                                     </Button>
                                 )}
                             </div>
@@ -156,15 +156,15 @@ export default function IntegrationSettings() {
                                 </div>
                             </div>
                             <div className="space-y-2">
-                                <p className="text-sm font-medium">To keep your data secure, I handle all integrations directly.</p>
-                                <p className="text-sm opacity-90">Please copy the command below and paste it in our chat window to start:</p>
+                                <p className="text-sm font-medium">This connector is not enabled in the current environment.</p>
+                                <p className="text-sm opacity-90">An administrator must configure the provider credentials and OAuth callback before it can sync data.</p>
                                 
                                 <div className={`mt-3 p-3 rounded font-mono text-sm font-bold flex items-center justify-between group cursor-pointer ${theme === 'dark' ? 'bg-black/40 text-cyan-400 border border-cyan-500/20' : 'bg-white border text-cyan-700'}`}
                                      onClick={() => {
-                                         navigator.clipboard.writeText(`Connect ${selectedIntegration?.name}`);
+                                         navigator.clipboard.writeText(`Configure ${selectedIntegration?.name} integration for MDX ATLAS`);
                                      }}>
-                                    <span>Connect {selectedIntegration?.name}</span>
-                                    <span className="text-xs opacity-50 group-hover:opacity-100 transition-opacity">Click to copy</span>
+                                    <span>Admin setup: {selectedIntegration?.name}</span>
+                                    <span className="text-xs opacity-50 group-hover:opacity-100 transition-opacity">Copy setup request</span>
                                 </div>
                             </div>
                         </div>
