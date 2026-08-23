@@ -70,6 +70,51 @@ function authorizedImages(context?: JsonRecord): string[] {
     ).slice(0, 4) : [];
 }
 
+const NUMBER_WORDS: Record<string, number> = {
+  one: 1, two: 2, three: 3, four: 4, five: 5,
+  six: 6, seven: 7, eight: 8, nine: 9, ten: 10,
+};
+
+function requestedBulletCount(input: string): number | null {
+  const match = input.match(
+    /\b(one|two|three|four|five|six|seven|eight|nine|ten|\d+)\s+\n?\s*(?:concise\s+)?(?:markdown\s+)?(?:bullet(?:s|\s+points?)?|items?)\b/i
+  );
+  if (!match) return null;
+  const count = NUMBER_WORDS[match[1].toLowerCase()] || Number(match[1]);
+  return Number.isInteger(count) && count > 0 && count <= 10 ? count : null;
+}
+
+function responseUnits(text: string): string[] {
+  const lines = text.split(/\r?\n/)
+    .map((line) => line.replace(/^\s*(?:[-*•]|\d+[.)])\s*/, "").trim())
+    .filter(Boolean);
+  if (lines.length > 1) return lines;
+  return text.split(/(?<=[.!?])\s+(?=[A-Z0-9])/)
+    .map((unit) => unit.trim())
+    .filter(Boolean);
+}
+
+/**
+ * Enforces common list requests without relying on model formatting alone.
+ * @param {string} text Raw model response.
+ * @param {string} input Original user request.
+ * @return {string} Normalized response text.
+ */
+export function enforceConversationFormat(text: string, input: string): string {
+  const count = requestedBulletCount(input);
+  if (!count || !text.trim()) return text;
+  const units = responseUnits(text);
+  if (units.length === 0) return text;
+  const selected = units.slice(0, count);
+  if (units.length > count) {
+    selected[count - 1] = [
+      selected[count - 1], ...units.slice(count),
+    ].join(" ");
+  }
+  while (selected.length < count) selected.push("Additional detail unavailable.");
+  return selected.map((unit) => `- ${unit}`).join("\n");
+}
+
 /** OpenAI-compatible ATLAS provider. Credentials never leave Functions. */
 export class OpenAiAtlasProvider implements AtlasAiProvider {
   private readonly fetchImplementation: typeof fetch;
@@ -143,7 +188,9 @@ export class OpenAiAtlasProvider implements AtlasAiProvider {
     }
     const payload = await this.post("responses", body);
     const rawOutput = extractOutputText(payload);
-    let output: unknown = rawOutput;
+    let output: unknown = schema ? rawOutput :
+      request.operation === "conversation" ?
+        enforceConversationFormat(rawOutput, request.input) : rawOutput;
     if (schema) {
       try {
         output = JSON.parse(rawOutput);

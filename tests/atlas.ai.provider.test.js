@@ -1,6 +1,9 @@
 import {describe, expect, it, vi} from "vitest";
 
-import {OpenAiAtlasProvider} from "../functions/src/atlasAiProvider.ts";
+import {
+  enforceConversationFormat,
+  OpenAiAtlasProvider,
+} from "../functions/src/atlasAiProvider.ts";
 
 function provider(fetchImplementation) {
   return new OpenAiAtlasProvider({
@@ -13,6 +16,13 @@ function provider(fetchImplementation) {
 }
 
 describe("Phase 11 ATLAS provider", () => {
+  it("enforces requested bullet counts for conversation responses", () => {
+    expect(enforceConversationFormat(
+      "Lead one is new. Lead two is qualified. Lead three is active.",
+      "Summarize the pipeline in three bullets.",
+    )).toBe("- Lead one is new.\n- Lead two is qualified.\n- Lead three is active.");
+  });
+
   it("sends credentials server-side and returns text usage", async () => {
     const fetchImplementation = vi.fn(async (_url, options) => ({
       ok: true,
