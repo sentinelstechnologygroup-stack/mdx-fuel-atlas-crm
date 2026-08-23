@@ -6,7 +6,7 @@ import { useLocation } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Loader2, LayoutGrid, List as ListIcon, Phone, Calendar, DollarSign, Briefcase, Trophy, Trash2, ChevronLeft, ChevronRight, Plus, AlertCircle } from "lucide-react";
+import { Loader2, LayoutGrid, List as ListIcon, Phone, Calendar, DollarSign, Briefcase, Trophy, Trash2, Plus, AlertCircle } from "lucide-react";
 import { useSettings } from "@/components/context/SettingsContext";
 import { triggerConfetti } from "@/components/utils/confetti";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
@@ -39,63 +39,6 @@ export default function OpportunitiesPage() {
   const location = useLocation();
 
   const activeStages = pipelineStages || [];
-
-  // Scroll Logic
-  const scrollContainerRef = React.useRef(null);
-  const [showLeftArrow, setShowLeftArrow] = useState(false);
-  const [showRightArrow, setShowRightArrow] = useState(false);
-
-  const checkScroll = () => {
-    if (scrollContainerRef.current) {
-      const { scrollLeft, scrollWidth, clientWidth } = scrollContainerRef.current;
-      // RTL Logic:
-      // Start is Right (scrollLeft approx 0).
-      // End is Left (scrollLeft approx -max or max depending on browser).
-      // Let's use Math.abs to be safe(r).
-
-      const scrollAbs = Math.abs(scrollLeft);
-      const maxScroll = scrollWidth - clientWidth;
-
-      // If no overflow
-      if (scrollWidth <= clientWidth) {
-        setShowLeftArrow(false);
-        setShowRightArrow(false);
-        return;
-      }
-
-      // Check if at Start (Right side)
-      const isAtStart = scrollAbs < 5; // Tolerance
-      // Check if at End (Left side)
-      const isAtEnd = scrollAbs >= maxScroll - 5;
-
-      // In LTR:
-      // Start (Left) -> Can scroll Right. Show Right Arrow.
-      // End (Right) -> Can scroll Left. Show Left Arrow.
-
-      setShowLeftArrow(!isAtStart);
-      setShowRightArrow(!isAtEnd);
-    }
-  };
-
-  React.useEffect(() => {
-    checkScroll();
-    window.addEventListener('resize', checkScroll);
-    return () => window.removeEventListener('resize', checkScroll);
-  }, [activeStages, viewMode]);
-
-  const scroll = (direction) => {
-    if (scrollContainerRef.current) {
-      const scrollAmount = 200; // Adjusted for smaller columns
-      // In RTL, scrollLeft is usually negative for "Left" direction
-      // But scrollBy({ left: -320 }) moves left.
-      scrollContainerRef.current.scrollBy({
-        left: direction === 'left' ? -scrollAmount : scrollAmount,
-        behavior: 'smooth'
-      });
-      // Check after scroll (timeout for smooth scroll)
-      setTimeout(checkScroll, 300);
-    }
-  };
 
   const { data: opportunities, isLoading: isLoadingOpp } = useQuery({
     queryKey: ['opportunities'],
@@ -514,49 +457,14 @@ export default function OpportunitiesPage() {
 
       {viewMode === 'kanban' ? (
       <DragDropContext onDragEnd={onDragEnd}>
-        <div className="flex-1 relative h-full group/kanban isolate">
-          {/* Scroll Hints */}
-          {showRightArrow && (
-            <Button
-                variant="secondary"
-                size="icon"
-                className={`absolute -right-3 top-1/2 -translate-y-1/2 z-20 h-16 w-8 rounded-l-xl rounded-r-none shadow-lg border transition-all ${
-                  theme === 'dark'
-                    ? 'bg-slate-800 border-slate-700 text-slate-400 hover:text-white hover:bg-slate-700'
-                    : 'bg-white border-slate-200 text-slate-400 hover:text-slate-600 hover:bg-slate-50'
-                }`}
-                onClick={() => scroll('right')}
-            >
-                <ChevronRight className="w-5 h-5" />
-            </Button>
-          )}
-
-          {showLeftArrow && (
-            <Button
-                variant="secondary"
-                size="icon"
-                className={`absolute -left-3 top-1/2 -translate-y-1/2 z-20 h-16 w-8 rounded-r-xl rounded-l-none shadow-lg border transition-all ${
-                  theme === 'dark'
-                    ? 'bg-slate-800 border-slate-700 text-slate-400 hover:text-white hover:bg-slate-700'
-                    : 'bg-white border-slate-200 text-slate-400 hover:text-slate-600 hover:bg-slate-50'
-                }`}
-                onClick={() => scroll('left')}
-            >
-                <ChevronLeft className="w-5 h-5" />
-            </Button>
-          )}
-
-          <div
-            ref={scrollContainerRef}
-            onScroll={checkScroll}
-            className="flex gap-4 overflow-x-auto pb-6 h-full items-start px-1 scroll-smooth"
-          >
+        <div className="flex-1 min-h-0 overflow-y-auto pb-6 px-1">
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-8 gap-4 items-start">
           {activeStages.map((stage) => {
             const stageOpps = getStageOpportunities(stage.id);
             const total = calculateTotal(stage.id);
 
             return (
-            <div key={stage.id} className="flex-shrink-0 w-[40vw] sm:w-[40vw] md:w-48 lg:w-52 flex flex-col max-h-full">
+            <div key={stage.id} className="min-w-0 flex flex-col min-h-[280px]">
               {/* Stage Header */}
               <div className="mb-3 px-1">
                 <div className="flex items-center justify-between mb-2">
