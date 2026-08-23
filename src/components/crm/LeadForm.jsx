@@ -500,6 +500,7 @@ export default function LeadForm({ lead, onSaveAndClose, onSaveAndStay, onCancel
                   {...register("first_name", {
                     required: "First name is required",
                   })}
+                  autoFocus={!lead}
                   autoComplete="given-name"
                   placeholder="e.g., John"
                   className={inputClass}
