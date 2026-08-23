@@ -183,6 +183,9 @@ export default function SalesAssistantChat() {
                         value={input}
                         onChange={(e) => setInput(e.target.value)}
                         placeholder="Draft an email, analyze deal..."
+                        spellCheck="true"
+                        autoCorrect="on"
+                        autoCapitalize="sentences"
                         className={`flex-1 transition-all text-base md:text-sm ${
                             theme === 'dark' 
                                 ? 'bg-white/10 border-white/10 text-white placeholder:text-white/40 focus:bg-white/20' 
