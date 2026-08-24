@@ -24,6 +24,7 @@ export default function OpportunitiesPage() {
   const { canCreate, canEdit, canDelete } = usePermissions();
   const { pipelineStages, branding, theme } = useSettings();
   const [editingOpp, setEditingOpp] = useState(null);
+  const [initialLead, setInitialLead] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [viewMode, setViewMode] = useState('kanban');
 
@@ -58,7 +59,10 @@ export default function OpportunitiesPage() {
   React.useEffect(() => {
     const params = new URLSearchParams(location.search);
     if (params.get('action') === 'new') {
+        const leadId = params.get('leadId');
+        if (leadId && !leads.some((lead) => lead.id === leadId)) return;
         setEditingOpp(null);
+        setInitialLead(leads.find((lead) => lead.id === leadId) || null);
         setShowForm(true);
         window.history.replaceState({}, '', location.pathname);
     } else if (params.get('opportunityId') && opportunities.length > 0) {
@@ -70,7 +74,7 @@ export default function OpportunitiesPage() {
             window.history.replaceState({}, '', location.pathname);
         }
     }
-  }, [location, opportunities]);
+  }, [location, opportunities, leads]);
 
   // --- Statistics Logic (New!) ---
   const stats = useMemo(() => {
@@ -745,6 +749,7 @@ export default function OpportunitiesPage() {
           {(showForm || editingOpp) && (
             <OpportunityForm
               opportunity={editingOpp}
+              initialLead={editingOpp ? null : initialLead}
               onSubmit={(data) => {
                   if (editingOpp) {
                       updateOppMutation.mutate({ id: editingOpp.id, data });
