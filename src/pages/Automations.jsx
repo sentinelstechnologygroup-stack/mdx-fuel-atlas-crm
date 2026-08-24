@@ -443,7 +443,7 @@ function RuleForm({ onSuccess, editingRule }) {
   ];
 
   const opportunityFields = [
-    { value: 'deal_stage', label: 'Opportunity Stage', values: ['Prospect', 'Contacted', 'Meeting Scheduled', 'Quote Requested', 'Proposal Sent', 'Negotiation', 'Closed Won', 'Closed Lost'] },
+    { value: 'deal_stage', label: 'Opportunity Stage', values: ['Prospect', 'Contacted', 'Meetings', 'Quote Requested', 'Proposal Sent', 'Negotiation', 'Closed Won', 'Closed Lost'] },
     { value: 'product_type', label: 'Fuel Product', values: ['On-Road Diesel', 'Off-Road Diesel', 'Gasoline', 'DEF', 'Lubricants', 'Other'] },
     { value: 'probability', label: 'Probability', type: 'number' },
           ];
@@ -477,7 +477,7 @@ function RuleForm({ onSuccess, editingRule }) {
                 - condition_field: "lead_status", "deal_stage", "estimated_monthly_gallons", etc.
                 - condition_value: translate Hebrew terms to exact English Enums below:
                     Lead Statuses: "New", "Attempting Contact", "Contacted", "Qualified", "Nurturing", "Disqualified", "Converted"
-                    Deal Stages: "Prospect", "Contacted", "Meeting Scheduled", "Quote Requested", "Proposal Sent", "Negotiation", "Closed Won", "Closed Lost"
+                Deal Stages: "Prospect", "Contacted", "Meetings", "Quote Requested", "Proposal Sent", "Negotiation", "Closed Won", "Closed Lost"
                 - action_type: "create_task" or "send_email"
                 - action_config: {
                      email_to: string (use {{full_name}} or {{email}} placeholders),

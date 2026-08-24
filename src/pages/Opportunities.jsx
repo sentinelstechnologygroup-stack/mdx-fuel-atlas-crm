@@ -265,7 +265,7 @@ export default function OpportunitiesPage() {
         // 2. Check for Meeting Scheduled -> Date Modal
         // Note: 'Meeting Scheduled' isn't in default stages, but user requested this specific flow.
         // We'll also apply it to 'Discovery' as that's often when meetings happen, for better UX.
-        if (newStage === 'Meeting Scheduled' || newStage === 'Discovery') {
+        if (newStage === 'Meetings' || newStage === 'Meeting Scheduled' || newStage === 'Discovery') {
             setTransitionData({ opp, newStage });
             setTransitionType('meeting');
             // Default to tomorrow 10am

@@ -63,11 +63,13 @@ export default function LeadAiAnalysis({ lead }) {
         });
 
         // Update the lead with AI results
+        const score = Math.max(0, Math.min(100, Number(response.score) || 0));
+        const actions = Array.isArray(response.actions) ? response.actions.slice(0, 3) : [];
         await atlas.entities.Lead.update(lead.id, {
           ai_classification: response.classification,
-          ai_quality_score: response.score,
-          ai_analysis: response.analysis,
-          ai_suggested_actions: response.actions,
+          ai_quality_score: score,
+          ai_analysis: response.analysis || "No analysis was returned.",
+          ai_suggested_actions: actions,
           ai_last_analysis_date: new Date().toISOString()
         });
 
@@ -78,7 +80,7 @@ export default function LeadAiAnalysis({ lead }) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries(['lead', lead.id]);
-    }
+    },
   });
 
   const getClassColor = (cls) => {
@@ -96,8 +98,17 @@ export default function LeadAiAnalysis({ lead }) {
     return 'bg-red-500';
   };
 
-  // If no analysis exists yet
-  if (!lead.ai_last_analysis_date && !isAnalyzing) {
+  const hasAnalysis = Boolean(
+    lead.ai_analysis || lead.ai_classification ||
+    Array.isArray(lead.ai_suggested_actions) && lead.ai_suggested_actions.length
+  );
+  const parsedDate = lead.ai_last_analysis_date?.toDate
+    ? lead.ai_last_analysis_date.toDate()
+    : new Date(lead.ai_last_analysis_date);
+  const hasValidDate = Number.isFinite(parsedDate.getTime());
+
+  // Do not present a partial/invalid record as a completed analysis.
+  if (!hasAnalysis && !isAnalyzing) {
     return (
       <Card className="bg-gradient-to-br from-purple-50 to-white border-purple-100">
         <CardContent className="p-6 flex flex-col items-center justify-center text-center space-y-4">
@@ -118,6 +129,11 @@ export default function LeadAiAnalysis({ lead }) {
             {isAnalyzing ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Sparkles className="w-4 h-4 mr-2" />}
             Run Lead Analysis
           </Button>
+          {analyzeMutation.isError && (
+            <p className="text-sm text-red-600">
+              ATLAS could not analyze this lead: {analyzeMutation.error?.message || 'Please try again.'}
+            </p>
+          )}
         </CardContent>
       </Card>
     );
@@ -185,7 +201,7 @@ export default function LeadAiAnalysis({ lead }) {
 
         <div className="text-[10px] text-slate-400 text-left pt-2 border-t border-slate-50 flex justify-between">
           <span>Powered by LLM</span>
-          <span>Updated: {new Date(lead.ai_last_analysis_date).toLocaleDateString('en-US')}</span>
+          <span>{hasValidDate ? `Updated: ${parsedDate.toLocaleDateString('en-US')}` : 'Not yet analyzed'}</span>
         </div>
 
       </CardContent>
