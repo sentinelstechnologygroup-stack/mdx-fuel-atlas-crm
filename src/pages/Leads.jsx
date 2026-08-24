@@ -654,7 +654,7 @@ export default function LeadsPage() {
           theme === 'dark' ? 'bg-slate-900 border-slate-700' : 'bg-white border-slate-200'
         }`}>
           {(showLeadForm || editingLead) && (
-            <div className="space-y-3">
+            <div className="w-full min-w-0 max-w-full space-y-3">
               {editingLead && (
                 <div className="flex justify-end px-6 pt-4">
                   <OwnershipAssignControl

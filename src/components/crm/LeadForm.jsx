@@ -454,7 +454,7 @@ export default function LeadForm({ lead, onSaveAndClose, onSaveAndStay, onCancel
         </div>
       </div>
 
-      <div className="overflow-y-auto p-4 md:p-6 flex-1">
+      <div className="min-w-0 max-w-full overflow-x-hidden overflow-y-auto p-4 md:p-6 flex-1">
       <Tabs defaultValue="details" className="w-full">
         <TabsList className={`flex w-full flex-nowrap justify-start overflow-x-auto mb-6 p-1 h-auto gap-2 scrollbar-hide ${theme === 'dark' ? 'bg-slate-900/50' : 'bg-slate-100/80'}`}>
           {['details', 'opportunities', 'activity', 'tasks', 'documents', 'discovery', 'ai'].map(tab => {
