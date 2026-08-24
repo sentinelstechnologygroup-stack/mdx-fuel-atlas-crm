@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import React, { useState } from 'react';
 import { atlas } from '@/api/atlasClient';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useActNow } from "@/components/context/ActNowContext";
