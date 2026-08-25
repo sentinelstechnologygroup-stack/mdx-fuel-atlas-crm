@@ -114,8 +114,40 @@ export default function OpportunitiesPage() {
       setViewState(viewId, {});
   };
 
+  const createFollowUpTask = async (opportunity, request) => {
+    if (!request?._createTask || !request.next_task?.trim()) return;
+    const user = await atlas.auth.me();
+    const meetingDate = opportunity.custom_data?.next_meeting_date;
+    await atlas.entities.Task.create({
+      title: request.next_task.trim(),
+      description: `Follow-up for ${opportunity.lead_name || 'opportunity'}.`,
+      due_date: meetingDate ? meetingDate.slice(0, 10) : null,
+      status: 'todo',
+      priority: 'medium',
+      assigned_to: opportunity.owner_user_id || user?.email || null,
+      related_lead_id: opportunity.lead_id || null,
+      related_opportunity_id: opportunity.id,
+    });
+    queryClient.invalidateQueries({ queryKey: ['tasks'] });
+  };
+
+  const withoutTaskControlFields = (data = {}) => {
+    const { _createTask, _leadName, ...opportunityData } = data;
+    return opportunityData;
+  };
+
   const createOppMutation = useMutation({
-    mutationFn: (data) => atlas.entities.Opportunity.create(data),
+    mutationFn: async (data) => {
+      const opportunity = await atlas.entities.Opportunity.create(
+        withoutTaskControlFields(data)
+      );
+      try {
+        await createFollowUpTask(opportunity, data);
+      } catch (error) {
+        console.error('Opportunity created but follow-up task failed:', error);
+      }
+      return opportunity;
+    },
     onSuccess: (data) => {
       queryClient.invalidateQueries(['opportunities']);
       setShowForm(false);
@@ -126,14 +158,26 @@ export default function OpportunitiesPage() {
   });
 
   const updateOppMutation = useMutation({
-    mutationFn: ({ id, data }) => atlas.entities.Opportunity.update(id, data),
+    mutationFn: async ({ id, data }) => {
+      const opportunity = await atlas.entities.Opportunity.update(
+        id,
+        withoutTaskControlFields(data)
+      );
+      try {
+        await createFollowUpTask({ ...opportunity, id }, data);
+      } catch (error) {
+        console.error('Opportunity updated but follow-up task failed:', error);
+      }
+      return opportunity;
+    },
     onMutate: async ({ id, data }) => {
       await queryClient.cancelQueries(['opportunities']);
       const previousOpps = queryClient.getQueryData(['opportunities']);
 
-      queryClient.setQueryData(['opportunities'], (old) => {
+      const cleanData = withoutTaskControlFields(data);
+      queryClient.setQueryData(['opportunities'], (old = []) => {
         return old.map((opp) =>
-          opp.id === id ? { ...opp, ...data, updated_date: new Date().toISOString() } : opp
+          opp.id === id ? { ...opp, ...cleanData, updated_date: new Date().toISOString() } : opp
         );
       });
 
@@ -185,6 +229,18 @@ export default function OpportunitiesPage() {
       });
     } catch {
       return;
+    }
+
+    if (additionalData.next_task) {
+      try {
+        await createFollowUpTask(
+          { ...opp, ...finalData, id: opp.id },
+          { _createTask: true, next_task: additionalData.next_task }
+        );
+      } catch (error) {
+        console.error('Meeting saved but follow-up task failed:', error);
+        alert('Meeting saved, but the follow-up task could not be created.');
+      }
     }
 
     if (!newStage.includes('Closed Won')) {
