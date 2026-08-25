@@ -54,7 +54,8 @@
     "test:phase13:weekly-report": "npm --prefix functions run build && firebase emulators:exec --only firestore \"vitest run --no-file-parallelism --testTimeout=30000 tests/functions.weeklySalesReport.emulator.test.js\"",
     "test:phase13": "npm run test:phase13:lead-qualification && npm run test:phase13:stale-opportunities && npm run test:phase13:weekly-report",
     "test:phase14:operations": "vitest run --no-file-parallelism tests/phase14.operational.test.js",
-    "test:login-portal-control": "vitest run --no-file-parallelism tests/login.portal.control.test.js"
+    "test:login-portal-control": "vitest run --no-file-parallelism tests/login.portal.control.test.js",
+    "test:placeholder-regressions": "vitest run --no-file-parallelism tests/no-placeholder-regressions.test.js"
   },
   "dependencies": {
     "@hello-pangea/dnd": "^17.0.0",
