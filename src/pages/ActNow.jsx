@@ -151,7 +151,7 @@ export default function ActNowPage() {
 
                     // 2. If ID match failed, try to match by Name (Fallback)
                     // This handles cases where LLM hallucinated the ID but got the name right
-                    if (!realRecord) {
+                    if (!realRecord && typeof rec.target === 'string') {
                         if (rec.type === 'Lead') {
                             realRecord = leads.find(l => l.full_name && l.full_name.toLowerCase() === rec.target.toLowerCase());
                         } else if (rec.type === 'Opportunity') {

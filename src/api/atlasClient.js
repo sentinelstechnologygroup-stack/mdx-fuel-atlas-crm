@@ -107,13 +107,14 @@ function inferOperation(prompt = '') {
 }
 
 const firebaseCore = Object.freeze({
-  InvokeLLM: async ({ prompt, response_json_schema, storage_paths } = {}) =>
+  InvokeLLM: async ({ prompt, response_json_schema, storage_paths, context } = {}) =>
     invokeAtlasAi(
       storage_paths?.length ? 'lead_import' : inferOperation(prompt),
       String(prompt || ''),
       {
         ...(response_json_schema ? { response_json_schema } : {}),
         ...(storage_paths?.length ? { storage_paths } : {}),
+        ...(context ? context : {}),
       }
     ),
   ExtractDataFromUploadedFile: async ({ storage_path, json_schema } = {}) =>

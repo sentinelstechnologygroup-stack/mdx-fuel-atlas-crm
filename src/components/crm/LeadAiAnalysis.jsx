@@ -6,9 +6,11 @@ import { Badge } from "@/components/ui/badge";
 import { Loader2, Sparkles, Target, RefreshCw } from "lucide-react";
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Progress } from "@/components/ui/progress";
+import { usePermissions } from '@/components/hooks/usePermissions';
 
 export default function LeadAiAnalysis({ lead }) {
   const queryClient = useQueryClient();
+  const { canEdit } = usePermissions();
   const [isAnalyzing, setIsAnalyzing] = React.useState(false);
 
   const analyzeMutation = useMutation({
@@ -59,7 +61,8 @@ export default function LeadAiAnalysis({ lead }) {
               analysis: { type: "string" },
               actions: { type: "array", items: { type: "string" } }
             }
-          }
+          },
+          context: { record_refs: [{ entity: 'Lead', id: lead.id }] },
         });
 
         // Update the lead with AI results
@@ -80,6 +83,7 @@ export default function LeadAiAnalysis({ lead }) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries(['lead', lead.id]);
+      queryClient.invalidateQueries(['leads']);
     },
   });
 
@@ -123,7 +127,7 @@ export default function LeadAiAnalysis({ lead }) {
           </div>
           <Button
             onClick={() => analyzeMutation.mutate()}
-            disabled={isAnalyzing}
+            disabled={isAnalyzing || !canEdit}
             className="bg-purple-600 hover:bg-purple-700 text-white"
           >
             {isAnalyzing ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Sparkles className="w-4 h-4 mr-2" />}
@@ -134,6 +138,7 @@ export default function LeadAiAnalysis({ lead }) {
               ATLAS could not analyze this lead: {analyzeMutation.error?.message || 'Please try again.'}
             </p>
           )}
+          {!canEdit && <p className="text-xs text-slate-500">Your role can view AI insights but cannot save analysis changes.</p>}
         </CardContent>
       </Card>
     );
@@ -151,7 +156,7 @@ export default function LeadAiAnalysis({ lead }) {
             variant="ghost"
             size="sm"
             onClick={() => analyzeMutation.mutate()}
-            disabled={isAnalyzing}
+            disabled={isAnalyzing || !canEdit}
             className="h-8 w-8 p-0 text-purple-400 hover:text-purple-700"
           >
             <RefreshCw className={`w-4 h-4 ${isAnalyzing ? 'animate-spin' : ''}`} />

@@ -7,7 +7,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
@@ -42,83 +41,6 @@ const CustomToolbar = ({ theme }) => (
     </div>
 );
 
-const MOCK_TEMPLATES = [];
-/*
-  {
-    "id": "t_001",
-    "name": "Enterprise Value Prop (Optimized)",
-    "subject_line": "Reducing your cloud spend by 12% in Q4",
-    "body_content": "Hi {{First_Name}},<br/><br/>I noticed {{Company_Name}} is expanding its infrastructure. Most CTOs I speak with are struggling to balance scaling costs with performance.<br/><br/>We helped Acme Corp cut AWS spend by 12% in under 30 days without downtime.<br/><br/>Are you open to a 10-minute technical review next Tuesday?",
-    "ai_resonance_score": 92,
-    "status_color": "green", 
-    "tone_analysis": "Professional, Data-Driven",
-    "spam_triggers": []
-  },
-  {
-    "id": "t_002",
-    "name": "Generic Follow Up (Needs Work)",
-    "subject_line": "Just checking in...",
-    "body_content": "Hi {{First_Name}},<br/><br/>I am just bumping this to the top of your inbox.<br/><br/>Did you see my last email? I would love to hop on a quick call and see if there are any synergies we can explore.<br/><br/>Best,<br/>[My Name]",
-    "ai_resonance_score": 35,
-    "status_color": "red",
-    "tone_analysis": "Passive, Generic",
-    "spam_triggers": [
-      { "word": "synergies", "suggestion": "collaboration opportunities" },
-      { "word": "bumping", "suggestion": "following up on" }
-    ]
-  },
-  {
-    "id": "t_003",
-    "name": "Intro - SaaS Founders",
-    "subject_line": "Question about your sales process",
-    "body_content": "Hey {{First_Name}},<br/><br/>Saw you guys are growing fast. Congrats!<br/><br/>I wanted to reach out and see if you need help with your CRM. We have a great tool that is super cheap and easy to use.<br/><br/>Let me know?",
-    "ai_resonance_score": 55,
-    "status_color": "yellow",
-    "tone_analysis": "Too Casual, Vague",
-    "spam_triggers": [
-      { "word": "cheap", "suggestion": "cost-effective" }
-    ]
-  }
-]; */
-
-const MOCK_PERSONAS = [
-  {
-    "id": "p_001",
-    "name": "Steve - The Skeptical CTO",
-    "role": "Chief Technology Officer",
-    "company_type": "Series B Fintech",
-    "disc_profile": "High Dominance (D)",
-    "avatar_initials": "ST",
-    "ai_simulation_prompt": "You are a busy CTO. You hate sales fluff. If the email doesn't mention security, compliance, or hard ROI numbers immediately, you delete it. You are rude but honest.",
-    "recent_activity": "Posted on LinkedIn about 'SOC2 Compliance Nightmares'"
-  },
-  {
-    "id": "p_002",
-    "name": "Sarah - The Visionary VP",
-    "role": "VP of Marketing",
-    "company_type": "Consumer Brand",
-    "disc_profile": "High Influence (I)",
-    "avatar_initials": "SA",
-    "ai_simulation_prompt": "You are a creative VP. You love emails that feel personal, use emojis, and talk about 'brand values' and 'storytelling'. You dislike cold, robotic data lists.",
-    "recent_activity": "Shared an article about 'The Future of Community'"
-  }
-];
-
-const MOCK_CHAT_HISTORY = [
-  {
-    "sender": "user",
-    "text": "Simulating reply for: 'Generic Follow Up' template...",
-    "timestamp": "10:00 AM"
-  },
-  {
-    "sender": "ai_persona",
-    "persona_name": "Steve (CTO)",
-    "text": "I'm deleting this immediately. 'Just checking in' adds zero value to my day. Also, you used the word 'synergies' - that's a red flag that you don't understand my technical problems. Don't email me again unless you have a specific ROI calculation.",
-    "sentiment": "negative",
-    "timestamp": "10:00 AM"
-  }
-];
-
 export default function SmartEmailEditor() {
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
@@ -131,8 +53,7 @@ export default function SmartEmailEditor() {
     const [content, setContent] = useState("");
     const [resonanceScore, setResonanceScore] = useState(0);
     const [isLabMode, setIsLabMode] = useState(false);
-    const [selectedPersona, setSelectedPersona] = useState(MOCK_PERSONAS[0].id);
-    const [personaSource, setPersonaSource] = useState('preset'); // 'preset' | 'crm'
+    const [personaSource] = useState('crm');
     const [selectedCrmId, setSelectedCrmId] = useState("");
     const [crmType, setCrmType] = useState("lead"); // 'lead' | 'opportunity'
     
@@ -202,21 +123,25 @@ export default function SmartEmailEditor() {
     const { data: leads = [] } = useQuery({ 
         queryKey: ['leads'], 
         queryFn: () => atlas.entities.Lead.list(),
-        enabled: personaSource === 'crm'
+        enabled: true
     });
     
     const { data: opportunities = [] } = useQuery({ 
         queryKey: ['opportunities'], 
         queryFn: () => atlas.entities.Opportunity.list(),
-        enabled: personaSource === 'crm'
+        enabled: true
     });
+
+    useEffect(() => {
+        const records = crmType === 'lead' ? leads : opportunities;
+        if (!selectedCrmId && records.length) setSelectedCrmId(records[0].id);
+        if (selectedCrmId && records.length && !records.some(record => record.id === selectedCrmId)) {
+            setSelectedCrmId(records[0].id);
+        }
+    }, [crmType, leads, opportunities, selectedCrmId]);
 
     // Derived Current Persona
     const currentPersona = React.useMemo(() => {
-        if (personaSource === 'preset') {
-            return MOCK_PERSONAS.find(p => p.id === selectedPersona);
-        }
-        
         if (personaSource === 'crm' && selectedCrmId) {
             let data = null;
             let prompt = "";
@@ -250,46 +175,36 @@ export default function SmartEmailEditor() {
             }
         }
         return null;
-    }, [personaSource, selectedPersona, selectedCrmId, crmType, leads, opportunities]);
+    }, [personaSource, selectedCrmId, crmType, leads, opportunities]);
 
 
     // Initial Load
     useEffect(() => {
         if (templateId) {
             // Load the saved Firebase template.
-            const mock = MOCK_TEMPLATES.find(t => t.id === templateId);
-            if (mock) {
-                setTemplateName(mock.name);
-                setSubject(mock.subject_line);
-                setContent(mock.body_content);
-                setResonanceScore(mock.ai_resonance_score);
-            } else {
-                // Fallback to DB
-                atlas.entities.MarketingTemplate.read({ id: templateId }).then(res => {
-                    if (res && res[0]) {
-                        setTemplateName(res[0].name);
-                        setSubject(res[0].subject_line || "");
-                        setContent(res[0].body_content || "");
-                        setResonanceScore(res[0].ai_resonance_score || 0);
-                    }
-                });
-            }
+            atlas.entities.MarketingTemplate.read({ id: templateId }).then(res => {
+                if (res && res[0]) {
+                    setTemplateName(res[0].name);
+                    setSubject(res[0].subject_line || "");
+                    setContent(res[0].body_content || "");
+                    setResonanceScore(res[0].ai_resonance_score || 0);
+                }
+            });
         }
     }, [templateId]);
 
     // Live Resonance Calc
     useEffect(() => {
-        // Only calc if not one of the static mocks to preserve their specific scores for demo
-        const isMock = MOCK_TEMPLATES.find(t => t.id === templateId && t.body_content === content);
-        if (isMock) return;
-
         const calculateResonance = (text) => {
             if (!text || text.length < 10) return 0;
-            const base = 50;
-            const randomVar = Math.floor(Math.random() * 40) - 20; 
-            const hasBuzzword = text.toLowerCase().includes('synergy') || text.toLowerCase().includes('bumping');
-            const penalty = hasBuzzword ? 15 : 0;
-            return Math.min(100, Math.max(0, base + randomVar - penalty));
+            const normalized = text.toLowerCase();
+            let score = 45;
+            if (text.length >= 120) score += 10;
+            if (text.length >= 240) score += 8;
+            if (/\b(you|your|company|team)\b/.test(normalized)) score += 12;
+            if (/\b(next step|schedule|call|meeting|reply)\b/.test(normalized)) score += 12;
+            if (/\b(synergy|bumping|just checking in|cheap)\b/.test(normalized)) score -= 20;
+            return Math.min(100, Math.max(0, score));
         };
         
         const timer = setTimeout(() => {
@@ -301,31 +216,31 @@ export default function SmartEmailEditor() {
 
     const handleAutoTune = async () => {
         setIsGenerating(true);
-        await new Promise(r => setTimeout(r, 1500));
-        
-        // Demo Logic: If on the bad template (t_002), swap to good one (t_001)
-        if (templateId === 't_002') {
-            const goodTemplate = MOCK_TEMPLATES.find(t => t.id === 't_001');
-            setContent(goodTemplate.body_content);
-            setSubject(goodTemplate.subject_line);
-            setResonanceScore(goodTemplate.ai_resonance_score);
-            toast.success("✨ Optimization complete! Spam triggers removed.");
-        } else {
-            // Generic fallback
-            setContent(`Hi {{FirstName}},<br/><br/>I reviewed your Q3 goals and believe we can help you reduce churn by 12%.<br/><br/>Do you have 10 mins this Tuesday?`);
-            setResonanceScore(92);
-            toast.success("Content optimized for higher resonance!");
+        try {
+            const result = await atlas.integrations.Core.InvokeLLM({
+                prompt: `Improve this MDX Fuel sales email while preserving factual claims and placeholders. Return JSON with subject and body HTML.\nSubject: ${subject}\nBody: ${content.replace(/<[^>]*>?/gm, '')}`,
+                response_json_schema: { type: 'object', properties: { subject: { type: 'string' }, body: { type: 'string' } }, required: ['subject', 'body'] },
+            });
+            if (!result?.subject || !result?.body) throw new Error('ATLAS returned no email content.');
+            setSubject(result.subject);
+            setContent(result.body);
+            toast.success('ATLAS optimized the email.');
+        } catch (error) {
+            toast.error(error?.message || 'ATLAS could not optimize this email.');
+        } finally {
+            setIsGenerating(false);
         }
-        setIsGenerating(false);
     };
 
     const handleSimulateReply = async () => {
         setIsSimulating(true);
         const persona = currentPersona;
-        if (!persona) return;
+        if (!persona) {
+            setIsSimulating(false);
+            toast.error('Select a real lead or opportunity before simulating a reply.');
+            return;
+        }
 
-        await new Promise(r => setTimeout(r, 1500));
-        
         // Dynamic Simulation Logic
         let reply = "";
         
@@ -349,24 +264,14 @@ export default function SmartEmailEditor() {
                     - Do NOT be overly polite if the persona is busy/skeptical.
                 `;
 
-                const res = await atlas.integrations.Core.InvokeLLM({ prompt });
-                reply = res.trim().replace(/^"|"$/g, '');
+                const res = await atlas.integrations.Core.InvokeLLM({
+                    prompt,
+                    context: { record_refs: [{ entity: crmType === 'lead' ? 'Lead' : 'Opportunity', id: selectedCrmId }] },
+                });
+                reply = typeof res === 'string' ? res.trim().replace(/^"|"$/g, '') : 'ATLAS returned no reply.';
             } catch (e) {
                 console.error("Simulation error:", e);
-                reply = "Simulation failed. Please try again.";
-            }
-        } else {
-            // Existing Mock Logic
-            if (persona.id === 'p_001') {
-                const mockReply = MOCK_CHAT_HISTORY.find(m => m.sender === 'ai_persona');
-                reply = mockReply.text;
-                // Add system message only for the scripted demo
-                setChatHistory(prev => [...prev, { role: "system", text: MOCK_CHAT_HISTORY[0].text }]);
-            } else {
-                reply = "I would delete this. You didn't mention pricing upfront.";
-                if (persona.name?.includes("Sarah")) {
-                    reply = "This feels a bit dry. Can you tell me a story about how you helped others?";
-                }
+                reply = `ATLAS could not simulate a reply: ${e?.message || 'Please try again.'}`;
             }
         }
 
@@ -527,30 +432,12 @@ export default function SmartEmailEditor() {
                             {/* Toggle Source */}
                             <div className={`p-1 rounded-lg flex ${theme === 'dark' ? 'bg-slate-800' : 'bg-slate-100'}`}>
                                 <button 
-                                    onClick={() => setPersonaSource('preset')}
-                                    className={`flex-1 py-1.5 text-xs font-medium rounded-md transition-all ${personaSource === 'preset' ? (theme === 'dark' ? 'bg-slate-700 text-white shadow' : 'bg-white text-slate-900 shadow') : 'text-slate-500'}`}
-                                >
-                                    Presets
-                                </button>
-                                <button 
-                                    onClick={() => setPersonaSource('crm')}
-                                    className={`flex-1 py-1.5 text-xs font-medium rounded-md transition-all ${personaSource === 'crm' ? (theme === 'dark' ? 'bg-slate-700 text-white shadow' : 'bg-white text-slate-900 shadow') : 'text-slate-500'}`}
-                                >
-                                    CRM Data
-                                </button>
+                                    className={`flex-1 py-1.5 text-xs font-medium rounded-md ${theme === 'dark' ? 'bg-slate-700 text-white shadow' : 'bg-white text-slate-900 shadow'}`}
+                                >CRM Data</button>
                             </div>
 
                             {/* Dropdowns */}
-                            {personaSource === 'preset' ? (
-                                <Select value={selectedPersona} onValueChange={setSelectedPersona}>
-                                    <SelectTrigger className={`h-9 text-sm ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-slate-200' : 'bg-white border-slate-200 text-slate-700'}`}>
-                                        <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent className={theme === 'dark' ? 'bg-slate-800 border-slate-700 text-slate-200' : ''}>
-                                        {MOCK_PERSONAS.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
-                                    </SelectContent>
-                                </Select>
-                            ) : (
+                            {(
                                 <div className="space-y-2">
                                     <div className="flex gap-2">
                                         <Button variant={crmType === 'lead' ? 'secondary' : 'outline'} size="sm" onClick={() => setCrmType('lead')} className="flex-1 text-xs h-7">Leads</Button>
