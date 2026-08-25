@@ -11,42 +11,6 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useSettings } from '@/components/context/SettingsContext';
 
-/*
-  {
-    "id": "t_001",
-    "name": "Enterprise Value Prop (Optimized)",
-    "subject_line": "Reducing your cloud spend by 12% in Q4",
-    "body_content": "Hi {{First_Name}},\n\nI noticed {{Company_Name}} is expanding its infrastructure. Most CTOs I speak with are struggling to balance scaling costs with performance.\n\nWe helped Acme Corp cut AWS spend by 12% in under 30 days without downtime.\n\nAre you open to a 10-minute technical review next Tuesday?",
-    "ai_resonance_score": 92,
-    "status_color": "green", 
-    "tone_analysis": "Professional, Data-Driven",
-    "channel": "EMAIL",
-    "created_date": new Date().toISOString()
-  },
-  {
-    "id": "t_002",
-    "name": "Generic Follow Up (Needs Work)",
-    "subject_line": "Just checking in...",
-    "body_content": "Hi {{First_Name}},\n\nI am just bumping this to the top of your inbox.\n\nDid you see my last email? I would love to hop on a quick call and see if there are any synergies we can explore.\n\nBest,\n[My Name]",
-    "ai_resonance_score": 35,
-    "status_color": "red",
-    "tone_analysis": "Passive, Generic",
-    "channel": "EMAIL",
-    "created_date": new Date().toISOString()
-  },
-  {
-    "id": "t_003",
-    "name": "Intro - SaaS Founders",
-    "subject_line": "Question about your sales process",
-    "body_content": "Hey {{First_Name}},\n\nSaw you guys are growing fast. Congrats!<br/><br/>I wanted to reach out and see if you need help with your CRM. We have a great tool that is super cheap and easy to use.\n\nLet me know?",
-    "ai_resonance_score": 55,
-    "status_color": "yellow",
-    "tone_analysis": "Too Casual, Vague",
-    "channel": "SMS",
-    "created_date": new Date().toISOString()
-  }
-]; */
-
 export default function MarketingTemplates() {
     const navigate = useNavigate();
     const { theme } = useSettings();

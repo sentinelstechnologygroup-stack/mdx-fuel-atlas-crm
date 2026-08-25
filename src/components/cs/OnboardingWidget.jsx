@@ -8,61 +8,6 @@ import { cn } from "@/lib/utils";
 import { useQuery } from '@tanstack/react-query';
 import { atlas } from '@/api/atlasClient';
 
-// Mock Data Structure
-const ONBOARDING_TEMPLATES = {
-  "enterprise": {
-    "title": "Enterprise Implementation (High-Touch)",
-    "total_days_est": 45,
-    "phases": [
-      {
-        "id": "p1",
-        "name": "Phase 1: Alignment & Kickoff",
-        "status": "completed",
-        "tasks": [
-          { "id": "t1", "text": "Hold Kickoff Call with Stakeholders", "completed": true, "owner": "CSM" },
-          { "id": "t2", "text": "Define Success KPIs & Metrics", "completed": true, "owner": "Client" },
-          { "id": "t3", "text": "Sign Technical Requirements Doc", "completed": true, "owner": "Client" }
-        ]
-      },
-      {
-        "id": "p2",
-        "name": "Phase 2: Technical Setup",
-        "status": "in_progress",
-        "tasks": [
-          { "id": "t4", "text": "Configure SSO / SAML", "completed": false, "owner": "Tech Support" },
-          { "id": "t5", "text": "Data Migration from Legacy System", "completed": false, "owner": "Tech Support" },
-          { "id": "t6", "text": "Whitelabel Domain Setup", "completed": false, "owner": "CSM" }
-        ]
-      },
-      {
-        "id": "p3",
-        "name": "Phase 3: Training",
-        "status": "locked",
-        "tasks": [
-          { "id": "t7", "text": "Admin Power-User Training", "completed": false, "owner": "CSM" },
-          { "id": "t8", "text": "End-User Webinar", "completed": false, "owner": "CSM" }
-        ]
-      }
-    ]
-  },
-  "smb": {
-    "title": "SMB Fast-Track (Self-Serve)",
-    "total_days_est": 7,
-    "phases": [
-      {
-        "id": "p1",
-        "name": "Getting Started",
-        "status": "in_progress",
-        "tasks": [
-          { "id": "s1", "text": "Complete Billing Profile", "completed": true, "owner": "Client" },
-          { "id": "s2", "text": "Import Contacts (CSV)", "completed": false, "owner": "Client" },
-          { "id": "s3", "text": "Watch 'Day 1' Tutorial Video", "completed": false, "owner": "Client" }
-        ]
-      }
-    ]
-  }
-};
-
 export default function OnboardingWidget({ client, onUpdate, isDark = true }) {
   const [selectedTemplate, setSelectedTemplate] = useState(client.onboarding_track || "");
   const [plan, setPlan] = useState(client.onboarding_plan || null);

@@ -75,8 +75,7 @@ export default function SalesAssistantChat() {
     useEffect(() => {
         const initChat = async () => {
             try {
-                // Check for existing recent conversation or create new
-                // For simplicity in this demo, we'll create a new one or use a fixed ID logic if we had persistence
+                // Start a fresh persisted conversation for this session.
                 const newConv = await atlas.agents.createConversation({
                     agent_name: "SalesAssistant",
                     metadata: { name: "Sales Help" }

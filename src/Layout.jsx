@@ -203,7 +203,7 @@ function LayoutContent({ children, currentPageName }) {
                     <div className="space-y-1">
                       {group.items.filter((it) => { const _mk = NAV_MODULE_MAP[it.path]; return !_mk || canView(_mk); }).length === 0 ? (
                         <div className={`px-4 py-2 text-sm italic ${theme === 'dark' ? 'text-slate-600' : 'text-neutral-400'}`}>
-                          Coming soon
+                          No modules available for this role
                         </div>
                       ) : (
                         group.items.filter((it) => { const _mk2 = NAV_MODULE_MAP[it.path]; return !_mk2 || canView(_mk2); }).map((item) => {

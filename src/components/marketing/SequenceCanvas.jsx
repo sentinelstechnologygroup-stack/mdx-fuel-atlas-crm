@@ -218,9 +218,7 @@ export default function SequenceCanvas({ sequenceId }) {
             }
 
             // 2. Sync Steps (Nodes)
-            // Strategy: Upsert based on ID. If ID starts with 'new_', create.
-            // Problem: 'start' node might be virtual. 
-            // Let's assume 'start' is a real step type for this builder.
+            // Persist every canvas node so the saved sequence can be reconstructed.
             
             const savedStepMap = {}; // Map local ID to DB ID
 
@@ -232,11 +230,9 @@ export default function SequenceCanvas({ sequenceId }) {
                     position_ui: { x: node.x, y: node.y }
                 };
 
-                // Fix START type mapping if needed, or exclude START if it's just a trigger placeholder
                 if (node.type === 'START') {
-                    // Start node might be special, maybe it's the Trigger config?
-                    // For now let's save it as a step so we have a root.
-                    stepData.type = 'DECISION_SPLIT'; // Placeholder type or add START to schema
+                    // The entity schema has no START type; use its persisted root-step type.
+                    stepData.type = 'DECISION_SPLIT';
                 }
 
                 if (node.id.startsWith('start') || node.id.startsWith('email') || node.id.length < 10) { 
