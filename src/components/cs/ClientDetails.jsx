@@ -97,14 +97,14 @@ export default function ClientDetails({ client, open, onClose }) {
                 <DialogHeader className="mb-4">
                     <div className="flex justify-between items-start">
                         <div>
-                            <DialogTitle className="text-2xl font-bold">{client.full_name}</DialogTitle>
+                            <DialogTitle className="text-2xl font-bold">{client.company_name || client.full_name}</DialogTitle>
                             <p className={`text-sm mt-1 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-                                {client.product_type} • {client.customer_segment}
+                                {client.primary_fuel_type || client.product_type || 'Fuel Account'} • {client.customer_status || client.customer_segment || 'Customer'}
                             </p>
                         </div>
                         <div className="flex gap-2">
                             <Badge className={client.health_score > 80 ? 'bg-green-500' : 'bg-yellow-500'}>
-                                Health: {client.health_score}
+                                {client.credit_status || `Health: ${client.health_score}`}
                             </Badge>
                             <Badge variant="outline" className="text-slate-50 px-2.5 py-0.5 text-xs font-semibold rounded-md inline-flex items-center border transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2">{client.onboarding_status}</Badge>
                         </div>
@@ -123,8 +123,14 @@ export default function ClientDetails({ client, open, onClose }) {
                     <TabsContent value="overview" className="space-y-6">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <Card className={isDark ? 'bg-slate-800 border-slate-700' : ''}>
-                                <CardHeader><CardTitle className={`${isDark ? 'text-slate-50' : 'text-slate-900'} text-lg font-semibold tracking-tight`}>Client Info</CardTitle></CardHeader>
+                                <CardHeader><CardTitle className={`${isDark ? 'text-slate-50' : 'text-slate-900'} text-lg font-semibold tracking-tight`}>Customer Account</CardTitle></CardHeader>
                                 <CardContent className="space-y-4">
+                                    <div className="flex items-center gap-3">
+                                        <ListChecks className={`w-4 h-4 ${isDark ? 'text-slate-400' : 'text-slate-500'}`} />
+                                        <span className={isDark ? 'text-slate-50' : 'text-slate-900'}>
+                                            {(client.estimated_monthly_gallons || 0).toLocaleString()} gal/month • {client.delivery_type || 'Delivery TBD'}
+                                        </span>
+                                    </div>
                                     <div className="flex items-center gap-3">
                                         <Mail className={`w-4 h-4 ${isDark ? 'text-slate-400' : 'text-slate-500'}`} />
                                         <span className={isDark ? 'text-slate-50' : 'text-slate-900'}>{client.email}</span>
@@ -135,31 +141,31 @@ export default function ClientDetails({ client, open, onClose }) {
                                     </div>
                                     <div className="flex items-center gap-3">
                                         <Calendar className={`w-4 h-4 ${isDark ? 'text-slate-400' : 'text-slate-500'}`} />
-                                        <span className={isDark ? 'text-slate-50' : 'text-slate-900'}>Contract Start: {client.contract_start_date}</span>
+                                        <span className={isDark ? 'text-slate-50' : 'text-slate-900'}>Start Date: {client.contract_start_date || client.start_date || '-'}</span>
                                     </div>
                                     <div className={`pt-4 border-t border-dashed ${isDark ? 'border-slate-700' : 'border-slate-200'}`}>
-                                        <p className={`${isDark ? 'text-slate-50' : 'text-slate-900'} mb-2 text-sm font-semibold`}>CS Notes</p>
+                                        <p className={`${isDark ? 'text-slate-50' : 'text-slate-900'} mb-2 text-sm font-semibold`}>Delivery Notes / Special Instructions</p>
                                         <p className={`text-sm italic ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
-                                            {client.cs_notes || "No notes yet..."}
+                                            {client.special_instructions || client.cs_notes || client.notes || "No notes yet..."}
                                         </p>
                                     </div>
                                 </CardContent>
                             </Card>
 
                             <Card className={isDark ? 'bg-slate-800 border-slate-700' : ''}>
-                                <CardHeader><CardTitle className={`${isDark ? 'text-[#8cf54d]' : 'text-green-600'} text-lg font-semibold tracking-tight`}>Subscription</CardTitle></CardHeader>
+                                <CardHeader><CardTitle className={`${isDark ? 'text-[#8cf54d]' : 'text-green-600'} text-lg font-semibold tracking-tight`}>Fuel Program</CardTitle></CardHeader>
                                 <CardContent className="space-y-4">
                                     <div>
                                         <div className="flex justify-between text-sm mb-1">
-                                            <span className={isDark ? 'text-blue-300' : 'text-blue-600'}>Renewal Date</span>
-                                            <span className={`${isDark ? 'text-blue-300' : 'text-blue-600'} font-mono`}>{client.renewal_date}</span>
+                                            <span className={isDark ? 'text-blue-300' : 'text-blue-600'}>Next Follow-Up</span>
+                                            <span className={`${isDark ? 'text-blue-300' : 'text-blue-600'} font-mono`}>{client.next_follow_up || '-'}</span>
                                         </div>
                                         <Progress value={65} className="bg-sky-200 rounded-full relative w-full overflow-hidden h-2" />
-                                        <p className="text-xs text-slate-500 mt-1">200 days remaining</p>
+                                        <p className="text-xs text-slate-500 mt-1">Track service, credit, delivery, and tank follow-up here.</p>
                                     </div>
                                     <div className="flex justify-between items-center p-3 rounded-lg bg-slate-100 dark:bg-slate-900">
-                                        <span className="text-sm">ARR</span>
-                                        <span className="text-lg font-bold">${client.initial_amount?.toLocaleString()}</span>
+                                        <span className="text-sm">Tank Rental</span>
+                                        <span className="text-lg font-bold">{client.tank_rental || 'No'}{client.number_of_tanks ? ` • ${client.number_of_tanks} tanks` : ''}</span>
                                     </div>
                                 </CardContent>
                             </Card>

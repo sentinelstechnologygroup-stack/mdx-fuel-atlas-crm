@@ -59,6 +59,11 @@ export default function LeadForm({ lead, onSaveAndClose, onSaveAndStay, onCancel
         new Date().toISOString().split("T")[0],
       notes: lead?.notes || "",
       lead_temperature: lead?.lead_temperature || "Cold",
+      industry: lead?.industry || "",
+      lead_source: lead?.lead_source || "",
+      estimated_monthly_gallons: lead?.estimated_monthly_gallons || "",
+      tank_rental: lead?.tank_rental || "No",
+      delivery_type: lead?.delivery_type || "",
       tags: lead?.tags || [],
       custom_data: lead?.custom_data || {},
     },
@@ -472,18 +477,18 @@ export default function LeadForm({ lead, onSaveAndClose, onSaveAndStay, onCancel
               </div>
 
               <div className="space-y-1">
-                <Label className={labelClass}>Lead Temperature</Label>
+                <Label className={labelClass}>Lead Rating</Label>
                 <Select
                   defaultValue={lead?.lead_temperature || "Cold"}
                   onValueChange={(val) => handleSelectChange("lead_temperature", val)}>
                   <SelectTrigger className={inputClass}>
-                    <SelectValue placeholder="Select Temperature" />
+                    <SelectValue placeholder="Select Rating" />
                   </SelectTrigger>
                   <SelectContent className={theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : ''}>
-                    <SelectItem value="Hot">Hot</SelectItem>
-                    <SelectItem value="Warm">Warm</SelectItem>
-                    <SelectItem value="Cold">Cold</SelectItem>
-                    <SelectItem value="Hot History">Hot History</SelectItem>
+                    <SelectItem value="A">A</SelectItem>
+                    <SelectItem value="B">B</SelectItem>
+                    <SelectItem value="C">C</SelectItem>
+                    <SelectItem value="Unrated">Unrated</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -523,6 +528,77 @@ export default function LeadForm({ lead, onSaveAndClose, onSaveAndStay, onCancel
                   {...register("last_contact_date")}
                   className={inputClass} />
 
+              </div>
+
+              <div className="space-y-1">
+                <Label className={labelClass}>Industry</Label>
+                <Select
+                  defaultValue={lead?.industry || ""}
+                  onValueChange={(val) => handleSelectChange("industry", val)}
+                >
+                  <SelectTrigger className={inputClass}>
+                    <SelectValue placeholder="Select industry" />
+                  </SelectTrigger>
+                  <SelectContent className={theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : ''}>
+                    <SelectItem value="Construction">Construction</SelectItem>
+                    <SelectItem value="Trucking">Trucking</SelectItem>
+                    <SelectItem value="Transportation">Transportation</SelectItem>
+                    <SelectItem value="Oil & Gas">Oil & Gas</SelectItem>
+                    <SelectItem value="Manufacturing">Manufacturing</SelectItem>
+                    <SelectItem value="Agriculture">Agriculture</SelectItem>
+                    <SelectItem value="Landscaping">Landscaping</SelectItem>
+                    <SelectItem value="Other">Other</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1">
+                <Label className={labelClass}>Lead Source</Label>
+                <Select
+                  defaultValue={lead?.lead_source || ""}
+                  onValueChange={(val) => handleSelectChange("lead_source", val)}
+                >
+                  <SelectTrigger className={inputClass}>
+                    <SelectValue placeholder="Select source" />
+                  </SelectTrigger>
+                  <SelectContent className={theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : ''}>
+                    <SelectItem value="Website">Website</SelectItem>
+                    <SelectItem value="Referral">Referral</SelectItem>
+                    <SelectItem value="Cold Call">Cold Call</SelectItem>
+                    <SelectItem value="Email Campaign">Email Campaign</SelectItem>
+                    <SelectItem value="Networking">Networking</SelectItem>
+                    <SelectItem value="Trade Show">Trade Show</SelectItem>
+                    <SelectItem value="Existing Customer">Existing Customer</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1">
+                <Label className={labelClass}>Estimated Gallons / Month</Label>
+                <Input
+                  type="number"
+                  min="0"
+                  step="1"
+                  {...register("estimated_monthly_gallons", { valueAsNumber: true })}
+                  placeholder="e.g., 25,000"
+                  className={inputClass}
+                />
+              </div>
+
+              <div className="space-y-1">
+                <Label className={labelClass}>Tank Rental?</Label>
+                <Select
+                  defaultValue={lead?.tank_rental || "No"}
+                  onValueChange={(val) => handleSelectChange("tank_rental", val)}
+                >
+                  <SelectTrigger className={inputClass}>
+                    <SelectValue placeholder="Tank rental?" />
+                  </SelectTrigger>
+                  <SelectContent className={theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : ''}>
+                    <SelectItem value="Yes">Yes</SelectItem>
+                    <SelectItem value="No">No</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
               {/* Custom Fields Section */}
