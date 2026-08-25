@@ -8,8 +8,9 @@ import moment from 'moment';
 import { Search, DollarSign, Briefcase, CheckCircle2 } from 'lucide-react';
 import { useSettings } from "@/components/context/SettingsContext";
 import { isLostOpportunity, isWonOpportunity } from '@/lib/fuelVolume';
+import { filterRecordsByTimeRange } from '@/lib/reporting';
 
-export default function OpportunitiesListReport({ opportunities = [] }) {
+export default function OpportunitiesListReport({ opportunities = [], timeRange = 'all' }) {
   const { theme } = useSettings();
   const [filterStage, setFilterStage] = useState('all');
   const [filterDate, setFilterDate] = useState('all');
@@ -21,7 +22,7 @@ export default function OpportunitiesListReport({ opportunities = [] }) {
   }, [opportunities]);
 
   const filteredData = useMemo(() => {
-    return opportunities.filter((o) => {
+    return filterRecordsByTimeRange(opportunities, timeRange).filter((o) => {
       if (filterStage !== 'all' && o.deal_stage !== filterStage) return false;
       if (filterDate !== 'all') {
         const created = moment(o.created_date);
@@ -36,7 +37,7 @@ export default function OpportunitiesListReport({ opportunities = [] }) {
       }
       return true;
     });
-  }, [opportunities, filterStage, filterDate, searchClient]);
+  }, [opportunities, timeRange, filterStage, filterDate, searchClient]);
 
   const stats = useMemo(() => {
     let openCount = 0;

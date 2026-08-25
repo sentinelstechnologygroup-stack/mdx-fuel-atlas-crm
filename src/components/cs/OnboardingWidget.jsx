@@ -1,10 +1,12 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { Check, Lock, ChevronDown, ChevronUp, User, Briefcase, RefreshCw, BarChart3, Clock, Calendar } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useQuery } from '@tanstack/react-query';
+import { atlas } from '@/api/atlasClient';
 
 // Mock Data Structure
 const ONBOARDING_TEMPLATES = {
@@ -65,6 +67,37 @@ export default function OnboardingWidget({ client, onUpdate, isDark = true }) {
   const [selectedTemplate, setSelectedTemplate] = useState(client.onboarding_track || "");
   const [plan, setPlan] = useState(client.onboarding_plan || null);
   const [expandedPhases, setExpandedPhases] = useState({});
+  const { data: templates = [] } = useQuery({
+    queryKey: ['onboarding_templates'],
+    queryFn: () => atlas.entities.OnboardingTemplate.list(),
+    staleTime: 60000,
+  });
+
+  const availableTemplates = useMemo(() => templates.map((template) => {
+    const grouped = new Map();
+    (template.items || []).forEach((item, index) => {
+      const phaseName = typeof item === 'object' ? (item.phase || 'General') : 'General';
+      const phase = grouped.get(phaseName) || {
+        id: `${template.id}-${phaseName}`,
+        name: phaseName,
+        status: 'in_progress',
+        tasks: [],
+      };
+      phase.tasks.push({
+        id: `${template.id}-task-${index}`,
+        text: typeof item === 'object' ? item.text : String(item),
+        completed: false,
+        owner: typeof item === 'object' ? (item.default_assignee || 'CSM') : 'CSM',
+      });
+      grouped.set(phaseName, phase);
+    });
+    return {
+      id: template.id,
+      title: template.title,
+      total_days_est: Number(template.total_days_est || 30),
+      phases: Array.from(grouped.values()),
+    };
+  }).filter((template) => template.phases.length > 0), [templates]);
 
   useEffect(() => {
     // Sync props to state if they change externally
@@ -81,7 +114,9 @@ export default function OnboardingWidget({ client, onUpdate, isDark = true }) {
 
   const handleTemplateChange = (value) => {
     setSelectedTemplate(value);
-    const newPlan = JSON.parse(JSON.stringify(ONBOARDING_TEMPLATES[value])); // Deep copy
+    const selected = availableTemplates.find((template) => template.id === value);
+    if (!selected) return;
+    const newPlan = JSON.parse(JSON.stringify(selected));
     setPlan(newPlan);
     setExpandedPhases({ [newPlan.phases[0].id]: true }); // Open first phase
     
@@ -149,7 +184,7 @@ export default function OnboardingWidget({ client, onUpdate, isDark = true }) {
     
     return {
         percent,
-        daysLeft: Math.max(0, plan.total_days_est - 5), // Mock calculation
+        daysLeft: Math.max(0, plan.total_days_est - completedTasks),
         completedTasks,
         totalTasks,
         health: percent > 50 ? 'On Track' : 'At Risk'
@@ -199,8 +234,9 @@ export default function OnboardingWidget({ client, onUpdate, isDark = true }) {
                         <SelectValue placeholder="Load Template..." />
                     </SelectTrigger>
                     <SelectContent className={themeClasses.selectContent}>
-                        <SelectItem value="enterprise">Enterprise Implementation</SelectItem>
-                        <SelectItem value="smb">SMB Fast-Track</SelectItem>
+                        {availableTemplates.map((template) => (
+                            <SelectItem key={template.id} value={template.id}>{template.title}</SelectItem>
+                        ))}
                     </SelectContent>
                 </Select>
             </div>
@@ -209,7 +245,7 @@ export default function OnboardingWidget({ client, onUpdate, isDark = true }) {
         {!plan ? (
             <div className={cn("flex flex-col items-center justify-center py-20 border-2 border-dashed rounded-xl", themeClasses.emptyState)}>
                 <Briefcase className="w-12 h-12 mb-4 opacity-20" />
-                <p>Select a template to initialize onboarding</p>
+                <p>{availableTemplates.length ? 'Select a template to initialize onboarding' : 'No onboarding templates have been configured yet'}</p>
             </div>
         ) : (
             <>

@@ -36,6 +36,7 @@ export default function ConversionReport({ leads, opportunities, timeRange }) {
     { "value": stats.totalOpps, "name": "Active Opportunities", "fill": "#f59e0b" },
     { "value": stats.closedWon, "name": "Closed Won", "fill": "#10b981" }
   ];
+  const qualityLabel = stats.conversionRate >= 50 ? 'High' : stats.conversionRate >= 20 ? 'Medium' : 'Low';
 
   return (
     <div className="space-y-6">
@@ -68,7 +69,7 @@ export default function ConversionReport({ leads, opportunities, timeRange }) {
                 <Users className={`h-4 w-4 ${theme === 'dark' ? 'text-purple-400 drop-shadow-sm' : 'text-purple-500'}`} />
             </CardHeader>
             <CardContent>
-                <div className={`text-2xl font-bold ${theme === 'dark' ? 'text-purple-400' : ''}`}>High</div>
+                <div className={`text-2xl font-bold ${theme === 'dark' ? 'text-purple-400' : ''}`}>{qualityLabel}</div>
                 <p className={`text-xs ${theme === 'dark' ? 'text-slate-400' : 'text-slate-500'}`}>Based on conversion rates</p>
             </CardContent>
         </Card>

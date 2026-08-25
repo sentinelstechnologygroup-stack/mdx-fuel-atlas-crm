@@ -229,7 +229,7 @@ export default function ReportsPage() {
               {/* Main Content Area */}
               <div className="col-span-12 lg:col-span-10">
                   <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
-                      {activeReport === 'list' && <OpportunitiesListReport opportunities={opportunities} />}
+                      {activeReport === 'list' && <OpportunitiesListReport opportunities={opportunities} timeRange={timeRange} />}
                       {activeReport === 'advanced' && <OpportunityAdvancedReport leads={leads} opportunities={opportunities} />}
                       {activeReport === 'sales' && <SalesPerformance leads={leads} opportunities={opportunities} timeRange={timeRange} />}
                       {activeReport === 'conversion' && <ConversionReport leads={leads} opportunities={opportunities} timeRange={timeRange} />}

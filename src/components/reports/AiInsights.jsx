@@ -31,6 +31,7 @@ export default function AiInsights() {
 
       leads.forEach(l => {
         if (l.city) leadsByCity[l.city] = (leadsByCity[l.city] || 0) + 1;
+        if (l.lead_source) leadsBySource[l.lead_source] = (leadsBySource[l.lead_source] || 0) + 1;
       });
 
       const wonOpps = opportunities.filter(isWonOpportunity);
@@ -40,7 +41,7 @@ export default function AiInsights() {
         stats: {
           totalLeads,
           convertedLeads,
-          conversionRate: (convertedLeads / totalLeads * 100).toFixed(1),
+          conversionRate: totalLeads ? (convertedLeads / totalLeads * 100).toFixed(1) : '0.0',
           wonCount: wonOpps.length,
           lostCount: lostOpps.length,
         },
