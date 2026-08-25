@@ -11,7 +11,6 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useSettings } from '@/components/context/SettingsContext';
 
-const MOCK_TEMPLATES = [];
 /*
   {
     "id": "t_001",
@@ -64,9 +63,8 @@ export default function MarketingTemplates() {
         queryFn: listEmployeeLookup,
     });
 
-    const templates = [...MOCK_TEMPLATES, ...dbTemplates].filter(t => {
+    const templates = dbTemplates.filter(t => {
         if (selectedUser === 'all') return true;
-        if (t.id.startsWith('t_')) return false; 
         return t.created_by === selectedUser;
     });
 
