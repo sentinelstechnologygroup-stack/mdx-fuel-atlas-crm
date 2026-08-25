@@ -59,7 +59,7 @@ export default function SmartEmailEditor() {
     
     const [isGenerating, setIsGenerating] = useState(false);
     const [chatHistory, setChatHistory] = useState([
-        { role: "system", text: "Simulation ready." }
+        { role: "system", text: "Select a CRM lead or opportunity to simulate a reply." }
     ]);
     const [isSimulating, setIsSimulating] = useState(false);
     const [isSaving, setIsSaving] = useState(false);

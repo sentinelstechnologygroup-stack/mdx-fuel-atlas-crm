@@ -183,7 +183,7 @@ export default function LeadAiAnalysis({ lead }) {
 
         {/* Analysis Text */}
         <div className="bg-slate-50 p-3 rounded-lg text-sm text-slate-700 leading-relaxed border border-slate-100">
-          <p>{lead.ai_analysis || "Initial analysis complete."}</p>
+          <p>{lead.ai_analysis || "No written analysis was returned. Run the analysis again."}</p>
         </div>
 
         {/* Action Items */}
