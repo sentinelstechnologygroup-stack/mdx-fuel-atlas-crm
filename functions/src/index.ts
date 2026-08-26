@@ -4,7 +4,7 @@ import {getAuth} from "firebase-admin/auth";
 import {FieldValue, getFirestore} from "firebase-admin/firestore";
 import {getStorage} from "firebase-admin/storage";
 import {logger, setGlobalOptions} from "firebase-functions";
-import {HttpsError, onCall} from "firebase-functions/v2/https";
+import {HttpsError, onCall, onRequest} from "firebase-functions/v2/https";
 import {randomBytes} from "node:crypto";
 import {
   executeMessageDeliveryCallable,
@@ -4486,5 +4486,44 @@ export const sendMessageDelivery = onCall(
       request.auth?.uid,
       request.data || {}
     );
+  }
+);
+
+/**
+ * Exchanges a portal Firebase ID token for a short-lived custom token.
+ * The CRM consumes this token to establish the employee session without a
+ * second login form.
+ */
+export const createAtlasPortalSession = onRequest(
+  {region: "us-central1"},
+  async (request, response) => {
+    response.set("Access-Control-Allow-Origin", "https://mdxfuel.com");
+    response.set("Access-Control-Allow-Methods", "POST, OPTIONS");
+    response.set("Access-Control-Allow-Headers", "Content-Type");
+
+    if (request.method === "OPTIONS") {
+      response.status(204).send("");
+      return;
+    }
+
+    if (request.method !== "POST") {
+      response.status(405).json({error: "method_not_allowed"});
+      return;
+    }
+
+    const idToken = request.body?.idToken;
+    if (typeof idToken !== "string" || idToken.length === 0) {
+      response.status(400).json({error: "missing_id_token"});
+      return;
+    }
+
+    try {
+      const decoded = await firebaseAuth.verifyIdToken(idToken);
+      const customToken = await firebaseAuth.createCustomToken(decoded.uid);
+      response.status(200).json({customToken});
+    } catch (error) {
+      logger.warn("Portal session exchange rejected", error);
+      response.status(401).json({error: "invalid_id_token"});
+    }
   }
 );

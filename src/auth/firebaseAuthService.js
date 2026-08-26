@@ -3,6 +3,7 @@ import {
   onAuthStateChanged,
   sendPasswordResetEmail,
   signInWithEmailAndPassword,
+  signInWithCustomToken,
   signOut,
   updatePassword,
 } from 'firebase/auth';
@@ -105,6 +106,21 @@ export async function requestFirebasePasswordReset(email) {
     throw new FirebaseAuthServiceError(
       error?.code || 'password_reset_failed',
       'Unable to send the password reset email.',
+      error
+    );
+  }
+}
+
+export async function signInWithPortalToken(customToken) {
+  try {
+    const credential = await signInWithCustomToken(firebaseAuth, customToken);
+    const profile = await getUserProfile(credential.user.uid);
+    return { firebaseUser: credential.user, profile };
+  } catch (error) {
+    if (firebaseAuth.currentUser) await signOut(firebaseAuth);
+    throw new FirebaseAuthServiceError(
+      error?.code || 'portal_session_failed',
+      'The portal session could not be established.',
       error
     );
   }

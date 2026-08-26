@@ -12,6 +12,7 @@ import {
   getUserProfile,
   requestFirebasePasswordReset,
   signInWithFirebase,
+  signInWithPortalToken,
   signOutFromFirebase,
   subscribeToFirebaseSession,
 } from '@/auth/firebaseAuthService';
@@ -25,6 +26,18 @@ export function FirebaseAuthProvider({ children }) {
   const [isLoadingAuth, setIsLoadingAuth] = useState(true);
 
   useEffect(() => {
+    const portalToken = new URLSearchParams(window.location.search).get('portalToken');
+    if (portalToken) {
+      signInWithPortalToken(portalToken)
+        .then((session) => {
+          setFirebaseUser(session.firebaseUser);
+          setProfile(session.profile);
+          window.history.replaceState({}, document.title, window.location.pathname);
+        })
+        .catch((error) => setAuthError(error))
+        .finally(() => setIsLoadingAuth(false));
+      return undefined;
+    }
     const unsubscribe = subscribeToFirebaseSession((session) => {
       setFirebaseUser(session.firebaseUser);
       setProfile(session.profile);
