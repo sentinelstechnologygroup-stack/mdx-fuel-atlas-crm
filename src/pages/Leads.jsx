@@ -186,7 +186,7 @@ export default function LeadsPage() {
   const createLead = useMutation({
     mutationFn: (data) => atlas.entities.Lead.create(data),
     onSuccess: async (data) => {
-      queryClient.invalidateQueries(['leads']);
+      queryClient.invalidateQueries({ queryKey: ['leads'] });
       setShowLeadForm(false);
       setEditingLead(null);
       // No automatic close - handled by handlers
@@ -230,14 +230,14 @@ export default function LeadsPage() {
       alert("Failed to update lead");
     },
     onSettled: () => {
-      queryClient.invalidateQueries(['leads']);
+      queryClient.invalidateQueries({ queryKey: ['leads'] });
     }
   });
 
   const deleteLead = useMutation({
     mutationFn: (id) => atlas.entities.Lead.update(id, { is_deleted: true }),
     onSuccess: () => {
-      queryClient.invalidateQueries(['leads']);
+      queryClient.invalidateQueries({ queryKey: ['leads'] });
       alert("The lead was archived successfully.");
     }
   });
@@ -255,8 +255,8 @@ export default function LeadsPage() {
     },
     onSuccess: async (result) => {
       await Promise.all([
-        queryClient.invalidateQueries(['opportunities']),
-        queryClient.invalidateQueries(['leads'])
+        queryClient.invalidateQueries({ queryKey: ['opportunities'] }),
+        queryClient.invalidateQueries({ queryKey: ['leads'] })
       ]);
 
       if (result.created && result.opportunity) {
@@ -660,7 +660,7 @@ export default function LeadsPage() {
                   <OwnershipAssignControl
                     entityType="lead"
                     record={editingLead}
-                    onUpdated={() => queryClient.invalidateQueries(['leads'])}
+                    onUpdated={() => queryClient.invalidateQueries({ queryKey: ['leads'] })}
                   />
                 </div>
               )}
