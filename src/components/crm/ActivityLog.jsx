@@ -55,7 +55,7 @@ export default function ActivityLog({ leadId, opportunityId }) {
       date: new Date(data.date).toISOString()
     }),
     onSuccess: () => {
-      queryClient.invalidateQueries(['activities', leadId]);
+      queryClient.invalidateQueries({ queryKey: ['activities', leadId] });
       setIsAdding(false);
       toast.success("Activity added successfully");
     }
@@ -68,7 +68,7 @@ export default function ActivityLog({ leadId, opportunityId }) {
       date: new Date(data.date).toISOString()
     }),
     onSuccess: () => {
-      queryClient.invalidateQueries(['activities', leadId]);
+      queryClient.invalidateQueries({ queryKey: ['activities', leadId] });
       setEditingActivity(null);
       toast.success("Activity updated successfully");
     }
