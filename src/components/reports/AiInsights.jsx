@@ -6,11 +6,13 @@ import { Button } from "@/components/ui/button";
 import { Loader2, BrainCircuit, TrendingUp, AlertTriangle, Lightbulb } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useSettings } from "@/components/context/SettingsContext";
+import { isLostOpportunity, isWonOpportunity } from '@/lib/fuelVolume';
 
 export default function AiInsights() {
   const { theme } = useSettings();
   const [insights, setInsights] = React.useState(null);
   const [isLoadingAI, setIsLoadingAI] = React.useState(false);
+  const [aiError, setAiError] = React.useState('');
 
   // Fetch data for analysis
   const { data: leads } = useQuery({ queryKey: ['leads'], queryFn: () => atlas.entities.Lead.list() });
@@ -19,6 +21,7 @@ export default function AiInsights() {
   const generateInsights = async () => {
     if (!leads || !opportunities) return;
     setIsLoadingAI(true);
+    setAiError('');
 
     try {
       const totalLeads = leads.length;
@@ -28,16 +31,17 @@ export default function AiInsights() {
 
       leads.forEach(l => {
         if (l.city) leadsByCity[l.city] = (leadsByCity[l.city] || 0) + 1;
+        if (l.lead_source) leadsBySource[l.lead_source] = (leadsBySource[l.lead_source] || 0) + 1;
       });
 
-      const wonOpps = opportunities.filter(o => o.deal_stage?.includes('Won'));
-      const lostOpps = opportunities.filter(o => o.deal_stage?.includes('Lost'));
+      const wonOpps = opportunities.filter(isWonOpportunity);
+      const lostOpps = opportunities.filter(isLostOpportunity);
 
       const analysisPayload = {
         stats: {
           totalLeads,
           convertedLeads,
-          conversionRate: (convertedLeads / totalLeads * 100).toFixed(1),
+          conversionRate: totalLeads ? (convertedLeads / totalLeads * 100).toFixed(1) : '0.0',
           wonCount: wonOpps.length,
           lostCount: lostOpps.length,
         },
@@ -79,6 +83,7 @@ export default function AiInsights() {
       setInsights(result);
     } catch (err) {
       console.error("AI Analysis failed", err);
+      setAiError(err?.message || 'ATLAS AI is unavailable. Confirm the AI provider is configured by an administrator.');
     } finally {
       setIsLoadingAI(false);
     }
@@ -106,6 +111,12 @@ export default function AiInsights() {
           {insights ? 'Refresh Insights' : 'Generate New Insights'}
         </Button>
       </div>
+
+      {aiError && (
+        <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          {aiError}
+        </div>
+      )}
 
       {isLoadingAI && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

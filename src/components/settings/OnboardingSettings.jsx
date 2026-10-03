@@ -27,7 +27,7 @@ export default function OnboardingSettings() {
     const createTemplateMutation = useMutation({
         mutationFn: (data) => atlas.entities.OnboardingTemplate.create(data),
         onSuccess: () => {
-            queryClient.invalidateQueries(['onboarding_templates']);
+            queryClient.invalidateQueries({ queryKey: ['onboarding_templates'] });
             setIsEditing(false);
             setCurrentTemplate(null);
         }
@@ -36,7 +36,7 @@ export default function OnboardingSettings() {
     const updateTemplateMutation = useMutation({
         mutationFn: ({ id, data }) => atlas.entities.OnboardingTemplate.update(id, data),
         onSuccess: () => {
-            queryClient.invalidateQueries(['onboarding_templates']);
+            queryClient.invalidateQueries({ queryKey: ['onboarding_templates'] });
             setIsEditing(false);
             setCurrentTemplate(null);
         }
@@ -44,7 +44,7 @@ export default function OnboardingSettings() {
 
     const deleteTemplateMutation = useMutation({
         mutationFn: (id) => atlas.entities.OnboardingTemplate.delete(id),
-        onSuccess: () => queryClient.invalidateQueries(['onboarding_templates'])
+        onSuccess: () => queryClient.invalidateQueries({ queryKey: ['onboarding_templates'] })
     });
 
     const handleSave = () => {

@@ -36,16 +36,18 @@ export default function TeamManagement() {
   const saveMutation = useMutation({
     mutationFn: ({ id, data }) => id ? atlas.entities.Team.update(id, data) : atlas.entities.Team.create(data),
     onSuccess: () => {
-      queryClient.invalidateQueries(['teams_mgmt']);
-      queryClient.invalidateQueries(['teams_directory']);
+      queryClient.invalidateQueries({ queryKey: ['teams_mgmt'] });
+      queryClient.invalidateQueries({ queryKey: ['directoryTeams'] });
+      queryClient.invalidateQueries({ queryKey: ['teams_for_territories'] });
       setOpen(false);
     }
   });
   const statusMutation = useMutation({
     mutationFn: ({ id, data }) => atlas.entities.Team.update(id, data),
     onSuccess: () => {
-      queryClient.invalidateQueries(['teams_mgmt']);
-      queryClient.invalidateQueries(['teams_directory']);
+      queryClient.invalidateQueries({ queryKey: ['teams_mgmt'] });
+      queryClient.invalidateQueries({ queryKey: ['directoryTeams'] });
+      queryClient.invalidateQueries({ queryKey: ['teams_for_territories'] });
     }
   });
 

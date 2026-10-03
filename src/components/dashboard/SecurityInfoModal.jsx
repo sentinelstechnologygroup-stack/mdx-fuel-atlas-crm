@@ -55,17 +55,17 @@ export default function SecurityInfoModal() {
                         }`}>
                             <p className="mb-2 font-medium">
                                 <Lock className="w-3.5 h-3.5 inline-block mr-1.5 -mt-0.5" />
-                                Demo Security Protocols
+                                Access Controls
                             </p>
                             <p>
-                                Some dashboard widgets may appear empty because this is a secured demo environment.
-                                We restrict real-time data access to protect user privacy.
+                                Dashboard data is limited to the records and metrics allowed by your role.
+                                Empty sections mean there are no matching records or the required access is not enabled.
                             </p>
                         </div>
                         
                         <div className="text-sm space-y-2">
                             <p className={theme === 'dark' ? 'text-slate-400' : 'text-slate-600'}>
-                                In the full version, you will have access to:
+                                Depending on your role, you may have access to:
                             </p>
                             <ul className={`space-y-2 ${theme === 'dark' ? 'text-slate-300' : 'text-slate-700'}`}>
                                 <li className="flex items-start gap-2">

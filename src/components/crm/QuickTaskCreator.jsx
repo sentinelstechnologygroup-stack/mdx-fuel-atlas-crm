@@ -7,9 +7,11 @@ import { Calendar, Plus, Loader2, CheckCircle2 } from "lucide-react";
 import { atlas } from "@/api/atlasClient";
 import { useSettings } from "@/components/context/SettingsContext";
 import { motion, AnimatePresence } from "framer-motion";
+import { useQueryClient } from "@tanstack/react-query";
 
 export default function QuickTaskCreator({ leadId, leadName }) {
   const { theme } = useSettings();
+  const queryClient = useQueryClient();
   const [isOpen, setIsOpen] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
@@ -36,6 +38,9 @@ export default function QuickTaskCreator({ leadId, leadName }) {
         assigned_to: user.email,
         related_lead_id: leadId,
       });
+
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['tasks', 'lead', leadId] });
 
       setShowSuccess(true);
       setTimeout(() => {

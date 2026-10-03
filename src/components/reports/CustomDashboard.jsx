@@ -29,7 +29,7 @@ export default function CustomDashboard() {
 
     const deleteMutation = useMutation({
         mutationFn: (id) => atlas.entities.ReportConfig.delete(id),
-        onSuccess: () => queryClient.invalidateQueries(['dashboard_widgets'])
+        onSuccess: () => queryClient.invalidateQueries({ queryKey: ['dashboard_widgets'] })
     });
 
     return (
@@ -71,7 +71,7 @@ export default function CustomDashboard() {
                 <DialogContent className={`max-w-2xl ${theme === 'dark' ? 'bg-slate-900 border-slate-800 text-white' : ''}`}>
                     <WidgetBuilder onSave={() => {
                         setIsAddingWidget(false);
-                        queryClient.invalidateQueries(['dashboard_widgets']);
+                        queryClient.invalidateQueries({ queryKey: ['dashboard_widgets'] });
                     }} onCancel={() => setIsAddingWidget(false)} />
                 </DialogContent>
              </Dialog>

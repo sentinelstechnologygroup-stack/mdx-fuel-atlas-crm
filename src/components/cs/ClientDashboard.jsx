@@ -11,18 +11,18 @@ export default function ClientDashboard({ clients }) {
 
     const stats = {
         totalClients: clients.length,
-        totalRevenue: clients.reduce((acc, c) => acc + (c.initial_amount || 0), 0),
-        avgHealth: clients.length > 0 ? Math.round(clients.reduce((acc, c) => acc + (c.health_score || 0), 0) / clients.length) : 0,
-        onboarding: clients.filter(c => c.onboarding_status === 'In Progress').length,
-        atRisk: clients.filter(c => c.health_score < 60).length
+        totalGallons: clients.reduce((acc, c) => acc + (Number(c.estimated_monthly_gallons) || 0), 0),
+        tankAccounts: clients.filter(c => c.tank_rental === 'Yes' || Number(c.number_of_tanks) > 0).length,
+        creditPending: clients.filter(c => ['Not Submitted', 'Pending', 'On Hold'].includes(c.credit_status)).length,
+        activeAccounts: clients.filter(c => ['Active', 'Prospect'].includes(c.customer_status || c.customer_segment)).length
     };
 
     const cards = [
-        { title: "Total Clients", value: stats.totalClients, icon: Users, color: "text-blue-500", bg: "bg-blue-100 dark:bg-blue-900/20" },
-        { title: "Total ARR/Revenue", value: `$${(stats.totalRevenue / 1000000).toFixed(1)}M`, icon: TrendingUp, color: "text-green-500", bg: "bg-green-100 dark:bg-green-900/20" },
-        { title: "Avg Health Score", value: `${stats.avgHealth}%`, icon: CheckCircle, color: stats.avgHealth > 80 ? "text-green-500" : "text-yellow-500", bg: stats.avgHealth > 80 ? "bg-green-100 dark:bg-green-900/20" : "bg-yellow-100 dark:bg-yellow-900/20" },
-        { title: "In Onboarding", value: stats.onboarding, icon: Users, color: "text-purple-500", bg: "bg-purple-100 dark:bg-purple-900/20" },
-        { title: "At Risk", value: stats.atRisk, icon: AlertTriangle, color: "text-red-500", bg: "bg-red-100 dark:bg-red-900/20" }
+        { title: "Customer Accounts", value: stats.totalClients, icon: Users, color: "text-blue-500", bg: "bg-blue-100 dark:bg-blue-900/20" },
+        { title: "Open Fuel Volume", value: `${stats.totalGallons.toLocaleString()} gal/mo`, icon: TrendingUp, color: "text-green-500", bg: "bg-green-100 dark:bg-green-900/20" },
+        { title: "Active / Prospect", value: stats.activeAccounts, icon: CheckCircle, color: "text-green-500", bg: "bg-green-100 dark:bg-green-900/20" },
+        { title: "Tank Accounts", value: stats.tankAccounts, icon: Users, color: "text-purple-500", bg: "bg-purple-100 dark:bg-purple-900/20" },
+        { title: "Credit Pending", value: stats.creditPending, icon: AlertTriangle, color: "text-red-500", bg: "bg-red-100 dark:bg-red-900/20" }
     ];
 
     return (

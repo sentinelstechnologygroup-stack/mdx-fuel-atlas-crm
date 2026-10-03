@@ -1,8 +1,6 @@
-import React, { useState } from 'react';
 import { 
-    Users, Mail, MessageSquare, CalendarCheck, TrendingUp, 
-    AlertTriangle, PauseCircle, PlayCircle, MoreHorizontal,
-    ArrowRight, Filter, Download, Plus
+    Users, CalendarCheck, TrendingUp, AlertTriangle,
+    ArrowRight, Download, Plus
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,38 +9,43 @@ import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGri
 import { useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { useSettings } from '@/components/context/SettingsContext';
+import { useQuery } from '@tanstack/react-query';
+import { atlas } from '@/api/atlasClient';
 
 export default function MarketingDashboard() {
     const navigate = useNavigate();
     const { theme } = useSettings();
 
-    // Mock Data
+    const { data: sequences = [], isLoading: sequencesLoading } = useQuery({
+        queryKey: ['marketing_sequences'],
+        queryFn: () => atlas.entities.MarketingSequence.list('-updated_date'),
+        initialData: []
+    });
+    const { data: leads = [] } = useQuery({
+        queryKey: ['leads'],
+        queryFn: () => atlas.entities.Lead.list(),
+        initialData: []
+    });
+    const { data: opportunities = [] } = useQuery({
+        queryKey: ['opportunities'],
+        queryFn: () => atlas.entities.Opportunity.list(),
+        initialData: []
+    });
+
     const kpiData = [
-        { title: "Active Prospects", value: "1,250", icon: Users, color: "text-blue-500", bg: "bg-blue-100" },
-        { title: "Engagement Rate", value: "34%", icon: TrendingUp, color: "text-emerald-500", bg: "bg-emerald-100" },
-        { title: "Meetings Booked", value: "42", icon: CalendarCheck, color: "text-purple-500", bg: "bg-purple-100" },
-        { title: "Pipeline Generated", value: "$1.2M", icon: AlertTriangle, color: "text-amber-500", bg: "bg-amber-100" },
+        { title: "Active Prospects", value: leads.filter((lead) => !['Converted', 'Disqualified'].includes(lead.lead_status)).length, icon: Users, color: "text-blue-500", bg: "bg-blue-100" },
+        { title: "Active Sequences", value: sequences.filter((sequence) => String(sequence.status || '').toLowerCase() === 'active').length, icon: TrendingUp, color: "text-emerald-500", bg: "bg-emerald-100" },
+        { title: "Qualified Leads", value: leads.filter((lead) => lead.lead_status === 'Qualified').length, icon: CalendarCheck, color: "text-purple-500", bg: "bg-purple-100" },
+        { title: "Open Opportunities", value: opportunities.filter((opportunity) => !['Closed Won', 'Closed Lost', 'Won', 'Lost'].includes(opportunity.deal_stage)).length, icon: AlertTriangle, color: "text-amber-500", bg: "bg-amber-100" },
     ];
 
     const funnelData = [
-        { name: 'Sent', value: 5000, fill: '#94a3b8' },
-        { name: 'Opened', value: 2250, fill: '#60a5fa' },
-        { name: 'Replied', value: 600, fill: '#818cf8' },
-        { name: 'Booked', value: 150, fill: '#34d399' },
+        { name: 'New', value: leads.filter((lead) => lead.lead_status === 'New').length, fill: '#94a3b8' },
+        { name: 'Contacted', value: leads.filter((lead) => ['Attempting Contact', 'Contacted'].includes(lead.lead_status)).length, fill: '#60a5fa' },
+        { name: 'Qualified', value: leads.filter((lead) => lead.lead_status === 'Qualified').length, fill: '#818cf8' },
+        { name: 'Converted', value: leads.filter((lead) => lead.lead_status === 'Converted').length, fill: '#34d399' },
     ];
-
-    const sequences = [
-        { id: 1, name: "SaaS CEO Cold Outreach", owner: "Sarah J.", persona: "CEO", replyRate: "12%", booked: 15, status: "Active" },
-        { id: 2, name: "Webinar Follow-up", owner: "Mike T.", persona: "Marketing VP", replyRate: "8%", booked: 5, status: "Active" },
-        { id: 3, name: "Q4 Closing Push", owner: "Sarah J.", persona: "Founder", replyRate: "4%", booked: 2, status: "Paused" },
-        { id: 4, name: "Lost Leads Reactivation", owner: "John D.", persona: "Any", replyRate: "2%", booked: 0, status: "Active" },
-    ];
-
-    const negativeSentiments = [
-        { id: 1, text: "Stop emailing me immediately.", email: "alex@corp.com", date: "2 mins ago" },
-        { id: 2, text: "Unsubscribe", email: "lisa@studio.io", date: "1 hour ago" },
-        { id: 3, text: "Not interested, remove me.", email: "jim@tech.net", date: "4 hours ago" },
-    ];
+    const negativeSentiments = [];
 
     const cardClass = theme === 'dark' ? 'bg-slate-800 border-slate-700 text-slate-100' : 'bg-white border-slate-200 text-slate-900';
     const subTextClass = theme === 'dark' ? 'text-slate-400' : 'text-slate-500';
@@ -150,23 +153,27 @@ export default function MarketingDashboard() {
                                 </tr>
                             </thead>
                             <tbody className={`divide-y ${theme === 'dark' ? 'divide-slate-700' : 'divide-slate-100'}`}>
+                                {!sequencesLoading && sequences.length === 0 && (
+                                    <tr><td colSpan={6} className={`px-4 py-8 text-center ${subTextClass}`}>No saved sequences yet. Create one to begin.</td></tr>
+                                )}
                                 {sequences.map((seq) => (
                                     <tr key={seq.id} className={theme === 'dark' ? 'hover:bg-slate-700/50' : 'hover:bg-slate-50/50'}>
                                         <td className={`px-4 py-3 font-medium ${theme === 'dark' ? 'text-slate-200' : 'text-slate-900'}`}>{seq.name}</td>
-                                        <td className={`px-4 py-3 ${subTextClass}`}>{seq.owner}</td>
+                                        <td className={`px-4 py-3 ${subTextClass}`}>{seq.owner || seq.created_by || 'Unassigned'}</td>
                                         <td className="px-4 py-3">
-                                            <Badge variant="secondary" className={theme === 'dark' ? 'bg-slate-700 text-slate-300' : 'bg-slate-100 text-slate-600'}>{seq.persona}</Badge>
+                                            <Badge variant="secondary" className={theme === 'dark' ? 'bg-slate-700 text-slate-300' : 'bg-slate-100 text-slate-600'}>{seq.persona || seq.audience || seq.trigger_type || '—'}</Badge>
                                         </td>
-                                        <td className="px-4 py-3 font-semibold text-emerald-600">{seq.replyRate}</td>
-                                        <td className="px-4 py-3 font-semibold text-purple-600">{seq.booked}</td>
+                                        <td className="px-4 py-3 font-semibold text-emerald-600">{seq.replyRate || '—'}</td>
+                                        <td className="px-4 py-3 font-semibold text-purple-600">{seq.booked ?? '—'}</td>
                                         <td className="px-4 py-3 text-right">
                                             <Button 
                                                 size="sm" 
                                                 variant="ghost" 
-                                                className={seq.status === 'Active' ? "text-amber-600 hover:text-amber-700 hover:bg-amber-50 dark:hover:bg-amber-900/20" : "text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-900/20"}
+                                                onClick={() => navigate(`${createPageUrl('SequenceBuilder')}?id=${seq.id}`)}
+                                                className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-900/20"
                                             >
-                                                {seq.status === 'Active' ? <PauseCircle className="w-4 h-4 mr-1" /> : <PlayCircle className="w-4 h-4 mr-1" />}
-                                                {seq.status === 'Active' ? 'Pause' : 'Resume'}
+                                                <ArrowRight className="w-4 h-4 mr-1" />
+                                                Open
                                             </Button>
                                         </td>
                                     </tr>

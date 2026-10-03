@@ -33,7 +33,7 @@ export default function DiscoveryScript({ leadId }) {
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(['discovery', leadId]);
+      queryClient.invalidateQueries({ queryKey: ['discovery', leadId] });
     }
   });
 

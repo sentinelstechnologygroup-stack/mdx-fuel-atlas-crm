@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { atlas } from "@/api/atlasClient";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useSettings } from "@/components/context/SettingsContext";
+import { listEmployeeLookup } from "@/api/userDirectoryService";
 
 export default function TaskForm({ task, onSubmit, onCancel, isSubmitting }) {
   const { theme } = useSettings();
@@ -13,6 +14,7 @@ export default function TaskForm({ task, onSubmit, onCancel, isSubmitting }) {
   // Fetch leads and opportunities for selection
   const { data: leads = [] } = useQuery({ queryKey: ['leads_basic'], queryFn: () => atlas.entities.Lead.list(), staleTime: 60000 });
   const { data: opportunities = [] } = useQuery({ queryKey: ['opportunities_basic'], queryFn: () => atlas.entities.Opportunity.list(), staleTime: 60000 });
+  const { data: employees = [] } = useQuery({ queryKey: ['employee_lookup'], queryFn: listEmployeeLookup, staleTime: 60000 });
 
   const [formData, setFormData] = useState({
     title: "",
@@ -120,6 +122,21 @@ export default function TaskForm({ task, onSubmit, onCancel, isSubmitting }) {
             <SelectItem value="todo">To Do</SelectItem>
             <SelectItem value="in_progress">In Progress</SelectItem>
             <SelectItem value="done">Completed</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="space-y-2">
+        <label className={labelClass}>Assigned salesperson</label>
+        <Select value={formData.assigned_to || "unassigned"} onValueChange={(v) => setFormData({ ...formData, assigned_to: v === "unassigned" ? "" : v })}>
+          <SelectTrigger className={inputClass}><SelectValue placeholder="Assign to salesperson..." /></SelectTrigger>
+          <SelectContent className={selectContentClass}>
+            <SelectItem value="unassigned">Unassigned</SelectItem>
+            {employees.map((employee) => (
+              <SelectItem key={employee.id} value={employee.email || employee.id}>
+                {employee.display_name || employee.email}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
       </div>

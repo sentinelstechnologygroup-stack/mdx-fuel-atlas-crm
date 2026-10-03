@@ -41,7 +41,7 @@ export default function Notifications() {
     // Mark as read mutation
     const markAsRead = useMutation({
         mutationFn: (id) => atlas.entities.Notification.update(id, { is_read: true }),
-        onSuccess: () => queryClient.invalidateQueries(['notifications_db'])
+        onSuccess: () => queryClient.invalidateQueries({ queryKey: ['notifications_db'] })
     });
 
     // Combine all

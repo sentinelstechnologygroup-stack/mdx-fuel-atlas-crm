@@ -67,7 +67,7 @@ export default function NotificationSettings() {
             }
         },
         onSuccess: () => {
-            queryClient.invalidateQueries(['notification_settings']);
+            queryClient.invalidateQueries({ queryKey: ['notification_settings'] });
             alert("Settings saved successfully");
         }
     });

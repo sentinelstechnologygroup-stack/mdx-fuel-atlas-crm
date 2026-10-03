@@ -32,8 +32,8 @@ export const defaultPipelineStages = [
     checklist: [{ id: "c2", text: "Confirm decision maker and current supplier" }]
   },
   {
-    id: "Meeting Scheduled",
-    label: "Meeting Scheduled",
+    id: "Meetings",
+    label: "Meetings",
     color: "bg-cyan-400",
     light: "bg-cyan-50 text-cyan-700",
     checklist: [{ id: "c3", text: "Schedule site review or pricing discussion" }]
@@ -160,7 +160,7 @@ export function SettingsProvider({ children }) {
         return null;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(['organization_settings']);
+      queryClient.invalidateQueries({ queryKey: ['organization_settings'] });
     }
   });
 

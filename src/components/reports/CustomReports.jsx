@@ -49,7 +49,7 @@ export default function CustomReports() {
     const deleteMutation = useMutation({
         mutationFn: (id) => atlas.entities.ReportConfig.delete(id),
         onSuccess: () => {
-            queryClient.invalidateQueries(['report_configs']);
+            queryClient.invalidateQueries({ queryKey: ['report_configs'] });
             if (selectedReport?.id) setSelectedReport(null);
         }
     });
@@ -111,7 +111,7 @@ export default function CustomReports() {
                                 onCancel={() => setIsCreating(false)} 
                                 onSave={() => {
                                     setIsCreating(false);
-                                    queryClient.invalidateQueries(['report_configs']);
+                                    queryClient.invalidateQueries({ queryKey: ['report_configs'] });
                                 }} 
                             />
                         ) : selectedReport ? (

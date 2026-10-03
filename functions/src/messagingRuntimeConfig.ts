@@ -19,7 +19,10 @@ export const twilioAuthToken = defineSecret(
 
 const resendFromEmail = defineString(
   "RESEND_FROM_EMAIL",
-  {description: "Verified Resend sender address."}
+  {
+    description: "Verified Resend sender address.",
+    default: "disabled@example.invalid",
+  }
 );
 
 const resendReplyTo = defineString(
@@ -32,12 +35,12 @@ const resendReplyTo = defineString(
 
 const twilioAccountSid = defineString(
   "TWILIO_ACCOUNT_SID",
-  {description: "Twilio account identifier."}
+  {description: "Twilio account identifier.", default: "disabled"}
 );
 
 const twilioFromNumber = defineString(
   "TWILIO_FROM_NUMBER",
-  {description: "Twilio sender phone number."}
+  {description: "Twilio sender phone number.", default: "+10000000000"}
 );
 
 export const EMAIL_MESSAGING_SECRETS = [

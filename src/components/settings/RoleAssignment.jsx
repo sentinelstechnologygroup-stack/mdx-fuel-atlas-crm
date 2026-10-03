@@ -37,9 +37,9 @@ export default function RoleAssignment() {
         data.application_role
       ),
     onSuccess: () => {
-      queryClient.invalidateQueries(['users_role_assignment']);
-      queryClient.invalidateQueries(['users_directory']);
-      queryClient.invalidateQueries(['users_management']);
+      queryClient.invalidateQueries({ queryKey: ['users_role_assignment'] });
+      queryClient.invalidateQueries({ queryKey: ['users_directory'] });
+      queryClient.invalidateQueries({ queryKey: ['users_management'] });
     }
   });
 

@@ -10,11 +10,37 @@ export function getOpportunityGallons(opportunity) {
   if (!opportunity || typeof opportunity !== 'object') return 0;
 
   for (const field of GALLON_FIELDS) {
-    const value = Number(opportunity[field]);
+    const rawValue = opportunity[field];
+    if (rawValue === null || rawValue === undefined || rawValue === '') continue;
+    const value = Number(rawValue);
     if (Number.isFinite(value) && value >= 0) return value;
   }
 
   return 0;
+}
+
+export function getOpportunityOwnerKey(opportunity) {
+  return opportunity?.owner_user_id ||
+    opportunity?.created_by_user_id ||
+    opportunity?.assigned_to ||
+    opportunity?.created_by ||
+    'Unassigned';
+}
+
+function normalizedStage(opportunity) {
+  return String(opportunity?.deal_stage || '').trim().toLowerCase();
+}
+
+export function isWonOpportunity(opportunity) {
+  return normalizedStage(opportunity).includes('won');
+}
+
+export function isLostOpportunity(opportunity) {
+  return normalizedStage(opportunity).includes('lost');
+}
+
+export function isOpenOpportunity(opportunity) {
+  return !isWonOpportunity(opportunity) && !isLostOpportunity(opportunity);
 }
 
 export function getMonthlyGallonQuota(profile) {

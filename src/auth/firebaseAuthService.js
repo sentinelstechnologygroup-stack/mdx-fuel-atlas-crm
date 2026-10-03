@@ -3,10 +3,13 @@ import {
   onAuthStateChanged,
   sendPasswordResetEmail,
   signInWithEmailAndPassword,
+  signInWithCustomToken,
   signOut,
+  updatePassword,
 } from 'firebase/auth';
+import { httpsCallable } from 'firebase/functions';
 import { doc, getDoc } from 'firebase/firestore';
-import { firebaseAuth, firestore } from '@/firebase/client';
+import { firebaseAuth, firebaseFunctions, firestore } from '@/firebase/client';
 import {
   ACCOUNT_STATUSES,
   isKnownAccountStatus,
@@ -103,6 +106,38 @@ export async function requestFirebasePasswordReset(email) {
     throw new FirebaseAuthServiceError(
       error?.code || 'password_reset_failed',
       'Unable to send the password reset email.',
+      error
+    );
+  }
+}
+
+export async function signInWithPortalToken(customToken) {
+  try {
+    const credential = await signInWithCustomToken(firebaseAuth, customToken);
+    const profile = await getUserProfile(credential.user.uid);
+    return { firebaseUser: credential.user, profile };
+  } catch (error) {
+    if (firebaseAuth.currentUser) await signOut(firebaseAuth);
+    throw new FirebaseAuthServiceError(
+      error?.code || 'portal_session_failed',
+      'The portal session could not be established.',
+      error
+    );
+  }
+}
+
+export async function changeCurrentFirebasePassword(newPassword) {
+  if (!firebaseAuth.currentUser) {
+    throw new FirebaseAuthServiceError('not_authenticated', 'Sign in before changing your password.');
+  }
+  try {
+    await updatePassword(firebaseAuth.currentUser, newPassword);
+    const callable = httpsCallable(firebaseFunctions, 'completePasswordChange');
+    await callable({});
+  } catch (error) {
+    throw new FirebaseAuthServiceError(
+      error?.code || 'password_change_failed',
+      'Unable to change the password.',
       error
     );
   }

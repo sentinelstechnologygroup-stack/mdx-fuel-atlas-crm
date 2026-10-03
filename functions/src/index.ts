@@ -1,9 +1,11 @@
 import ExcelJS from "exceljs";
 import {getApps, initializeApp} from "firebase-admin/app";
+import {getAuth} from "firebase-admin/auth";
 import {FieldValue, getFirestore} from "firebase-admin/firestore";
 import {getStorage} from "firebase-admin/storage";
-import {setGlobalOptions} from "firebase-functions";
-import {HttpsError, onCall} from "firebase-functions/v2/https";
+import {logger, setGlobalOptions} from "firebase-functions";
+import {HttpsError, onCall, onRequest} from "firebase-functions/v2/https";
+import {randomBytes} from "node:crypto";
 import {
   executeMessageDeliveryCallable,
 } from "./messageDeliveryCallable";
@@ -25,6 +27,7 @@ const firebaseAdminApp = getApps().length > 0 ?
   initializeApp();
 
 const firestore = getFirestore(firebaseAdminApp);
+const firebaseAuth = getAuth(firebaseAdminApp);
 const storage = getStorage(firebaseAdminApp);
 
 const CANONICAL_ROLES = new Set([
@@ -86,6 +89,30 @@ function readString(
   }
 
   return null;
+}
+
+/**
+ * Reads a canonical non-negative numeric value from a stored entity field.
+ * @param {ProfileData} data Stored entity data.
+ * @param {string} key Numeric field name.
+ * @return {number|null} The normalized number or null.
+ */
+function readNonNegativeNumber(
+  data: ProfileData,
+  key: string
+): number | null {
+  const rawValue = data[key];
+  const value =
+    typeof rawValue === "number" ?
+      rawValue :
+      (
+        typeof rawValue === "string" &&
+        rawValue.trim().length > 0 ?
+          Number(rawValue) :
+          Number.NaN
+      );
+
+  return Number.isFinite(value) && value >= 0 ? value : null;
 }
 
 /**
@@ -1739,6 +1766,21 @@ export const updateCurrentProfile = onCall(
   }
 );
 
+export const completePasswordChange = onCall(async (request) => {
+  const actor = await requireActiveActor(request.auth?.uid);
+  const payload = request.data && typeof request.data === "object" &&
+    !Array.isArray(request.data) ? request.data as ProfileData : {};
+  if (Object.keys(payload).length > 0) {
+    throw new HttpsError("invalid-argument", "No profile data is accepted.");
+  }
+  await firestore.collection("userProfiles").doc(actor.id).set({
+    must_change_password: false,
+    password_changed_date: new Date().toISOString(),
+    last_modified_by_user_id: actor.id,
+  }, {merge: true});
+  return {success: true};
+});
+
 export const requestAccessUpgrade = onCall(
   async (request) => {
     const actor = await requireActiveActor(
@@ -1929,16 +1971,26 @@ export const listUsers = onCall(async (request) => {
 });
 
 const USER_ACCOUNT_ACTIONS = new Set([
+  "create",
   "role",
   "team",
   "supervisor",
   "territory",
   "suspend",
   "reactivate",
+  "reset_password",
 ]);
 
+/**
+ * Generates a one-time password for a managed employee account.
+ * @return {string} Generated temporary password.
+ */
+function generateTemporaryPassword() {
+  return `Atlas-${randomBytes(12).toString("base64url")}-2026!`;
+}
+
 export const updateUserAccount = onCall(async (request) => {
-  await requireActiveActor(request.auth?.uid);
+  const actor = await requireActiveActor(request.auth?.uid);
 
   const payload =
     request.data &&
@@ -1963,6 +2015,123 @@ export const updateUserAccount = onCall(async (request) => {
     );
   }
 
+  const actorIsUserAdministrator = [
+    "super_admin",
+    "administrator",
+  ].includes(actor.application_role);
+
+  if (!actorIsUserAdministrator) {
+    throw new HttpsError(
+      "permission-denied",
+      "User-account administration is not authorized."
+    );
+  }
+
+  if (action === "create") {
+    const email = readString(payload, "email")?.toLowerCase();
+    const displayName = readString(payload, "display_name", "displayName");
+    const requestedRole = readString(payload, "role") || "salesperson";
+
+    if (!email || !displayName) {
+      throw new HttpsError(
+        "invalid-argument",
+        "An employee name and work email are required."
+      );
+    }
+
+    if (!CANONICAL_ROLES.has(requestedRole)) {
+      throw new HttpsError(
+        "invalid-argument", "A canonical ATLAS role is required."
+      );
+    }
+
+    if (
+      actor.application_role === "administrator" &&
+      ["super_admin", "administrator"].includes(requestedRole)
+    ) {
+      throw new HttpsError(
+        "permission-denied",
+        "Only a Super Administrator may create Administrator-tier accounts."
+      );
+    }
+
+    const temporaryPassword = generateTemporaryPassword();
+    let createdUser;
+    try {
+      createdUser = await firebaseAuth.createUser({
+        email,
+        password: temporaryPassword,
+        displayName,
+        emailVerified: false,
+        disabled: false,
+      });
+    } catch (error) {
+      if ((error as {code?: string})?.code === "auth/email-already-exists") {
+        throw new HttpsError(
+          "already-exists",
+          "An employee already exists for that email."
+        );
+      }
+      throw error;
+    }
+
+    await firebaseAuth.setCustomUserClaims(createdUser.uid, {
+      role: requestedRole,
+      application_role: requestedRole,
+      account_status: "active",
+    });
+    let passwordResetLink: string | null = null;
+    try {
+      passwordResetLink = await firebaseAuth.generatePasswordResetLink(email);
+    } catch (error) {
+      logger.warn("Could not generate employee password reset link", {
+        email,
+        error: error instanceof Error ? error.message : "unknown",
+      });
+    }
+
+    const now = new Date().toISOString();
+    const profile = {
+      uid: createdUser.uid,
+      email,
+      displayName,
+      display_name: displayName,
+      full_name: displayName,
+      application_role: requestedRole,
+      account_status: "active",
+      must_change_password: true,
+      created_by_user_id: actor.id,
+      last_modified_by_user_id: actor.id,
+      created_date: now,
+      updated_date: now,
+      permissionOverrides: {},
+      territory_ids: [],
+      isDeleted: false,
+    } satisfies ProfileData;
+
+    await firestore.collection("userProfiles").doc(createdUser.uid)
+      .set(profile);
+    await firestore.collection("entities").doc("AuditLog")
+      .collection("records").add({
+        action: "user_account_create",
+        actor_user_id: actor.id,
+        actor_email: actor.email,
+        target_user_id: createdUser.uid,
+        target_email: email,
+        requested_value: requestedRole,
+        created_date: now,
+        updated_date: now,
+      });
+
+    return {
+      success: true,
+      action,
+      temporary_password: temporaryPassword,
+      password_reset_link: passwordResetLink,
+      user: normalizeDirectoryUser(createdUser.uid, profile),
+    };
+  }
+
   if (!targetUserId) {
     throw new HttpsError(
       "invalid-argument",
@@ -1970,6 +2139,7 @@ export const updateUserAccount = onCall(async (request) => {
     );
   }
 
+  let temporaryPasswordForResponse: string | null = null;
   const result = await firestore.runTransaction(
     async (transaction) => {
       const profilesReference =
@@ -2046,6 +2216,17 @@ export const updateUserAccount = onCall(async (request) => {
         profile_modified_date: now,
         updated_date: now,
       };
+
+      if (action === "reset_password") {
+        const temporaryPassword = generateTemporaryPassword();
+        temporaryPasswordForResponse = temporaryPassword;
+        await firebaseAuth.updateUser(target.id, {
+          password: temporaryPassword,
+        });
+        update.must_change_password = true;
+        update.password_reset_requested_date = now;
+        update.password_reset_requested_by_user_id = actor.id;
+      }
 
       if (action === "role") {
         if (
@@ -2318,6 +2499,9 @@ export const updateUserAccount = onCall(async (request) => {
     success: true,
     action,
     user: result,
+    ...(temporaryPasswordForResponse ? {
+      temporary_password: temporaryPasswordForResponse,
+    } : {}),
   };
 });
 
@@ -3636,6 +3820,27 @@ export const convertLeadToOpportunity = onCall(
           };
         }
 
+        const leadStatus = readString(
+          lead,
+          "lead_status",
+          "status"
+        );
+
+        const actorCanConvertUnqualifiedLead = [
+          "super_admin",
+          "administrator",
+        ].includes(actor.application_role);
+
+        if (
+          leadStatus !== "Qualified" &&
+          !actorCanConvertUnqualifiedLead
+        ) {
+          throw new HttpsError(
+            "failed-precondition",
+            "Only a Qualified lead can be converted to an opportunity."
+          );
+        }
+
         const fullName =
           readString(
             lead,
@@ -3671,14 +3876,34 @@ export const convertLeadToOpportunity = onCall(
         const opportunityData: EntityData = {
           lead_id: leadId,
           lead_name: fullName,
+          company_name: readString(
+            lead,
+            "company_name"
+          ),
           phone_number: readString(
             lead,
             "phone_number",
             "phone"
           ),
+          mobile_phone: readString(
+            lead,
+            "mobile_phone",
+            "mobile"
+          ),
           email: readString(
             lead,
             "email"
+          ),
+          title: readString(lead, "title"),
+          website: readString(lead, "website"),
+          industry: readString(lead, "industry"),
+          lead_source: readString(
+            lead,
+            "lead_source"
+          ),
+          referral_source: readString(
+            lead,
+            "referral_source"
           ),
           product_type:
             readString(
@@ -3686,7 +3911,47 @@ export const convertLeadToOpportunity = onCall(
               "product_type",
               "service_type"
             ) || "Fuel Service",
-          deal_stage: "New (חדש)",
+          estimated_unleaded_87_gallons:
+            readNonNegativeNumber(
+              lead,
+              "estimated_unleaded_87_gallons"
+            ),
+          estimated_unleaded_89_gallons:
+            readNonNegativeNumber(
+              lead,
+              "estimated_unleaded_89_gallons"
+            ),
+          estimated_unleaded_93_gallons:
+            readNonNegativeNumber(
+              lead,
+              "estimated_unleaded_93_gallons"
+            ),
+          estimated_clear_diesel_gallons:
+            readNonNegativeNumber(
+              lead,
+              "estimated_clear_diesel_gallons"
+            ),
+          estimated_dyed_diesel_gallons:
+            readNonNegativeNumber(
+              lead,
+              "estimated_dyed_diesel_gallons"
+            ),
+          estimated_tank_rentals:
+            readNonNegativeNumber(
+              lead,
+              "estimated_tank_rentals"
+            ),
+          estimated_deliveries_per_month:
+            readNonNegativeNumber(
+              lead,
+              "estimated_deliveries_per_month"
+            ),
+          estimated_monthly_gallons:
+            readNonNegativeNumber(
+              lead,
+              "estimated_monthly_gallons"
+            ),
+          deal_stage: "Prospect",
           probability: 10,
           owner_user_id: ownerUserId,
           assigned_team_id: assignedTeamId,
@@ -4159,11 +4424,30 @@ export {
   deliverNotificationEmail,
   processNotificationDelivery,
 } from "./notificationDeliveryBridge.js";
+export {
+  processLeadQualification,
+  qualifyNewLead,
+} from "./leadQualification.js";
+export {
+  processStaleOpportunityRecheck,
+  processStaleOpportunityScan,
+  recheckStaleOpportunity,
+  scanStaleOpportunities,
+} from "./staleOpportunity.js";
+export {
+  generateWeeklySalesReport,
+  processWeeklySalesReport,
+} from "./weeklySalesReport.js";
 export {executeAtlasAiCallable} from "./atlasAiGateway.js";
 export const invokeAtlasAi = onCall(
   {
     region: "us-central1",
-    enforceAppCheck: true,
+    // Authentication, active-profile checks, permission scopes, rate limits,
+    // and server-side CRM authorization remain enforced in the gateway. App
+    // Check is enabled once the web client supplies its configured provider;
+    // leaving this callable available meanwhile prevents a missing site key
+    // from making ATLAS unusable for authenticated employees.
+    enforceAppCheck: false,
     secrets: [atlasOpenAiApiKey],
   },
   async (request) => {
@@ -4202,5 +4486,44 @@ export const sendMessageDelivery = onCall(
       request.auth?.uid,
       request.data || {}
     );
+  }
+);
+
+/**
+ * Exchanges a portal Firebase ID token for a short-lived custom token.
+ * The CRM consumes this token to establish the employee session without a
+ * second login form.
+ */
+export const createAtlasPortalSession = onRequest(
+  {region: "us-central1"},
+  async (request, response) => {
+    response.set("Access-Control-Allow-Origin", "https://mdxfuel.com");
+    response.set("Access-Control-Allow-Methods", "POST, OPTIONS");
+    response.set("Access-Control-Allow-Headers", "Content-Type");
+
+    if (request.method === "OPTIONS") {
+      response.status(204).send("");
+      return;
+    }
+
+    if (request.method !== "POST") {
+      response.status(405).json({error: "method_not_allowed"});
+      return;
+    }
+
+    const idToken = request.body?.idToken;
+    if (typeof idToken !== "string" || idToken.length === 0) {
+      response.status(400).json({error: "missing_id_token"});
+      return;
+    }
+
+    try {
+      const decoded = await firebaseAuth.verifyIdToken(idToken);
+      const customToken = await firebaseAuth.createCustomToken(decoded.uid);
+      response.status(200).json({customToken});
+    } catch (error) {
+      logger.warn("Portal session exchange rejected", error);
+      response.status(401).json({error: "invalid_id_token"});
+    }
   }
 );

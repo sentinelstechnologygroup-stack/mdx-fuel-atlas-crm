@@ -19,11 +19,13 @@ import AiLeadImport from "@/components/crm/AiLeadImport";
 import { usePermissions } from '@/components/hooks/usePermissions';
 import { useUrlFilters } from '@/components/hooks/useUrlFilters';
 import SmartFilterBar from "@/components/common/SmartFilterBar";
+import OwnershipAssignControl from "@/components/ownership/OwnershipAssignControl";
+import { recordReportingDate } from "@/lib/reporting";
 
 import { useLocation } from "react-router-dom";
 
 export default function LeadsPage() {
-  const { canCreate, canEdit, canDelete } = usePermissions();
+  const { canCreate, canEdit, canDelete, isAdminTier } = usePermissions();
   const { leadStatuses, theme } = useSettings();
   const location = useLocation();
 
@@ -184,7 +186,7 @@ export default function LeadsPage() {
   const createLead = useMutation({
     mutationFn: (data) => atlas.entities.Lead.create(data),
     onSuccess: async (data) => {
-      queryClient.invalidateQueries(['leads']);
+      queryClient.invalidateQueries({ queryKey: ['leads'] });
       setShowLeadForm(false);
       setEditingLead(null);
       // No automatic close - handled by handlers
@@ -228,14 +230,14 @@ export default function LeadsPage() {
       alert("Failed to update lead");
     },
     onSettled: () => {
-      queryClient.invalidateQueries(['leads']);
+      queryClient.invalidateQueries({ queryKey: ['leads'] });
     }
   });
 
   const deleteLead = useMutation({
     mutationFn: (id) => atlas.entities.Lead.update(id, { is_deleted: true }),
     onSuccess: () => {
-      queryClient.invalidateQueries(['leads']);
+      queryClient.invalidateQueries({ queryKey: ['leads'] });
       alert("The lead was archived successfully.");
     }
   });
@@ -253,8 +255,8 @@ export default function LeadsPage() {
     },
     onSuccess: async (result) => {
       await Promise.all([
-        queryClient.invalidateQueries(['opportunities']),
-        queryClient.invalidateQueries(['leads'])
+        queryClient.invalidateQueries({ queryKey: ['opportunities'] }),
+        queryClient.invalidateQueries({ queryKey: ['leads'] })
       ]);
 
       if (result.created && result.opportunity) {
@@ -290,23 +292,17 @@ export default function LeadsPage() {
     return leads.filter((lead) => {
       // 1. Soft Delete
       if (lead.is_deleted) return false;
-
-      // 2. RLS
-      if (currentUser && currentUser.role !== 'admin') {
-         const isCreator = lead.created_by === currentUser.email;
-         const isAssigned = lead.assigned_to === currentUser.email;
-         if (!isCreator && !isAssigned) return false;
-      }
-
+        // 2. Record visibility is enforced by Firebase authorization.
       // 3. View Logic
       if (activeView === 'my_leads') {
-          if (lead.assigned_to !== currentUser?.email) return false;
-      }
+            if (lead.owner_user_id !== currentUser?.id) return false;
+        }
       if (activeView === 'new') {
            // Simple "New" status check for now, ideally check created_date === today
            // if (lead.lead_status !== 'New') return false;
            // Better: Created Today
-           const isToday = new Date(lead.created_date).toDateString() === new Date().toDateString();
+           const createdDate = recordReportingDate(lead);
+           const isToday = createdDate && createdDate.toDateString() === new Date().toDateString();
            if (!isToday) return false;
       }
 
@@ -427,11 +423,14 @@ export default function LeadsPage() {
             <LeadsKanban
                 leads={filteredLeads}
                 statuses={displayStatuses}
-                activities={activities}
                 onStatusChange={(id, status) => updateLead.mutate({ id, data: { lead_status: status } })}
                 onEdit={(lead) => { setEditingLead(lead); setShowLeadForm(true); }}
                 onDelete={(id) => { if (window.confirm('Delete this lead?')) deleteLead.mutate(id); }}
-                onConvert={(lead) => convertToOpportunity.mutate(lead)}
+                canConvertAny={isAdminTier}
+                onConvert={(lead) => {
+                  if (lead.lead_status !== 'Qualified' && !isAdminTier) return;
+                  convertToOpportunity.mutate(lead);
+                }}
             />
         </div>
       )}
@@ -511,7 +510,7 @@ export default function LeadsPage() {
                          </div>
                     </div>
                     <div className="col-span-2">
-                        <StatusBadge lead={lead} statuses={displayStatuses} updateLead={updateLead} convert={convertToOpportunity} />
+                        <StatusBadge lead={lead} statuses={displayStatuses} updateLead={updateLead} />
                     </div>
                     <div className={`col-span-2 text-sm flex items-center gap-2 ${theme === 'dark' ? 'text-slate-200' : 'text-slate-600'}`}>
                         <Phone className={`w-4 h-4 ${theme === 'dark' ? 'text-cyan-400' : 'text-slate-400'}`} />
@@ -552,9 +551,9 @@ export default function LeadsPage() {
                                     <CheckCircle2 className="w-5 h-5 fill-emerald-100" />
                                 </div> :
 
-                        <Button variant="ghost" size="sm" onClick={() => convertToOpportunity.mutate(lead)} className="h-8 px-2 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50" title="Convert to Opportunity">
+                        lead.lead_status === 'Qualified' ? <Button variant="ghost" size="sm" onClick={() => convertToOpportunity.mutate(lead)} className="h-8 px-2 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50" title="Convert qualified lead to opportunity">
                                     <CheckCircle2 className="w-4 h-4" />
-                                </Button>
+                                </Button> : null
                             )}
                         </div>
                     </div>
@@ -609,9 +608,9 @@ export default function LeadsPage() {
                                 <CheckCircle2 className="w-5 h-5 fill-emerald-100" />
                             </div> :
 
-              <Button variant="ghost" size="icon" onClick={() => convertToOpportunity.mutate(lead)} className="h-8 w-8 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50">
+              lead.lead_status === 'Qualified' ? <Button variant="ghost" size="icon" onClick={() => convertToOpportunity.mutate(lead)} className="h-8 w-8 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50" title="Convert qualified lead to opportunity">
                                 <CheckCircle2 className="w-4 h-4" />
-                            </Button>
+                            </Button> : null
               }
                     </div>
                     </div>
@@ -651,37 +650,48 @@ export default function LeadsPage() {
       />
 
       <Dialog open={showLeadForm} onOpenChange={(open) => { setShowLeadForm(open); if (!open) setEditingLead(null); }}>
-        <DialogContent className={`fixed right-0 top-0 left-auto translate-x-0 translate-y-0 h-full w-full sm:w-[720px] max-w-none p-0 border-l shadow-2xl transition-all duration-300 gap-0 data-[state=open]:slide-in-from-right data-[state=closed]:slide-out-to-right sm:rounded-none ${
+        <DialogContent className={`fixed right-0 top-0 left-auto translate-x-0 translate-y-0 z-[60] pointer-events-auto h-full w-[min(100vw,720px)] max-w-[100vw] overflow-x-hidden p-0 border-l shadow-2xl transition-all duration-300 gap-0 data-[state=open]:slide-in-from-right data-[state=closed]:slide-out-to-right sm:rounded-none ${
           theme === 'dark' ? 'bg-slate-900 border-slate-700' : 'bg-white border-slate-200'
         }`}>
           {(showLeadForm || editingLead) && (
-            <LeadForm
-              lead={editingLead}
-              onSaveAndClose={(data) => {
-                if (editingLead) {
-                  updateLead.mutate(
-                    { id: editingLead.id, data },
-                    {
-                      onSuccess: () => {
-                        setShowLeadForm(false);
-                        setEditingLead(null);
+            <div className="w-full min-w-0 max-w-full space-y-3">
+              {editingLead && (
+                <div className="flex justify-end px-6 pt-4">
+                  <OwnershipAssignControl
+                    entityType="lead"
+                    record={editingLead}
+                    onUpdated={() => queryClient.invalidateQueries({ queryKey: ['leads'] })}
+                  />
+                </div>
+              )}
+              <LeadForm
+                lead={editingLead}
+                onSaveAndClose={(data) => {
+                  if (editingLead) {
+                    updateLead.mutate(
+                      { id: editingLead.id, data },
+                      {
+                        onSuccess: () => {
+                          setShowLeadForm(false);
+                          setEditingLead(null);
+                        }
                       }
-                    }
-                  );
-                } else {
-                  createLead.mutate(data);
-                }
-              }}
-              onSaveAndStay={(data) => {
-                if (editingLead) {
-                  updateLead.mutate({ id: editingLead.id, data });
-                } else {
-                  createLead.mutate(data);
-                }
-              }}
-              onCancel={() => setShowLeadForm(false)}
-              isSubmitting={createLead.isPending || updateLead.isPending}
-            />
+                    );
+                  } else {
+                    createLead.mutate(data);
+                  }
+                }}
+                onSaveAndStay={(data) => {
+                  if (editingLead) {
+                    updateLead.mutate({ id: editingLead.id, data });
+                  } else {
+                    createLead.mutate(data);
+                  }
+                }}
+                onCancel={() => setShowLeadForm(false)}
+                isSubmitting={createLead.isPending || updateLead.isPending}
+              />
+            </div>
           )}
         </DialogContent>
       </Dialog>
@@ -690,13 +700,20 @@ export default function LeadsPage() {
 }
 
 // Lead workflow
-function StatusBadge({ lead, statuses, updateLead, convert }) {
+function StatusBadge({ lead, statuses, updateLead }) {
+  if (lead.lead_status === 'Converted') {
+    const convertedStatus = statuses.find((status) => status.value === 'Converted');
+    return <Badge variant="outline" className={`${convertedStatus?.color || 'bg-emerald-50 text-emerald-700'} border-0 px-3 py-1 w-full justify-start`}>Converted</Badge>;
+  }
+
+  const editableStatuses = statuses.filter((status) => status.value !== 'Converted');
+
   return (
     <InlineEdit
       type="select"
       value={lead.lead_status}
-      options={statuses}
-      onSave={(val) => val === 'Converted' ? convert.mutate(lead) : updateLead.mutate({ id: lead.id, data: { lead_status: val } })}
+      options={editableStatuses}
+      onSave={(val) => updateLead.mutate({ id: lead.id, data: { lead_status: val } })}
       formatDisplay={(val) => {
         const s = statuses.find((o) => o.value === val);
         const isRevival = val === 'revival_2023' || s?.label?.includes('Revival');

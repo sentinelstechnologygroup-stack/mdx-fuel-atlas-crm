@@ -3,17 +3,19 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { FunnelChart, Funnel, LabelList, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { Users, ArrowLeftRight, Percent } from "lucide-react";
 import { useSettings } from "@/components/context/SettingsContext";
-
-const COLORS = ['#ef4444', '#8b5cf6', '#10b981', '#f59e0b', '#ef4444'];
+import { isWonOpportunity } from '@/lib/fuelVolume';
+import { filterRecordsByTimeRange } from '@/lib/reporting';
 
 export default function ConversionReport({ leads, opportunities, timeRange }) {
   const { theme } = useSettings();
 
   const stats = useMemo(() => {
-    const totalLeads = leads.length;
-    const convertedLeads = leads.filter(l => l.lead_status === 'Converted').length;
-    const totalOpps = opportunities.length;
-    const closedWon = opportunities.filter(o => o.deal_stage?.includes("Won")).length;
+    const periodLeads = filterRecordsByTimeRange(leads, timeRange);
+    const periodOpportunities = filterRecordsByTimeRange(opportunities, timeRange);
+    const totalLeads = periodLeads.length;
+    const convertedLeads = periodLeads.filter(l => l.lead_status === 'Converted').length;
+    const totalOpps = periodOpportunities.length;
+    const closedWon = periodOpportunities.filter(isWonOpportunity).length;
 
     const conversionRate = totalLeads > 0 ? (convertedLeads / totalLeads) * 100 : 0;
     const winRate = totalOpps > 0 ? (closedWon / totalOpps) * 100 : 0;
@@ -26,7 +28,7 @@ export default function ConversionReport({ leads, opportunities, timeRange }) {
       conversionRate,
       winRate
     };
-  }, [leads, opportunities]);
+  }, [leads, opportunities, timeRange]);
 
   const funnelData = [
     { "value": stats.totalLeads, "name": "Total Leads", "fill": "#ef4444" },
@@ -34,6 +36,7 @@ export default function ConversionReport({ leads, opportunities, timeRange }) {
     { "value": stats.totalOpps, "name": "Active Opportunities", "fill": "#f59e0b" },
     { "value": stats.closedWon, "name": "Closed Won", "fill": "#10b981" }
   ];
+  const qualityLabel = stats.conversionRate >= 50 ? 'High' : stats.conversionRate >= 20 ? 'Medium' : 'Low';
 
   return (
     <div className="space-y-6">
@@ -66,7 +69,7 @@ export default function ConversionReport({ leads, opportunities, timeRange }) {
                 <Users className={`h-4 w-4 ${theme === 'dark' ? 'text-purple-400 drop-shadow-sm' : 'text-purple-500'}`} />
             </CardHeader>
             <CardContent>
-                <div className={`text-2xl font-bold ${theme === 'dark' ? 'text-purple-400' : ''}`}>High</div>
+                <div className={`text-2xl font-bold ${theme === 'dark' ? 'text-purple-400' : ''}`}>{qualityLabel}</div>
                 <p className={`text-xs ${theme === 'dark' ? 'text-slate-400' : 'text-slate-500'}`}>Based on conversion rates</p>
             </CardContent>
         </Card>

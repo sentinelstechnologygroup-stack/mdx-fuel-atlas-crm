@@ -6,9 +6,11 @@ import { Badge } from "@/components/ui/badge";
 import { Loader2, Sparkles, Target, RefreshCw } from "lucide-react";
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Progress } from "@/components/ui/progress";
+import { usePermissions } from '@/components/hooks/usePermissions';
 
 export default function LeadAiAnalysis({ lead }) {
   const queryClient = useQueryClient();
+  const { canEdit } = usePermissions();
   const [isAnalyzing, setIsAnalyzing] = React.useState(false);
 
   const analyzeMutation = useMutation({
@@ -59,15 +61,18 @@ export default function LeadAiAnalysis({ lead }) {
               analysis: { type: "string" },
               actions: { type: "array", items: { type: "string" } }
             }
-          }
+          },
+          context: { record_refs: [{ entity: 'Lead', id: lead.id }] },
         });
 
         // Update the lead with AI results
+        const score = Math.max(0, Math.min(100, Number(response.score) || 0));
+        const actions = Array.isArray(response.actions) ? response.actions.slice(0, 3) : [];
         await atlas.entities.Lead.update(lead.id, {
           ai_classification: response.classification,
-          ai_quality_score: response.score,
-          ai_analysis: response.analysis,
-          ai_suggested_actions: response.actions,
+          ai_quality_score: score,
+          ai_analysis: response.analysis || "No analysis was returned.",
+          ai_suggested_actions: actions,
           ai_last_analysis_date: new Date().toISOString()
         });
 
@@ -77,8 +82,9 @@ export default function LeadAiAnalysis({ lead }) {
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(['lead', lead.id]);
-    }
+      queryClient.invalidateQueries({ queryKey: ['lead', lead.id] });
+      queryClient.invalidateQueries({ queryKey: ['leads'] });
+    },
   });
 
   const getClassColor = (cls) => {
@@ -96,8 +102,17 @@ export default function LeadAiAnalysis({ lead }) {
     return 'bg-red-500';
   };
 
-  // If no analysis exists yet
-  if (!lead.ai_last_analysis_date && !isAnalyzing) {
+  const hasAnalysis = Boolean(
+    lead.ai_analysis || lead.ai_classification ||
+    Array.isArray(lead.ai_suggested_actions) && lead.ai_suggested_actions.length
+  );
+  const parsedDate = lead.ai_last_analysis_date?.toDate
+    ? lead.ai_last_analysis_date.toDate()
+    : new Date(lead.ai_last_analysis_date);
+  const hasValidDate = Number.isFinite(parsedDate.getTime());
+
+  // Do not present a partial/invalid record as a completed analysis.
+  if (!hasAnalysis && !isAnalyzing) {
     return (
       <Card className="bg-gradient-to-br from-purple-50 to-white border-purple-100">
         <CardContent className="p-6 flex flex-col items-center justify-center text-center space-y-4">
@@ -112,12 +127,18 @@ export default function LeadAiAnalysis({ lead }) {
           </div>
           <Button
             onClick={() => analyzeMutation.mutate()}
-            disabled={isAnalyzing}
+            disabled={isAnalyzing || !canEdit}
             className="bg-purple-600 hover:bg-purple-700 text-white"
           >
             {isAnalyzing ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Sparkles className="w-4 h-4 mr-2" />}
             Run Lead Analysis
           </Button>
+          {analyzeMutation.isError && (
+            <p className="text-sm text-red-600">
+              ATLAS could not analyze this lead: {analyzeMutation.error?.message || 'Please try again.'}
+            </p>
+          )}
+          {!canEdit && <p className="text-xs text-slate-500">Your role can view AI insights but cannot save analysis changes.</p>}
         </CardContent>
       </Card>
     );
@@ -135,7 +156,7 @@ export default function LeadAiAnalysis({ lead }) {
             variant="ghost"
             size="sm"
             onClick={() => analyzeMutation.mutate()}
-            disabled={isAnalyzing}
+            disabled={isAnalyzing || !canEdit}
             className="h-8 w-8 p-0 text-purple-400 hover:text-purple-700"
           >
             <RefreshCw className={`w-4 h-4 ${isAnalyzing ? 'animate-spin' : ''}`} />
@@ -162,7 +183,7 @@ export default function LeadAiAnalysis({ lead }) {
 
         {/* Analysis Text */}
         <div className="bg-slate-50 p-3 rounded-lg text-sm text-slate-700 leading-relaxed border border-slate-100">
-          <p>{lead.ai_analysis || "Initial analysis complete."}</p>
+          <p>{lead.ai_analysis || "No written analysis was returned. Run the analysis again."}</p>
         </div>
 
         {/* Action Items */}
@@ -185,7 +206,7 @@ export default function LeadAiAnalysis({ lead }) {
 
         <div className="text-[10px] text-slate-400 text-left pt-2 border-t border-slate-50 flex justify-between">
           <span>Powered by LLM</span>
-          <span>Updated: {new Date(lead.ai_last_analysis_date).toLocaleDateString('en-US')}</span>
+          <span>{hasValidDate ? `Updated: ${parsedDate.toLocaleDateString('en-US')}` : 'Not yet analyzed'}</span>
         </div>
 
       </CardContent>

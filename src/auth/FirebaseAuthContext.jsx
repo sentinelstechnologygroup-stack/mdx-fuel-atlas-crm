@@ -8,8 +8,11 @@ import React, {
   useState,
 } from 'react';
 import {
+  changeCurrentFirebasePassword,
+  getUserProfile,
   requestFirebasePasswordReset,
   signInWithFirebase,
+  signInWithPortalToken,
   signOutFromFirebase,
   subscribeToFirebaseSession,
 } from '@/auth/firebaseAuthService';
@@ -23,6 +26,18 @@ export function FirebaseAuthProvider({ children }) {
   const [isLoadingAuth, setIsLoadingAuth] = useState(true);
 
   useEffect(() => {
+    const portalToken = new URLSearchParams(window.location.search).get('portalToken');
+    if (portalToken) {
+      signInWithPortalToken(portalToken)
+        .then((session) => {
+          setFirebaseUser(session.firebaseUser);
+          setProfile(session.profile);
+          window.history.replaceState({}, document.title, window.location.pathname);
+        })
+        .catch((error) => setAuthError(error))
+        .finally(() => setIsLoadingAuth(false));
+      return undefined;
+    }
     const unsubscribe = subscribeToFirebaseSession((session) => {
       setFirebaseUser(session.firebaseUser);
       setProfile(session.profile);
@@ -76,6 +91,13 @@ export function FirebaseAuthProvider({ children }) {
     }
   }, []);
 
+  const changePassword = useCallback(async (newPassword) => {
+    await changeCurrentFirebasePassword(newPassword);
+    const refreshedProfile = await getUserProfile(firebaseUser.uid);
+    setProfile(refreshedProfile);
+    return refreshedProfile;
+  }, [firebaseUser]);
+
   const value = useMemo(() => ({
     authProvider: 'firebase',
     user: profile,
@@ -89,6 +111,7 @@ export function FirebaseAuthProvider({ children }) {
     login,
     logout,
     requestPasswordReset,
+    changePassword,
     navigateToLogin: () => {},
   }), [
     authError,
@@ -98,6 +121,7 @@ export function FirebaseAuthProvider({ children }) {
     logout,
     profile,
     requestPasswordReset,
+    changePassword,
   ]);
 
   return (

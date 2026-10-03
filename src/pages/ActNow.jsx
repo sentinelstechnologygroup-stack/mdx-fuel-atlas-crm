@@ -51,7 +51,7 @@ export default function ActNowPage() {
     const handleTaskSubmit = async (data) => {
         try {
             await atlas.entities.Task.create(data);
-            queryClient.invalidateQueries(['tasks']);
+            queryClient.invalidateQueries({ queryKey: ['tasks'] });
             alert("Task created successfully!");
             setShowTaskForm(false);
             setTaskDefaults(null);
@@ -149,31 +149,44 @@ export default function ActNowPage() {
                         realRecord = opportunities.find(o => o.id === rec.id);
                     }
 
-                    // If found by ID, correct the name to ensure consistency
-                    if (realRecord) {
-                         const realName = rec.type === 'Lead' ? realRecord.full_name : (realRecord.lead_name || "Unknown Opportunity");
-                         return { ...rec, target: realName };
-                    }
-
                     // 2. If ID match failed, try to match by Name (Fallback)
                     // This handles cases where LLM hallucinated the ID but got the name right
-                    if (!realRecord) {
+                    if (!realRecord && typeof rec.target === 'string') {
                         if (rec.type === 'Lead') {
                             realRecord = leads.find(l => l.full_name && l.full_name.toLowerCase() === rec.target.toLowerCase());
                         } else if (rec.type === 'Opportunity') {
                             realRecord = opportunities.find(o => o.lead_name && o.lead_name.toLowerCase() === rec.target.toLowerCase());
                         }
                         
-                        // If found by Name, correct the ID
-                        if (realRecord) {
-                            return { ...rec, id: realRecord.id };
-                        }
                     }
 
-                    // 3. If neither found, it might be a hallucination or stale data
-                    // We keep it as is, but it might result in a broken link
-                    return rec;
-                });
+                    // Never render an unverified recommendation. The model is
+                    // allowed to rank records, but not invent targets.
+                    if (!realRecord) return null;
+
+                    const target = rec.type === 'Lead'
+                        ? realRecord.full_name
+                        : (realRecord.lead_name || realRecord.name || 'Opportunity');
+                    const stage = realRecord.deal_stage || realRecord.stage || 'Open';
+                    const probability = Number(realRecord.probability);
+                    const closeDate = realRecord.expected_close_date;
+                    const amount = Number(realRecord.amount ?? realRecord.estimated_value);
+                    const facts = rec.type === 'Opportunity'
+                        ? `${stage} stage${Number.isFinite(probability) ? ` at ${probability}% probability` : ''}${Number.isFinite(amount) && amount > 0 ? `, value $${amount.toLocaleString()}` : ''}${closeDate ? `, expected close ${closeDate}` : ''}.`
+                        : `${realRecord.lead_status || 'Open'} lead${realRecord.lead_temperature ? `, ${realRecord.lead_temperature.toLowerCase()} temperature` : ''}${realRecord.last_contact_date ? `, last contact ${realRecord.last_contact_date}` : ''}.`;
+                    const action = rec.type === 'Opportunity'
+                        ? `Review the ${stage.toLowerCase()} deal details and schedule the next customer follow-up.`
+                        : 'Review the lead record and schedule a specific follow-up based on the latest contact history.';
+                    return {
+                        ...rec,
+                        id: realRecord.id,
+                        target,
+                        type: rec.type,
+                        priority: rec.priority === 'Critical' ? 'Critical' : 'High',
+                        why: facts,
+                        how: action,
+                    };
+                }).filter(Boolean);
 
                 setInsights(validatedInsights);
             }

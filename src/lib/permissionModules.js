@@ -108,7 +108,10 @@ export const NAV_MODULE_MAP = {
   Reports: 'reports',
   Automations: 'automations',
   SalesGalaxy: 'sales_galaxy',
-  CSManagement: 'customer_success',
+  // Client records are part of the core CRM surface; using the core clients
+  // permission keeps the Clients section visible to salespeople who can view
+  // their own converted accounts.
+  CSManagement: 'clients',
   MarketingSequences: 'marketing_sequences',
   MarketingTemplates: 'marketing_templates'
 };

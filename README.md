@@ -38,35 +38,24 @@ This repository contains proprietary project work developed for MDX Fuel and mai
 
 ## Current Project Status
 
-**Status:** Active Development  
-**Current Workstream:** Firebase migration and ATLAS platform hardening  
-**Deployment Authorization:** Development only unless explicitly approved  
-**Production Cutover:** Not yet authorized
+**Status:** Production closeout / controlled release candidate  
+**Closeout branch:** `release/mdx-atlas-production-closeout`  
+**Firebase migration:** Phases 0–13 implemented; Phase 14 production validation remains open  
+**Production deployment:** Not authorized until the documented manual backup, reconciliation, authenticated walkthrough, and GO gates pass
 
-Completed foundation work includes:
+The release candidate now includes:
 
-- Firebase project and Emulator Suite foundation
-- Firebase Authentication integration
-- Firestore entity adapter foundation
-- Firebase-compatible ATLAS application client
-- Removal of legacy runtime package dependencies
-- Localized MDX Fuel branding assets
-- Preserved schemas, workflows, assistant definitions, and backend logic under `atlas/`
-- Initial application-role and permission architecture
-- Production frontend build validation
+- Firebase Authentication and profile enforcement restored in the production candidate
+- Firestore entity, permission, workflow, Storage, messaging, notification, and automation migrations
+- Firebase-native ATLAS AI/document/image gateway
+- MDX-specific Lead, Opportunity, Customer Account, fuel-volume, tank, delivery, and pricing workflows
+- Phase 13 lead qualification, stale-opportunity, and weekly-sales-report workflows
+- Phase 14 fail-closed backup/reconciliation and exact deployment tooling
+- TanStack Query v5 cache invalidation across CRM/reporting mutation paths
+- MDX closeout regression tests and GitHub Actions release gate
+- No active Base44 runtime/package dependency identified; migration references remain preserved as historical evidence
 
-The next implementation stage includes:
-
-- Employee user profiles
-- Role hierarchy and account status
-- Firestore collection creation
-- Security Rules enforcement
-- Ownership and team scope
-- Trusted administrative operations
-- Permission overrides
-- Audit logging
-- Workflow and backend function migration
-- Emulator test coverage for all user levels
+Remaining launch gates are operational/manual: production Firebase target confirmation, authenticated salesperson/superadmin walkthroughs, managed backup and reconciliation evidence, controlled production deployment, production smoke/reconciliation, monitoring, final merge, and release tag.
 
 ---
 
@@ -258,6 +247,18 @@ npm --prefix functions run lint
 ```
 
 A project phase is not complete until the relevant build, tests, permission checks, and manual regression checks pass.
+
+### Production closeout gate
+
+```powershell
+npm run test:closeout
+npm run test:phase12
+npm run test:phase12:functions-emulator
+npm run test:phase13
+npm run test:phase14:operations
+```
+
+The same release gates run in GitHub Actions from `.github/workflows/atlas-production-closeout.yml`.
 
 ---
 

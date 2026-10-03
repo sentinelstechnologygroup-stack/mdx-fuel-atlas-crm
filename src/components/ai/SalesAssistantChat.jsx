@@ -6,8 +6,12 @@ import { Send, Bot, User, Loader2, Sparkles } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { useSettings } from '@/components/context/SettingsContext';
 import { ATLAS } from './atlasConfig';
+import { useQuery } from '@tanstack/react-query';
 
 function MessageBubble({ message, isUser, theme }) {
+    const listItems = String(message.content || '').split(/\r?\n/)
+        .map((line) => line.match(/^\s*[-*•]\s+(.+)$/)?.[1])
+        .filter(Boolean);
     return (
         <div className={`flex gap-3 ${isUser ? 'justify-end' : 'justify-start'} mb-4 animate-in fade-in slide-in-from-bottom-2 relative z-10`}>
             {!isUser && (
@@ -29,7 +33,11 @@ function MessageBubble({ message, isUser, theme }) {
                         ? 'bg-slate-800/80 text-slate-100 border border-white/5' 
                         : 'bg-white/60 text-slate-700 border border-white/40')
             }`}>
-                <ReactMarkdown 
+                {listItems.length > 0 ? (
+                    <ul className="list-disc pl-5 space-y-1 text-[0.95rem] leading-relaxed">
+                        {listItems.map((item, index) => <li key={`${index}-${item}`}>{item}</li>)}
+                    </ul>
+                ) : <ReactMarkdown 
                     className={`text-[0.95rem] font-sans tracking-wide leading-relaxed prose ${theme === 'dark' ? 'prose-invert' : 'prose-slate'} max-w-none prose-p:mb-2 prose-p:last:mb-0 prose-headings:font-bold prose-headings:text-sm prose-a:text-indigo-400 prose-a:underline hover:prose-a:text-indigo-300 transition-colors`}
                     components={{
                         p: ({children}) => <p className="mb-2 last:mb-0 leading-relaxed">{children}</p>,
@@ -37,7 +45,7 @@ function MessageBubble({ message, isUser, theme }) {
                     }}
                 >
                     {message.content}
-                </ReactMarkdown>
+                </ReactMarkdown>}
             </div>
 
             {isUser && (
@@ -60,13 +68,14 @@ export default function SalesAssistantChat() {
     const [isLoading, setIsLoading] = useState(false);
     const [conversation, setConversation] = useState(null);
     const scrollRef = useRef(null);
+    const { data: leads = [] } = useQuery({ queryKey: ['atlas_chat_leads'], queryFn: () => atlas.entities.Lead.list(), staleTime: 60000 });
+    const { data: opportunities = [] } = useQuery({ queryKey: ['atlas_chat_opportunities'], queryFn: () => atlas.entities.Opportunity.list(), staleTime: 60000 });
 
     // Initialize conversation
     useEffect(() => {
         const initChat = async () => {
             try {
-                // Check for existing recent conversation or create new
-                // For simplicity in this demo, we'll create a new one or use a fixed ID logic if we had persistence
+                // Start a fresh persisted conversation for this session.
                 const newConv = await atlas.agents.createConversation({
                     agent_name: "SalesAssistant",
                     metadata: { name: "Sales Help" }
@@ -116,14 +125,18 @@ export default function SalesAssistantChat() {
         try {
             await atlas.agents.addMessage(conversation, {
                 role: "user",
-                content: userMsg
+                content: userMsg,
+                context: {
+                    record_refs: [...leads.slice(0, 10).map((record) => ({ entity: 'Lead', id: record.id })),
+                        ...opportunities.slice(0, 10).map((record) => ({ entity: 'Opportunity', id: record.id }))]
+                }
             });
             // The subscription will update the state with the new message and the AI response
         } catch (error) {
             console.error("Failed to send message:", error);
             setMessages((current) => [...current, {
                 role: 'assistant',
-                content: 'ATLAS is temporarily unavailable. Please try again later.'
+                content: `ATLAS could not complete that request. ${error?.message || 'Please try again later.'}`
             }]);
         } finally {
             setIsLoading(false);
@@ -169,6 +182,9 @@ export default function SalesAssistantChat() {
                         value={input}
                         onChange={(e) => setInput(e.target.value)}
                         placeholder="Draft an email, analyze deal..."
+                        spellCheck="true"
+                        autoCorrect="on"
+                        autoCapitalize="sentences"
                         className={`flex-1 transition-all text-base md:text-sm ${
                             theme === 'dark' 
                                 ? 'bg-white/10 border-white/10 text-white placeholder:text-white/40 focus:bg-white/20' 

@@ -55,7 +55,7 @@ export default function AutomationsPage() {
   const createRule = useMutation({
     mutationFn: (data) => atlas.entities.AutomationRule.create(data),
     onSuccess: () => {
-      queryClient.invalidateQueries(['automationRules']);
+      queryClient.invalidateQueries({ queryKey: ['automationRules'] });
       setIsDialogOpen(false);
       setEditingRule(null);
     }
@@ -63,7 +63,7 @@ export default function AutomationsPage() {
 
   const deleteRule = useMutation({
     mutationFn: (id) => atlas.entities.AutomationRule.delete(id),
-    onSuccess: () => queryClient.invalidateQueries(['automationRules'])
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['automationRules'] })
   });
 
   const toggleRule = useMutation({
@@ -84,7 +84,7 @@ export default function AutomationsPage() {
       queryClient.setQueryData(['automationRules'], context.previousRules);
     },
     onSettled: () => {
-      queryClient.invalidateQueries(['automationRules']);
+      queryClient.invalidateQueries({ queryKey: ['automationRules'] });
     }
   });
 
@@ -385,7 +385,7 @@ export default function AutomationsPage() {
         setIsDialogOpen(open);
         if (!open) setEditingRule(null);
       }}>
-        <DialogContent className={`fixed right-0 top-0 left-auto translate-x-0 translate-y-0 h-full w-full sm:w-[550px] max-w-none p-0 border-l shadow-2xl transition-all duration-300 gap-0 data-[state=open]:slide-in-from-right data-[state=closed]:slide-out-to-right sm:rounded-none ${
+        <DialogContent className={`fixed right-0 top-0 left-auto translate-x-0 translate-y-0 h-full w-[min(100vw,550px)] max-w-[100vw] p-0 border-l shadow-2xl transition-all duration-300 gap-0 data-[state=open]:slide-in-from-right data-[state=closed]:slide-out-to-right sm:rounded-none ${
             theme === 'dark' ? 'bg-slate-900 border-slate-700' : 'bg-white border-slate-200'
         }`} dir="ltr">
           <div className={`flex items-center justify-between px-6 py-4 border-b ${theme === 'dark' ? 'border-slate-800' : 'border-slate-100'}`}>
@@ -443,7 +443,7 @@ function RuleForm({ onSuccess, editingRule }) {
   ];
 
   const opportunityFields = [
-    { value: 'deal_stage', label: 'Opportunity Stage', values: ['Prospect', 'Contacted', 'Meeting Scheduled', 'Quote Requested', 'Proposal Sent', 'Negotiation', 'Closed Won', 'Closed Lost'] },
+    { value: 'deal_stage', label: 'Opportunity Stage', values: ['Prospect', 'Contacted', 'Meetings', 'Quote Requested', 'Proposal Sent', 'Negotiation', 'Closed Won', 'Closed Lost'] },
     { value: 'product_type', label: 'Fuel Product', values: ['On-Road Diesel', 'Off-Road Diesel', 'Gasoline', 'DEF', 'Lubricants', 'Other'] },
     { value: 'probability', label: 'Probability', type: 'number' },
           ];
@@ -455,7 +455,7 @@ function RuleForm({ onSuccess, editingRule }) {
   const createRule = useMutation({
     mutationFn: (data) => atlas.entities.AutomationRule.create(data),
     onSuccess: () => {
-      queryClient.invalidateQueries(['automationRules']);
+      queryClient.invalidateQueries({ queryKey: ['automationRules'] });
       onSuccess();
     }
   });
@@ -477,7 +477,7 @@ function RuleForm({ onSuccess, editingRule }) {
                 - condition_field: "lead_status", "deal_stage", "estimated_monthly_gallons", etc.
                 - condition_value: translate Hebrew terms to exact English Enums below:
                     Lead Statuses: "New", "Attempting Contact", "Contacted", "Qualified", "Nurturing", "Disqualified", "Converted"
-                    Deal Stages: "Prospect", "Contacted", "Meeting Scheduled", "Quote Requested", "Proposal Sent", "Negotiation", "Closed Won", "Closed Lost"
+                Deal Stages: "Prospect", "Contacted", "Meetings", "Quote Requested", "Proposal Sent", "Negotiation", "Closed Won", "Closed Lost"
                 - action_type: "create_task" or "send_email"
                 - action_config: {
                      email_to: string (use {{full_name}} or {{email}} placeholders),

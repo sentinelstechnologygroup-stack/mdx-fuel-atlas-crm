@@ -46,8 +46,8 @@ export default function PermissionMatrix() {
       (async () => {
         try {
           await atlas.functions.invoke('initializePermissionModel', {});
-          queryClient.invalidateQueries(['roleDefinitions']);
-          queryClient.invalidateQueries(['allModulePermissions']);
+          queryClient.invalidateQueries({ queryKey: ['roleDefinitions'] });
+          queryClient.invalidateQueries({ queryKey: ['allModulePermissions'] });
         } catch (_e) { /* ignore */ }
       })();
     }
@@ -142,7 +142,7 @@ export default function PermissionMatrix() {
       setDraft((p) => { const n = { ...p }; delete n[moduleKey]; return n; });
       setSavedFlash((p) => ({ ...p, [moduleKey]: true }));
       setTimeout(() => setSavedFlash((p) => { const n = { ...p }; delete n[moduleKey]; return n; }), 2000);
-      queryClient.invalidateQueries(['allModulePermissions']);
+      queryClient.invalidateQueries({ queryKey: ['allModulePermissions'] });
     } catch (e) {
       setRowError((p) => ({ ...p, [moduleKey]: e.message || 'Save failed' }));
     } finally {
@@ -167,8 +167,8 @@ export default function PermissionMatrix() {
     setSaving('__init__');
     try {
       await atlas.functions.invoke('initializePermissionModel', {});
-      queryClient.invalidateQueries(['roleDefinitions']);
-      queryClient.invalidateQueries(['allModulePermissions']);
+      queryClient.invalidateQueries({ queryKey: ['roleDefinitions'] });
+      queryClient.invalidateQueries({ queryKey: ['allModulePermissions'] });
     } catch (e) {
       setRowError({ __init__: e.message });
     } finally {

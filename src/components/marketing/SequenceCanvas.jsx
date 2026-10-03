@@ -148,12 +148,6 @@ export default function SequenceCanvas({ sequenceId }) {
             if (!sequenceId) return null;
             const seq = await atlas.entities.MarketingSequence.read({ id: sequenceId });
             const steps = await atlas.entities.SequenceStep.list({ sequence_id: sequenceId });
-            const transitions = await atlas.entities.StepTransition.list({ sequence_id: sequenceId }); // Ideally filter by steps related to this seq, but list all for now or improved API needed
-            // NOTE: StepTransition doesn't have sequence_id in the schema I saw earlier, but logically it should relate. 
-            // If not, we have to fetch transitions for each step. 
-            // Assuming simplified fetching for this implementation or that we can filter transitions.
-            // Let's assume we fetch all transitions and filter in memory if needed (not efficient but MVP).
-            // Actually, best practice: StepTransition should be linked. If not, we iterate.
             
             // Reconstruct nodes
             const loadedNodes = steps.map(s => ({
@@ -175,9 +169,12 @@ export default function SequenceCanvas({ sequenceId }) {
             // Need to fetch transitions where source_step_id is in loadedNodes
             // This part might be tricky without a direct sequence_id on Transition. 
             // For now, let's load what we can. 
-            const transitionsList = await atlas.entities.StepTransition.filter({ 
-                source_step_id: { "$in": loadedNodes.map(n => n.id) } 
-            });
+            const transitionsBySource = await Promise.all(
+                loadedNodes
+                    .filter((node) => node.id !== 'start')
+                    .map((node) => atlas.entities.StepTransition.filter({ source_step_id: node.id }))
+            );
+            const transitionsList = transitionsBySource.flat();
             
             const loadedConnections = transitionsList.map(t => ({
                 id: t.id,
@@ -221,9 +218,7 @@ export default function SequenceCanvas({ sequenceId }) {
             }
 
             // 2. Sync Steps (Nodes)
-            // Strategy: Upsert based on ID. If ID starts with 'new_', create.
-            // Problem: 'start' node might be virtual. 
-            // Let's assume 'start' is a real step type for this builder.
+            // Persist every canvas node so the saved sequence can be reconstructed.
             
             const savedStepMap = {}; // Map local ID to DB ID
 
@@ -235,11 +230,9 @@ export default function SequenceCanvas({ sequenceId }) {
                     position_ui: { x: node.x, y: node.y }
                 };
 
-                // Fix START type mapping if needed, or exclude START if it's just a trigger placeholder
                 if (node.type === 'START') {
-                    // Start node might be special, maybe it's the Trigger config?
-                    // For now let's save it as a step so we have a root.
-                    stepData.type = 'DECISION_SPLIT'; // Placeholder type or add START to schema
+                    // The entity schema has no START type; use its persisted root-step type.
+                    stepData.type = 'DECISION_SPLIT';
                 }
 
                 if (node.id.startsWith('start') || node.id.startsWith('email') || node.id.length < 10) { 
@@ -252,11 +245,18 @@ export default function SequenceCanvas({ sequenceId }) {
                 }
             }
 
-            // 3. Sync Connections
-            // Delete old connections for this sequence (hard to do without ID list). 
-            // For MVP: Just create new ones for now, or assume stable IDs if we had them.
-            // Better: Iterate connections, if has ID update, if not create. 
-            
+            // 3. Sync Connections. Remove stale edges for this sequence before
+            // creating the current graph so repeated saves do not accumulate junk.
+            const persistedStepIds = new Set(Object.values(savedStepMap));
+            const existingTransitions = await atlas.entities.StepTransition.list();
+            const desiredEdges = new Set(connections.map((conn) =>
+                `${savedStepMap[conn.from] || conn.from}:${savedStepMap[conn.to] || conn.to}`
+            ));
+            await Promise.all(existingTransitions
+                .filter((transition) => persistedStepIds.has(transition.source_step_id))
+                .filter((transition) => !desiredEdges.has(`${transition.source_step_id}:${transition.target_step_id}`))
+                .map((transition) => atlas.entities.StepTransition.delete(transition.id)));
+
             for (const conn of connections) {
                 const sourceId = savedStepMap[conn.from] || conn.from;
                 const targetId = savedStepMap[conn.to] || conn.to;
@@ -281,7 +281,7 @@ export default function SequenceCanvas({ sequenceId }) {
             if (!sequenceId) {
                 navigate(createPageUrl('SequenceBuilder') + `?id=${newId}`, { replace: true });
             } else {
-                queryClient.invalidateQueries(['sequence', sequenceId]);
+                queryClient.invalidateQueries({ queryKey: ['sequence', sequenceId] });
             }
         }
     });

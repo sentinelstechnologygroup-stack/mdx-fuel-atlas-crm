@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -7,8 +7,10 @@ import { Badge } from "@/components/ui/badge";
 import moment from 'moment';
 import { Search, DollarSign, Briefcase, CheckCircle2 } from 'lucide-react';
 import { useSettings } from "@/components/context/SettingsContext";
+import { isLostOpportunity, isWonOpportunity } from '@/lib/fuelVolume';
+import { filterRecordsByTimeRange } from '@/lib/reporting';
 
-export default function OpportunitiesListReport({ opportunities = [] }) {
+export default function OpportunitiesListReport({ opportunities = [], timeRange = 'all' }) {
   const { theme } = useSettings();
   const [filterStage, setFilterStage] = useState('all');
   const [filterDate, setFilterDate] = useState('all');
@@ -20,7 +22,7 @@ export default function OpportunitiesListReport({ opportunities = [] }) {
   }, [opportunities]);
 
   const filteredData = useMemo(() => {
-    return opportunities.filter((o) => {
+    return filterRecordsByTimeRange(opportunities, timeRange).filter((o) => {
       if (filterStage !== 'all' && o.deal_stage !== filterStage) return false;
       if (filterDate !== 'all') {
         const created = moment(o.created_date);
@@ -35,15 +37,15 @@ export default function OpportunitiesListReport({ opportunities = [] }) {
       }
       return true;
     });
-  }, [opportunities, filterStage, filterDate, searchClient]);
+  }, [opportunities, timeRange, filterStage, filterDate, searchClient]);
 
   const stats = useMemo(() => {
     let openCount = 0;
     let wonCount = 0;
     let wonAmount = 0;
     filteredData.forEach((o) => {
-      const isWon = o.deal_stage?.includes('Won');
-      const isLost = o.deal_stage?.includes('Lost');
+      const isWon = isWonOpportunity(o);
+      const isLost = isLostOpportunity(o);
       if (isWon) {
         wonCount++;
         wonAmount += o.amount || 0;

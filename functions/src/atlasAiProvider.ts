@@ -70,6 +70,77 @@ function authorizedImages(context?: JsonRecord): string[] {
     ).slice(0, 4) : [];
 }
 
+const NUMBER_WORDS: Record<string, number> = {
+  one: 1, two: 2, three: 3, four: 4, five: 5,
+  six: 6, seven: 7, eight: 8, nine: 9, ten: 10,
+};
+
+function requestedBulletCount(input: string): number | null {
+  const match = input.match(
+    /\b(one|two|three|four|five|six|seven|eight|nine|ten|\d+)\s+\n?\s*(?:concise\s+)?(?:markdown\s+)?(?:bullet(?:s|\s+points?)?|items?)\b/i
+  );
+  if (!match) return null;
+  const count = NUMBER_WORDS[match[1].toLowerCase()] || Number(match[1]);
+  return Number.isInteger(count) && count > 0 && count <= 10 ? count : null;
+}
+
+function conversationSchema(input: string): JsonRecord | null {
+  const count = requestedBulletCount(input);
+  if (!count) return null;
+  return {
+    type: "object",
+    properties: {
+      items: {
+        type: "array", minItems: count, maxItems: count,
+        items: {type: "string"},
+      },
+    },
+    required: ["items"], additionalProperties: false,
+  };
+}
+
+function renderConversationItems(output: unknown, input: string): string | null {
+  const count = requestedBulletCount(input);
+  const items = asRecord(output).items;
+  if (!count || !Array.isArray(items)) return null;
+  const normalized = items.filter((item): item is string =>
+    typeof item === "string" && item.trim().length > 0
+  ).slice(0, count);
+  if (normalized.length !== count) return null;
+  return normalized.map((item) => `- ${item.trim()}`).join("\n");
+}
+
+function responseUnits(text: string): string[] {
+  const lines = text.split(/\r?\n/)
+    .map((line) => line.replace(/^\s*(?:[-*•]|\d+[.)])\s*/, "").trim())
+    .filter(Boolean);
+  if (lines.length > 1) return lines;
+  return text.split(/(?<=[.!?])\s+(?=[A-Z0-9])/)
+    .map((unit) => unit.trim())
+    .filter(Boolean);
+}
+
+/**
+ * Enforces common list requests without relying on model formatting alone.
+ * @param {string} text Raw model response.
+ * @param {string} input Original user request.
+ * @return {string} Normalized response text.
+ */
+export function enforceConversationFormat(text: string, input: string): string {
+  const count = requestedBulletCount(input);
+  if (!count || !text.trim()) return text;
+  const units = responseUnits(text);
+  if (units.length === 0) return text;
+  const selected = units.slice(0, count);
+  if (units.length > count) {
+    selected[count - 1] = [
+      selected[count - 1], ...units.slice(count),
+    ].join(" ");
+  }
+  while (selected.length < count) selected.push("Additional detail unavailable.");
+  return selected.map((unit) => `- ${unit}`).join("\n");
+}
+
 /** OpenAI-compatible ATLAS provider. Credentials never leave Functions. */
 export class OpenAiAtlasProvider implements AtlasAiProvider {
   private readonly fetchImplementation: typeof fetch;
@@ -108,7 +179,9 @@ export class OpenAiAtlasProvider implements AtlasAiProvider {
   private async generateText(
     request: AtlasProviderRequest
   ): Promise<AtlasProviderResult> {
-    const schema = responseSchema(request.context);
+    const schema = responseSchema(request.context) ||
+      (request.operation === "conversation" ?
+        conversationSchema(request.input) : null);
     const history = Array.isArray(request.context?.history) ?
       request.context.history.slice(-10) : [];
     const historyText = history.length > 0 ?
@@ -126,8 +199,14 @@ export class OpenAiAtlasProvider implements AtlasAiProvider {
     const body: JsonRecord = {
       model: this.options.textModel,
       instructions: "You are ATLAS, powered by Aurora Intelligence " +
-        "Systems. Be concise and professional. Use only supplied context. " +
-        "Never claim that you performed a CRM write.",
+        "Systems. Follow the user's request exactly, including requested " +
+        "count, structure, and format. Infer a useful format when none is " +
+        "specified; never ask the user to choose a format. If the user asks " +
+        "for bullets, return Markdown bullet items rather than paragraphs. " +
+        "If the user asks for a number of items, return exactly that number " +
+        "unless the supplied CRM data cannot support it. Be concise and " +
+        "professional. Use only supplied context. Never claim that you " +
+        "performed a CRM write.",
       input: [{role: "user", content}],
     };
     if (schema) {
@@ -137,13 +216,18 @@ export class OpenAiAtlasProvider implements AtlasAiProvider {
     }
     const payload = await this.post("responses", body);
     const rawOutput = extractOutputText(payload);
-    let output: unknown = rawOutput;
+    let output: unknown = schema ? rawOutput :
+      request.operation === "conversation" ?
+        enforceConversationFormat(rawOutput, request.input) : rawOutput;
     if (schema) {
       try {
         output = JSON.parse(rawOutput);
       } catch {
         throw new Error("AI provider returned invalid structured output.");
       }
+      const rendered = request.operation === "conversation" ?
+        renderConversationItems(output, request.input) : null;
+      if (rendered) output = rendered;
     }
     const usage = asRecord(payload.usage);
     return {

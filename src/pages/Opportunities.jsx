@@ -6,7 +6,7 @@ import { useLocation } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Loader2, LayoutGrid, List as ListIcon, Phone, Calendar, DollarSign, Briefcase, Trophy, Trash2, ChevronLeft, ChevronRight, Plus, AlertCircle } from "lucide-react";
+import { Loader2, LayoutGrid, List as ListIcon, Phone, Calendar, DollarSign, Briefcase, Trophy, Trash2, Plus, AlertCircle } from "lucide-react";
 import { useSettings } from "@/components/context/SettingsContext";
 import { triggerConfetti } from "@/components/utils/confetti";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
@@ -18,11 +18,13 @@ import { usePermissions } from '@/components/hooks/usePermissions';
 import moment from "moment";
 import SmartFilterBar from "@/components/common/SmartFilterBar";
 import { useUrlFilters } from '@/components/hooks/useUrlFilters';
+import { getOpportunityGallons, isLostOpportunity, isOpenOpportunity, isWonOpportunity } from '@/lib/fuelVolume';
 
 export default function OpportunitiesPage() {
   const { canCreate, canEdit, canDelete } = usePermissions();
   const { pipelineStages, branding, theme } = useSettings();
   const [editingOpp, setEditingOpp] = useState(null);
+  const [initialLead, setInitialLead] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [viewMode, setViewMode] = useState('kanban');
 
@@ -32,69 +34,12 @@ export default function OpportunitiesPage() {
   const [transitionInput, setTransitionInput] = useState(''); // reason or date
 
   // Smart Filters with URL Sync
-  const { view: activeView, setView: setActiveView, filters: activeFilters, setFilters: setActiveFilters, setViewState, search, setSearch } = useUrlFilters('all');
+  const { view: activeView, filters: activeFilters, setFilters: setActiveFilters, setViewState, search, setSearch } = useUrlFilters('all');
 
   const queryClient = useQueryClient();
   const location = useLocation();
 
   const activeStages = pipelineStages || [];
-
-  // Scroll Logic
-  const scrollContainerRef = React.useRef(null);
-  const [showLeftArrow, setShowLeftArrow] = useState(false);
-  const [showRightArrow, setShowRightArrow] = useState(false);
-
-  const checkScroll = () => {
-    if (scrollContainerRef.current) {
-      const { scrollLeft, scrollWidth, clientWidth } = scrollContainerRef.current;
-      // RTL Logic:
-      // Start is Right (scrollLeft approx 0).
-      // End is Left (scrollLeft approx -max or max depending on browser).
-      // Let's use Math.abs to be safe(r).
-
-      const scrollAbs = Math.abs(scrollLeft);
-      const maxScroll = scrollWidth - clientWidth;
-
-      // If no overflow
-      if (scrollWidth <= clientWidth) {
-        setShowLeftArrow(false);
-        setShowRightArrow(false);
-        return;
-      }
-
-      // Check if at Start (Right side)
-      const isAtStart = scrollAbs < 5; // Tolerance
-      // Check if at End (Left side)
-      const isAtEnd = scrollAbs >= maxScroll - 5;
-
-      // In LTR:
-      // Start (Left) -> Can scroll Right. Show Right Arrow.
-      // End (Right) -> Can scroll Left. Show Left Arrow.
-
-      setShowLeftArrow(!isAtStart);
-      setShowRightArrow(!isAtEnd);
-    }
-  };
-
-  React.useEffect(() => {
-    checkScroll();
-    window.addEventListener('resize', checkScroll);
-    return () => window.removeEventListener('resize', checkScroll);
-  }, [activeStages, viewMode]);
-
-  const scroll = (direction) => {
-    if (scrollContainerRef.current) {
-      const scrollAmount = 200; // Adjusted for smaller columns
-      // In RTL, scrollLeft is usually negative for "Left" direction
-      // But scrollBy({ left: -320 }) moves left.
-      scrollContainerRef.current.scrollBy({
-        left: direction === 'left' ? -scrollAmount : scrollAmount,
-        behavior: 'smooth'
-      });
-      // Check after scroll (timeout for smooth scroll)
-      setTimeout(checkScroll, 300);
-    }
-  };
 
   const { data: opportunities, isLoading: isLoadingOpp } = useQuery({
     queryKey: ['opportunities'],
@@ -114,7 +59,10 @@ export default function OpportunitiesPage() {
   React.useEffect(() => {
     const params = new URLSearchParams(location.search);
     if (params.get('action') === 'new') {
+        const leadId = params.get('leadId');
+        if (leadId && !leads.some((lead) => lead.id === leadId)) return;
         setEditingOpp(null);
+        setInitialLead(leads.find((lead) => lead.id === leadId) || null);
         setShowForm(true);
         window.history.replaceState({}, '', location.pathname);
     } else if (params.get('opportunityId') && opportunities.length > 0) {
@@ -126,14 +74,14 @@ export default function OpportunitiesPage() {
             window.history.replaceState({}, '', location.pathname);
         }
     }
-  }, [location, opportunities]);
+  }, [location, opportunities, leads]);
 
   // --- Statistics Logic (New!) ---
   const stats = useMemo(() => {
-    const totalPipeline = opportunities.reduce((acc, o) => acc + (Number(o.estimated_monthly_gallons) || 0), 0);
+    const totalPipeline = opportunities.reduce((acc, opportunity) => acc + getOpportunityGallons(opportunity), 0);
     const totalDeals = opportunities.length;
-    const wonDeals = opportunities.filter(o => o.deal_stage.includes('Won')).length;
-    const activeDeals = opportunities.filter(o => !o.deal_stage.includes('Won') && !o.deal_stage.includes('Lost')).length;
+    const wonDeals = opportunities.filter(isWonOpportunity).length;
+    const activeDeals = opportunities.filter(isOpenOpportunity).length;
 
     return { totalPipeline, totalDeals, wonDeals, activeDeals };
   }, [opportunities]);
@@ -166,10 +114,42 @@ export default function OpportunitiesPage() {
       setViewState(viewId, {});
   };
 
+  const createFollowUpTask = async (opportunity, request) => {
+    if (!request?._createTask || !request.next_task?.trim()) return;
+    const user = await atlas.auth.me();
+    const meetingDate = opportunity.custom_data?.next_meeting_date;
+    await atlas.entities.Task.create({
+      title: request.next_task.trim(),
+      description: `Follow-up for ${opportunity.lead_name || 'opportunity'}.`,
+      due_date: meetingDate ? meetingDate.slice(0, 10) : null,
+      status: 'todo',
+      priority: 'medium',
+      assigned_to: opportunity.owner_user_id || user?.email || null,
+      related_lead_id: opportunity.lead_id || null,
+      related_opportunity_id: opportunity.id,
+    });
+    queryClient.invalidateQueries({ queryKey: ['tasks'] });
+  };
+
+  const withoutTaskControlFields = (data = {}) => {
+    const { _createTask, _leadName, ...opportunityData } = data;
+    return opportunityData;
+  };
+
   const createOppMutation = useMutation({
-    mutationFn: (data) => atlas.entities.Opportunity.create(data),
+    mutationFn: async (data) => {
+      const opportunity = await atlas.entities.Opportunity.create(
+        withoutTaskControlFields(data)
+      );
+      try {
+        await createFollowUpTask(opportunity, data);
+      } catch (error) {
+        console.error('Opportunity created but follow-up task failed:', error);
+      }
+      return opportunity;
+    },
     onSuccess: (data) => {
-      queryClient.invalidateQueries(['opportunities']);
+      queryClient.invalidateQueries({ queryKey: ['opportunities'] });
       setShowForm(false);
       processAutomation('Opportunity', 'create', data);
       setEditingOpp(null);
@@ -178,14 +158,26 @@ export default function OpportunitiesPage() {
   });
 
   const updateOppMutation = useMutation({
-    mutationFn: ({ id, data }) => atlas.entities.Opportunity.update(id, data),
+    mutationFn: async ({ id, data }) => {
+      const opportunity = await atlas.entities.Opportunity.update(
+        id,
+        withoutTaskControlFields(data)
+      );
+      try {
+        await createFollowUpTask({ ...opportunity, id }, data);
+      } catch (error) {
+        console.error('Opportunity updated but follow-up task failed:', error);
+      }
+      return opportunity;
+    },
     onMutate: async ({ id, data }) => {
       await queryClient.cancelQueries(['opportunities']);
       const previousOpps = queryClient.getQueryData(['opportunities']);
 
-      queryClient.setQueryData(['opportunities'], (old) => {
+      const cleanData = withoutTaskControlFields(data);
+      queryClient.setQueryData(['opportunities'], (old = []) => {
         return old.map((opp) =>
-          opp.id === id ? { ...opp, ...data, updated_date: new Date().toISOString() } : opp
+          opp.id === id ? { ...opp, ...cleanData, updated_date: new Date().toISOString() } : opp
         );
       });
 
@@ -196,7 +188,7 @@ export default function OpportunitiesPage() {
       alert("Failed to update opportunity");
     },
     onSettled: (data) => {
-      queryClient.invalidateQueries(['opportunities']);
+      queryClient.invalidateQueries({ queryKey: ['opportunities'] });
       if (data) {
           // Only trigger side effects like automation on success
           // We can't do this in onMutate easily
@@ -208,7 +200,7 @@ export default function OpportunitiesPage() {
   const deleteOppMutation = useMutation({
     mutationFn: (id) => atlas.entities.Opportunity.delete(id),
     onSuccess: () => {
-        queryClient.invalidateQueries(['opportunities']);
+        queryClient.invalidateQueries({ queryKey: ['opportunities'] });
         alert("Opportunity deleted successfully");
     }
   });
@@ -239,6 +231,18 @@ export default function OpportunitiesPage() {
       return;
     }
 
+    if (additionalData.next_task) {
+      try {
+        await createFollowUpTask(
+          { ...opp, ...finalData, id: opp.id },
+          { _createTask: true, next_task: additionalData.next_task }
+        );
+      } catch (error) {
+        console.error('Meeting saved but follow-up task failed:', error);
+        alert('Meeting saved, but the follow-up task could not be created.');
+      }
+    }
+
     if (!newStage.includes('Closed Won')) {
       return;
     }
@@ -252,10 +256,10 @@ export default function OpportunitiesPage() {
       );
 
       await Promise.all([
-        queryClient.invalidateQueries(['clients']),
-        queryClient.invalidateQueries(['leads']),
-        queryClient.invalidateQueries(['tasks']),
-        queryClient.invalidateQueries(['opportunities'])
+        queryClient.invalidateQueries({ queryKey: ['clients'] }),
+        queryClient.invalidateQueries({ queryKey: ['leads'] }),
+        queryClient.invalidateQueries({ queryKey: ['tasks'] }),
+        queryClient.invalidateQueries({ queryKey: ['opportunities'] })
       ]);
     } catch (error) {
       console.error(
@@ -321,7 +325,7 @@ export default function OpportunitiesPage() {
         // 2. Check for Meeting Scheduled -> Date Modal
         // Note: 'Meeting Scheduled' isn't in default stages, but user requested this specific flow.
         // We'll also apply it to 'Discovery' as that's often when meetings happen, for better UX.
-        if (newStage === 'Meeting Scheduled' || newStage === 'Discovery') {
+        if (newStage === 'Meetings' || newStage === 'Meeting Scheduled' || newStage === 'Discovery') {
             setTransitionData({ opp, newStage });
             setTransitionType('meeting');
             // Default to tomorrow 10am
@@ -373,10 +377,10 @@ export default function OpportunitiesPage() {
     return opportunities.filter(opp => {
         // 1. View Logic
         if (activeView === 'pipeline') {
-            if (opp.deal_stage?.includes('Won') || opp.deal_stage?.includes('Lost')) return false;
+            if (!isOpenOpportunity(opp)) return false;
         }
-        if (activeView === 'won' && !opp.deal_stage?.includes('Won')) return false;
-        if (activeView === 'lost' && !opp.deal_stage?.includes('Lost')) return false;
+        if (activeView === 'won' && !isWonOpportunity(opp)) return false;
+        if (activeView === 'lost' && !isLostOpportunity(opp)) return false;
 
         // 2. Smart Filters
         if (activeFilters.deal_stage && opp.deal_stage !== activeFilters.deal_stage) return false;
@@ -404,7 +408,7 @@ export default function OpportunitiesPage() {
   }, [opportunities, search, activeView, activeFilters]);
 
   const getStageOpportunities = (stageId) => filteredOpportunities.filter(o => o.deal_stage === stageId);
-  const calculateTotal = (stageId) => getStageOpportunities(stageId).reduce((acc, curr) => acc + (Number(curr.estimated_monthly_gallons) || 0), 0);
+  const calculateTotal = (stageId) => getStageOpportunities(stageId).reduce((acc, opportunity) => acc + getOpportunityGallons(opportunity), 0);
 
   if (isLoading) return <div className="flex justify-center h-96 items-center"><Loader2 className="animate-spin w-8 h-8 text-teal-600" /></div>;
 
@@ -513,49 +517,14 @@ export default function OpportunitiesPage() {
 
       {viewMode === 'kanban' ? (
       <DragDropContext onDragEnd={onDragEnd}>
-        <div className="flex-1 relative h-full group/kanban isolate">
-          {/* Scroll Hints */}
-          {showRightArrow && (
-            <Button
-                variant="secondary"
-                size="icon"
-                className={`absolute -right-3 top-1/2 -translate-y-1/2 z-20 h-16 w-8 rounded-l-xl rounded-r-none shadow-lg border transition-all ${
-                  theme === 'dark'
-                    ? 'bg-slate-800 border-slate-700 text-slate-400 hover:text-white hover:bg-slate-700'
-                    : 'bg-white border-slate-200 text-slate-400 hover:text-slate-600 hover:bg-slate-50'
-                }`}
-                onClick={() => scroll('right')}
-            >
-                <ChevronRight className="w-5 h-5" />
-            </Button>
-          )}
-
-          {showLeftArrow && (
-            <Button
-                variant="secondary"
-                size="icon"
-                className={`absolute -left-3 top-1/2 -translate-y-1/2 z-20 h-16 w-8 rounded-r-xl rounded-l-none shadow-lg border transition-all ${
-                  theme === 'dark'
-                    ? 'bg-slate-800 border-slate-700 text-slate-400 hover:text-white hover:bg-slate-700'
-                    : 'bg-white border-slate-200 text-slate-400 hover:text-slate-600 hover:bg-slate-50'
-                }`}
-                onClick={() => scroll('left')}
-            >
-                <ChevronLeft className="w-5 h-5" />
-            </Button>
-          )}
-
-          <div
-            ref={scrollContainerRef}
-            onScroll={checkScroll}
-            className="flex gap-4 overflow-x-auto pb-6 h-full items-start px-1 scroll-smooth"
-          >
+        <div className="flex-1 min-h-0 overflow-y-auto pb-6 px-1">
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-8 gap-4 items-start">
           {activeStages.map((stage) => {
             const stageOpps = getStageOpportunities(stage.id);
             const total = calculateTotal(stage.id);
 
             return (
-            <div key={stage.id} className="flex-shrink-0 w-[40vw] sm:w-[40vw] md:w-48 lg:w-52 flex flex-col max-h-full">
+            <div key={stage.id} className="min-w-0 flex flex-col min-h-[280px]">
               {/* Stage Header */}
               <div className="mb-3 px-1">
                 <div className="flex items-center justify-between mb-2">
@@ -657,7 +626,7 @@ export default function OpportunitiesPage() {
 
                                     {/* Stale Warning */}
                                     {moment(opp.updated_date).isBefore(moment().subtract(7, 'days')) &&
-                                     !opp.deal_stage.includes('Won') && !opp.deal_stage.includes('Lost') && (
+                                     isOpenOpportunity(opp) && (
                                         <div className="text-[10px] text-amber-500 flex items-center gap-1 font-medium mt-1">
                                             <AlertCircle className="w-3 h-3" /> Stagnant ({moment(opp.updated_date).fromNow(true)})
                                         </div>
@@ -697,7 +666,6 @@ export default function OpportunitiesPage() {
 
           <div className={`divide-y transition-colors ${theme === 'dark' ? 'divide-slate-700' : 'divide-slate-100'}`}>
             {filteredOpportunities.map((opp) => {
-              const stage = activeStages.find(s => s.id === opp.deal_stage);
               return (
                 <div key={opp.id} className={`grid grid-cols-12 gap-4 px-6 py-4 items-start transition-colors group ${
                   theme === 'dark' ? 'hover:bg-slate-700/50' : 'hover:bg-slate-50/80'
@@ -831,12 +799,13 @@ export default function OpportunitiesPage() {
 
       {/* Opportunity edit form */}
       <Dialog open={showForm} onOpenChange={(open) => { setShowForm(open); if(!open) setEditingOpp(null); }}>
-        <DialogContent className={`fixed right-0 top-0 left-auto translate-x-0 translate-y-0 h-full w-full sm:w-[600px] max-w-none p-0 border-l shadow-2xl transition-all duration-300 gap-0 data-[state=open]:slide-in-from-right data-[state=closed]:slide-out-to-right sm:rounded-none ${
+        <DialogContent className={`fixed right-0 top-0 left-auto translate-x-0 translate-y-0 h-full w-[min(100vw,600px)] max-w-[100vw] p-0 border-l shadow-2xl transition-all duration-300 gap-0 data-[state=open]:slide-in-from-right data-[state=closed]:slide-out-to-right sm:rounded-none ${
             theme === 'dark' ? 'bg-slate-900 border-slate-700' : 'bg-white border-slate-200'
         }`}>
           {(showForm || editingOpp) && (
             <OpportunityForm
               opportunity={editingOpp}
+              initialLead={editingOpp ? null : initialLead}
               onSubmit={(data) => {
                   if (editingOpp) {
                       updateOppMutation.mutate({ id: editingOpp.id, data });

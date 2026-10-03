@@ -3,6 +3,9 @@ import { useQuery } from "@tanstack/react-query";
 import { atlas } from "@/api/atlasClient";
 import { Briefcase } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Link } from "react-router-dom";
+import { createPageUrl } from "@/utils";
 import { useSettings } from "@/components/context/SettingsContext";
 
 export default function LeadOpportunities({ lead, theme }) {
@@ -17,6 +20,11 @@ export default function LeadOpportunities({ lead, theme }) {
             <div className={`text-center py-10 text-slate-400 border-2 border-dashed rounded-xl ${theme === 'dark' ? 'border-slate-700' : ''}`}>
                 <Briefcase className="w-10 h-10 mx-auto mb-2 opacity-50" />
                 <p>No open opportunities for this lead</p>
+                <Button asChild size="sm" className="mt-4 bg-cyan-600 hover:bg-cyan-700 text-white">
+                    <Link to={`${createPageUrl('Opportunities')}?action=new&leadId=${encodeURIComponent(lead.id)}`}>
+                        Create opportunity from this lead
+                    </Link>
+                </Button>
             </div>
         );
     }

@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer,
   PieChart, Pie, Cell, AreaChart, Area } from
 'recharts';
-import { Users, Fuel, Activity, Plus } from 'lucide-react';
+import { Users, Fuel, Activity } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Link } from 'react-router-dom';
@@ -17,7 +17,6 @@ import TasksWidget from '@/components/dashboard/TasksWidget';
 import ForecastWidget from '@/components/dashboard/ForecastWidget';
 import LeaderboardWidget from '@/components/dashboard/LeaderboardWidget';
 import StagnantDealsWidget from '@/components/dashboard/StagnantDealsWidget';
-import AddWidgetDialog from '@/components/dashboard/AddWidgetDialog';
 import { useSettings } from '@/components/context/SettingsContext';
 import { useQueryClient } from '@tanstack/react-query';
 import { usePermissions } from '@/components/hooks/usePermissions';
@@ -31,7 +30,6 @@ import {
 
 export default function Dashboard() {
   const [timeRange, setTimeRange] = useState('month'); // 'today', 'week', 'month', 'quarter', 'year', 'all'
-  const [showAddWidget, setShowAddWidget] = useState(false);
   const { theme, pipelineStages } = useSettings();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -69,7 +67,6 @@ export default function Dashboard() {
   const { data: leads = [], isLoading: isLoadingLeads } = useQuery({ queryKey: ['leads'], queryFn: () => atlas.entities.Lead.list() });
   const { data: opportunities = [], isLoading: isLoadingOpps } = useQuery({ queryKey: ['opportunities'], queryFn: () => atlas.entities.Opportunity.list() });
   const { data: tasks = [], isLoading: isLoadingTasks } = useQuery({ queryKey: ['tasks'], queryFn: () => atlas.entities.Task.list() });
-  const [tempWidgets, setTempWidgets] = useState([]);
 
   // Filter data by time range
   const { filteredLeads, filteredOpps, dateRangeLabel } = useMemo(() => {
@@ -443,56 +440,8 @@ export default function Dashboard() {
           </div>
       </div>
 
-      {/* Add Report Placeholder (Full Width) */}
-      <div onClick={() => setShowAddWidget(true)} className="cursor-pointer group">
-        <div className={`h-24 rounded-[2rem] border-2 border-dashed flex items-center justify-center gap-4 transition-all ${
-          theme === 'dark' ?
-          'border-slate-700 bg-slate-800/30 hover:border-indigo-500/50 hover:bg-slate-800' :
-          'border-slate-200 bg-white/50 hover:border-indigo-300 hover:bg-white'
-        }`}>
-          <div className={`p-2 rounded-full transition-all group-hover:scale-110 ${
-            theme === 'dark' ? 'bg-indigo-500/20 text-indigo-400' : 'bg-indigo-50 text-indigo-600'
-          }`}>
-            <Plus className="w-6 h-6" />
-          </div>
-          <span className={`font-medium ${theme === 'dark' ? 'text-slate-400 group-hover:text-indigo-300' : 'text-slate-600 group-hover:text-indigo-700'}`}>
-            Customize Your Dashboard
-          </span>
-        </div>
-      </div>
-
-      <AddWidgetDialog
-        open={showAddWidget}
-        onOpenChange={setShowAddWidget}
-        onSave={(data) => {
-          setTempWidgets([...tempWidgets, { ...data, id: Date.now() }]);
-          setShowAddWidget(false);
-        }}
-      />
     </div>);
 
-}
-
-function CustomWidget({ config, theme }) {
-  // Simple rendering of custom widget placeholder/chart
-  // In a real implementation, this would render the actual chart based on config
-  return (
-      <Card className={`border-none shadow-sm rounded-2xl flex flex-col h-full min-h-[300px] ${theme === 'dark' ? 'bg-slate-800' : 'bg-white'}`}>
-          <CardHeader>
-              <CardTitle className={`text-lg font-semibold tracking-tight ${theme === 'dark' ? 'text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400' : 'text-blue-700'}`}>
-                  {config.name}
-              </CardTitle>
-          </CardHeader>
-          <CardContent className="flex-1 flex items-center justify-center text-slate-500">
-             {/* Simplified display for now since we don't have the generic chart component ready in this context */}
-             <div className="text-center">
-                 <Activity className="w-10 h-10 mx-auto mb-2 opacity-50" />
-                 <p className="text-sm">Custom {config.type} for {config.entity_type}</p>
-                 <p className="text-xs opacity-70">Group by: {config.config?.xAxis}</p>
-             </div>
-          </CardContent>
-      </Card>
-  );
 }
 
 function KpiCard({ title, value, subtext, icon: Icon, color, total }) {

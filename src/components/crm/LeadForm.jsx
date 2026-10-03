@@ -50,6 +50,43 @@ export default function LeadForm({ lead, onSaveAndClose, onSaveAndStay, onCancel
         "",
       phone_number: lead?.phone_number || "",
       email: lead?.email || "",
+
+      // MDX interim CRM parity
+      title: lead?.title || "",
+      mobile_phone: lead?.mobile_phone || lead?.mobile || "",
+      website: lead?.website || "",
+      industry: lead?.industry || "",
+      lead_source: lead?.lead_source || "",
+      referral_source: lead?.referral_source || "",
+      rating: lead?.rating || "",
+
+      // Salesperson-entered estimated fuel demand
+      estimated_unleaded_87_gallons:
+        lead?.estimated_unleaded_87_gallons ?? "",
+
+      estimated_unleaded_89_gallons:
+        lead?.estimated_unleaded_89_gallons ?? "",
+
+      estimated_unleaded_93_gallons:
+        lead?.estimated_unleaded_93_gallons ?? "",
+
+      estimated_clear_diesel_gallons:
+        lead?.estimated_clear_diesel_gallons ?? "",
+
+      estimated_dyed_diesel_gallons:
+        lead?.estimated_dyed_diesel_gallons ?? "",
+
+      estimated_tank_rentals:
+        lead?.estimated_tank_rentals ?? "",
+
+      estimated_deliveries_per_month:
+        lead?.estimated_deliveries_per_month ?? "",
+
+
+
+      next_follow_up_date:
+        lead?.next_follow_up_date || "",
+
       documents: lead?.documents || [],
       original_status_color:
         lead?.original_status_color || "Green",
@@ -120,6 +157,87 @@ export default function LeadForm({ lead, onSaveAndClose, onSaveAndStay, onCancel
   const lastContactDate = watch("last_contact_date");
   const originalStatusColor = watch("original_status_color");
 
+  const nextFollowUpDate =
+    watch("next_follow_up_date");
+  const stripNumberFormatting = (value) =>
+    String(value ?? "")
+      .replace(/,/g, "")
+      .replace(/[^0-9.-]/g, "");
+
+  const numericValue = (value) => {
+    const cleaned = stripNumberFormatting(value);
+
+    if (
+      cleaned === "" ||
+      cleaned === "-" ||
+      cleaned === "."
+    ) {
+      return 0;
+    }
+
+    const parsed = Number(cleaned);
+
+    return Number.isFinite(parsed)
+      ? parsed
+      : 0;
+  };
+
+  const formatWholeNumber = (value) => {
+    const cleaned = String(value ?? "")
+      .replace(/,/g, "")
+      .replace(/D/g, "");
+
+    if (!cleaned) {
+      return "";
+    }
+
+    return Number(cleaned).toLocaleString("en-US");
+  };
+
+
+
+  const estimatedUnleaded87 =
+    numericValue(watch("estimated_unleaded_87_gallons"));
+
+  const estimatedUnleaded89 =
+    numericValue(watch("estimated_unleaded_89_gallons"));
+
+  const estimatedUnleaded93 =
+    numericValue(watch("estimated_unleaded_93_gallons"));
+
+  const estimatedClearDiesel =
+    numericValue(watch("estimated_clear_diesel_gallons"));
+
+  const estimatedDyedDiesel =
+    numericValue(watch("estimated_dyed_diesel_gallons"));
+
+  const estimatedMonthlyGallons =
+    estimatedUnleaded87 +
+    estimatedUnleaded89 +
+    estimatedUnleaded93 +
+    estimatedClearDiesel +
+    estimatedDyedDiesel;
+
+  const daysUntilFollowUp = (() => {
+    if (!nextFollowUpDate) return null;
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const followUp = new Date(
+      nextFollowUpDate + "T00:00:00"
+    );
+
+    return Math.ceil(
+      (followUp - today) /
+      (1000 * 60 * 60 * 24)
+    );
+  })();
+
+  const isFollowUpOverdue =
+    daysUntilFollowUp !== null &&
+    daysUntilFollowUp < 0;
+
   const handleSelectChange = (field, value) => {
     setValue(field, value);
   };
@@ -136,6 +254,24 @@ export default function LeadForm({ lead, onSaveAndClose, onSaveAndStay, onCancel
 
     return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
   };
+  const numberOrNull = (value) => {
+    if (
+      value === "" ||
+      value === null ||
+      value === undefined
+    ) {
+      return null;
+    }
+
+    const cleaned = stripNumberFormatting(value);
+    const parsed = Number(cleaned);
+
+    return Number.isFinite(parsed)
+      ? parsed
+      : null;
+  };
+
+
 
   const sanitizeLeadData = (data) => {
     const leadData = { ...data };
@@ -156,6 +292,72 @@ export default function LeadForm({ lead, onSaveAndClose, onSaveAndStay, onCancel
       zip_code: String(data.zip_code || "").trim(),
       phone_number: formatUsPhone(data.phone_number),
       email: String(data.email || "").trim(),
+
+      title:
+        String(data.title || "").trim(),
+
+      mobile_phone:
+        formatUsPhone(data.mobile_phone),
+
+      website:
+        String(data.website || "").trim(),
+
+      industry:
+        String(data.industry || "").trim(),
+
+      lead_source:
+        String(data.lead_source || "").trim(),
+
+      referral_source:
+        String(data.referral_source || "").trim(),
+
+      rating:
+        String(data.rating || "").trim(),
+
+      estimated_unleaded_87_gallons:
+        numberOrNull(
+          data.estimated_unleaded_87_gallons
+        ),
+
+      estimated_unleaded_89_gallons:
+        numberOrNull(
+          data.estimated_unleaded_89_gallons
+        ),
+
+      estimated_unleaded_93_gallons:
+        numberOrNull(
+          data.estimated_unleaded_93_gallons
+        ),
+
+      estimated_clear_diesel_gallons:
+        numberOrNull(
+          data.estimated_clear_diesel_gallons
+        ),
+
+      estimated_dyed_diesel_gallons:
+        numberOrNull(
+          data.estimated_dyed_diesel_gallons
+        ),
+
+      estimated_tank_rentals:
+        numberOrNull(
+          data.estimated_tank_rentals
+        ),
+
+      estimated_deliveries_per_month:
+        numberOrNull(
+          data.estimated_deliveries_per_month
+        ),
+
+      // Compatibility aggregate for dashboards,
+      // qualification and downstream forecasting.
+      estimated_monthly_gallons:
+        estimatedMonthlyGallons,
+
+
+
+      next_follow_up_date:
+        data.next_follow_up_date || null,
     };
   };
 
@@ -200,7 +402,7 @@ export default function LeadForm({ lead, onSaveAndClose, onSaveAndStay, onCancel
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className={`rounded-xl shadow-lg border flex flex-col max-h-[80vh] w-[95vw] md:w-full mx-auto overflow-hidden ${
+      className={`rounded-xl shadow-lg border flex flex-col max-h-[80vh] w-full max-w-full min-w-0 mx-auto overflow-hidden ${
         theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-100'
       }`}
       dir="ltr">
@@ -252,9 +454,9 @@ export default function LeadForm({ lead, onSaveAndClose, onSaveAndStay, onCancel
         </div>
       </div>
 
-      <div className="overflow-y-auto p-4 md:p-6 flex-1">
+      <div className="min-w-0 max-w-full overflow-x-hidden overflow-y-auto p-4 md:p-6 flex-1">
       <Tabs defaultValue="details" className="w-full">
-        <TabsList className={`flex w-full flex-nowrap justify-start overflow-x-auto mb-6 p-1 h-auto gap-2 scrollbar-hide ${theme === 'dark' ? 'bg-slate-900/50' : 'bg-slate-100/80'}`}>
+        <TabsList className={`flex w-full min-w-0 flex-wrap justify-start overflow-visible mb-6 p-1 h-auto gap-2 ${theme === 'dark' ? 'bg-slate-900/50' : 'bg-slate-100/80'}`}>
           {['details', 'opportunities', 'activity', 'tasks', 'documents', 'discovery', 'ai'].map(tab => {
             const icons = { details: User, opportunities: Briefcase, activity: Activity, tasks: CheckSquare, documents: FileText, discovery: ClipboardList, ai: Sparkles };
             const labels = { details: '360 Profile', opportunities: 'Opportunities', activity: 'Activity', tasks: 'Tasks', documents: 'Documents', discovery: 'Script', ai: 'AI Analysis' };
@@ -283,8 +485,8 @@ export default function LeadForm({ lead, onSaveAndClose, onSaveAndStay, onCancel
           <div className="space-y-6">
             {lead && <LastTouchInfo entity={lead} entityType="Lead" />}
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="col-span-1 md:col-span-2">
+            <div className="grid min-w-0 grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="col-span-1 lg:col-span-2">
                   <Label className={labelClass}>Client Tags</Label>
                   <TagManager
                   tags={watch("tags") || []}
@@ -298,6 +500,7 @@ export default function LeadForm({ lead, onSaveAndClose, onSaveAndStay, onCancel
                   {...register("first_name", {
                     required: "First name is required",
                   })}
+                  autoFocus={!lead}
                   autoComplete="given-name"
                   placeholder="e.g., John"
                   className={inputClass}
@@ -373,7 +576,7 @@ export default function LeadForm({ lead, onSaveAndClose, onSaveAndStay, onCancel
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid min-w-0 grid-cols-2 gap-3">
                 <div className="space-y-1">
                   <Label className={labelClass}>State</Label>
                   <Input
@@ -470,6 +673,418 @@ export default function LeadForm({ lead, onSaveAndClose, onSaveAndStay, onCancel
                   </span>
                 )}
               </div>
+              {/* MDX Interim CRM — Lead Qualification */}
+              <div className={`md:col-span-2 pt-4 border-t ${
+                theme === 'dark'
+                  ? 'border-slate-700'
+                  : 'border-slate-200'
+              }`}>
+                <h3 className={`text-sm font-bold uppercase tracking-wider mb-4 ${
+                  theme === 'dark'
+                    ? 'text-cyan-400'
+                    : 'text-slate-600'
+                }`}>
+                  Lead Qualification
+                </h3>
+              </div>
+
+              <div className="space-y-1">
+                <Label className={labelClass}>Title</Label>
+                <Input
+                  {...register("title")}
+                  placeholder="Owner, Manager, Fleet Manager..."
+                  className={inputClass}
+                />
+              </div>
+
+              <div className="space-y-1">
+                <Label className={labelClass}>Mobile Phone</Label>
+                <Input
+                  {...register("mobile_phone")}
+                  type="tel"
+                  inputMode="tel"
+                  placeholder="(713) 555-0123"
+                  onChange={(event) => {
+                    setValue(
+                      "mobile_phone",
+                      formatUsPhone(event.target.value),
+                      {
+                        shouldDirty: true,
+                        shouldValidate: true
+                      }
+                    );
+                  }}
+                  className={inputClass}
+                />
+              </div>
+
+              <div className="space-y-1">
+                <Label className={labelClass}>Website</Label>
+                <Input
+                  {...register("website")}
+                  placeholder="example.com"
+                  className={inputClass}
+                />
+              </div>
+
+              <div className="space-y-1">
+                <Label className={labelClass}>Industry</Label>
+                <Input
+                  {...register("industry")}
+                  placeholder="Construction, Roofing, Landscaping..."
+                  className={inputClass}
+                />
+              </div>
+
+              <div className="space-y-1">
+                <Label className={labelClass}>Lead Source</Label>
+
+                <Select
+                  defaultValue={lead?.lead_source || ""}
+                  onValueChange={(value) =>
+                    handleSelectChange("lead_source", value)
+                  }
+                >
+                  <SelectTrigger className={inputClass}>
+                    <SelectValue placeholder="Select lead source" />
+                  </SelectTrigger>
+
+                  <SelectContent className={
+                    theme === 'dark'
+                      ? 'bg-slate-800 border-slate-700 text-white'
+                      : ''
+                  }>
+                    <SelectItem value="Call In">Call In</SelectItem>
+                    <SelectItem value="Referral">Referral</SelectItem>
+                    <SelectItem value="Website">Website</SelectItem>
+                    <SelectItem value="Existing Relationship">
+                      Existing Relationship
+                    </SelectItem>
+                    <SelectItem value="Other">Other</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1">
+                <Label className={labelClass}>Referral Source</Label>
+                <Input
+                  {...register("referral_source")}
+                  placeholder="Person or organization"
+                  className={inputClass}
+                />
+              </div>
+
+              <div className="space-y-1">
+                <Label className={labelClass}>Rating</Label>
+
+                <Select
+                  defaultValue={lead?.rating || ""}
+                  onValueChange={(value) =>
+                    handleSelectChange("rating", value)
+                  }
+                >
+                  <SelectTrigger className={inputClass}>
+                    <SelectValue placeholder="A / B / C" />
+                  </SelectTrigger>
+
+                  <SelectContent className={
+                    theme === 'dark'
+                      ? 'bg-slate-800 border-slate-700 text-white'
+                      : ''
+                  }>
+                    <SelectItem value="A">
+                      A — High Priority
+                    </SelectItem>
+                    <SelectItem value="B">
+                      B — Qualified
+                    </SelectItem>
+                    <SelectItem value="C">
+                      C — Developing
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1">
+                <Label className={labelClass}>Territory</Label>
+
+                <Input
+                  value={
+                    lead?.territory_id ||
+                    "Assigned automatically by ATLAS"
+                  }
+                  readOnly
+                  disabled
+                  className={inputClass}
+                />
+
+                <p className="text-xs text-slate-500">
+                  Territory is controlled by ATLAS assignment
+                  and authorization.
+                </p>
+              </div>
+
+              {/* MDX Interim CRM — Estimated Fuel Demand */}
+              <div className={`md:col-span-2 pt-4 border-t ${
+                theme === 'dark'
+                  ? 'border-slate-700'
+                  : 'border-slate-200'
+              }`}>
+                <h3 className={`text-sm font-bold uppercase tracking-wider mb-1 ${
+                  theme === 'dark'
+                    ? 'text-cyan-400'
+                    : 'text-slate-600'
+                }`}>
+                  Estimated Fuel Demand
+                </h3>
+
+                <p className="text-xs text-slate-500 mb-4">
+                  Enter the customer's estimated monthly
+                  demand. Pricing and profitability are
+                  calculated separately for management.
+                </p>
+              </div>
+
+              <div className="space-y-1">
+                <Label className={labelClass}>
+                  Unleaded 87 — Gallons / Month
+                </Label>
+
+                <Input
+                  type="text"
+                  inputMode="numeric"
+                  autoComplete="off"
+                  {...register("estimated_unleaded_87_gallons", {
+                    onChange: (event) => {
+                      const formatted =
+                        formatWholeNumber(
+                          event.target.value
+                        );
+
+                      setValue(
+                        "estimated_unleaded_87_gallons",
+                        formatted,
+                        {
+                          shouldDirty: true,
+                          shouldValidate: true
+                        }
+                      );
+                    }
+                  })}
+                  placeholder="0"
+                  className={inputClass}
+                />
+              </div>
+
+              <div className="space-y-1">
+                <Label className={labelClass}>
+                  Unleaded 89 — Gallons / Month
+                </Label>
+
+                <Input
+                  type="text"
+                  inputMode="numeric"
+                  autoComplete="off"
+                  {...register("estimated_unleaded_89_gallons", {
+                    onChange: (event) => {
+                      const formatted =
+                        formatWholeNumber(
+                          event.target.value
+                        );
+
+                      setValue(
+                        "estimated_unleaded_89_gallons",
+                        formatted,
+                        {
+                          shouldDirty: true,
+                          shouldValidate: true
+                        }
+                      );
+                    }
+                  })}
+                  placeholder="0"
+                  className={inputClass}
+                />
+              </div>
+
+              <div className="space-y-1">
+                <Label className={labelClass}>
+                  Unleaded 93 — Gallons / Month
+                </Label>
+
+                <Input
+                  type="text"
+                  inputMode="numeric"
+                  autoComplete="off"
+                  {...register("estimated_unleaded_93_gallons", {
+                    onChange: (event) => {
+                      const formatted =
+                        formatWholeNumber(
+                          event.target.value
+                        );
+
+                      setValue(
+                        "estimated_unleaded_93_gallons",
+                        formatted,
+                        {
+                          shouldDirty: true,
+                          shouldValidate: true
+                        }
+                      );
+                    }
+                  })}
+                  placeholder="0"
+                  className={inputClass}
+                />
+              </div>
+
+              <div className="space-y-1">
+                <Label className={labelClass}>
+                  Clear Diesel — Gallons / Month
+                </Label>
+
+                <Input
+                  type="text"
+                  inputMode="numeric"
+                  autoComplete="off"
+                  {...register("estimated_clear_diesel_gallons", {
+                    onChange: (event) => {
+                      const formatted =
+                        formatWholeNumber(
+                          event.target.value
+                        );
+
+                      setValue(
+                        "estimated_clear_diesel_gallons",
+                        formatted,
+                        {
+                          shouldDirty: true,
+                          shouldValidate: true
+                        }
+                      );
+                    }
+                  })}
+                  placeholder="0"
+                  className={inputClass}
+                />
+              </div>
+
+              <div className="space-y-1">
+                <Label className={labelClass}>
+                  Dyed Diesel — Gallons / Month
+                </Label>
+
+                <Input
+                  type="text"
+                  inputMode="numeric"
+                  autoComplete="off"
+                  {...register("estimated_dyed_diesel_gallons", {
+                    onChange: (event) => {
+                      const formatted =
+                        formatWholeNumber(
+                          event.target.value
+                        );
+
+                      setValue(
+                        "estimated_dyed_diesel_gallons",
+                        formatted,
+                        {
+                          shouldDirty: true,
+                          shouldValidate: true
+                        }
+                      );
+                    }
+                  })}
+                  placeholder="0"
+                  className={inputClass}
+                />
+              </div>
+
+              <div className="space-y-1">
+                <Label className={labelClass}>
+                  Estimated Tank Rentals
+                </Label>
+
+                <Input
+                  type="text"
+                  inputMode="numeric"
+                  autoComplete="off"
+                  {...register("estimated_tank_rentals", {
+                    onChange: (event) => {
+                      const formatted =
+                        formatWholeNumber(
+                          event.target.value
+                        );
+
+                      setValue(
+                        "estimated_tank_rentals",
+                        formatted,
+                        {
+                          shouldDirty: true,
+                          shouldValidate: true
+                        }
+                      );
+                    }
+                  })}
+                  placeholder="0"
+                  className={inputClass}
+                />
+              </div>
+
+              <div className="space-y-1">
+                <Label className={labelClass}>
+                  Estimated Deliveries / Month
+                </Label>
+
+                <Input
+                  type="text"
+                  inputMode="numeric"
+                  autoComplete="off"
+                  {...register("estimated_deliveries_per_month", {
+                    onChange: (event) => {
+                      const formatted =
+                        formatWholeNumber(
+                          event.target.value
+                        );
+
+                      setValue(
+                        "estimated_deliveries_per_month",
+                        formatted,
+                        {
+                          shouldDirty: true,
+                          shouldValidate: true
+                        }
+                      );
+                    }
+                  })}
+                  placeholder="0"
+                  className={inputClass}
+                />
+              </div>
+
+              <div className={`space-y-1 rounded-lg border p-3 ${
+                theme === 'dark'
+                  ? 'border-slate-700 bg-slate-900/60'
+                  : 'border-slate-200 bg-slate-50'
+              }`}>
+                <Label className={labelClass}>
+                  Total Estimated Gallons / Month
+                </Label>
+
+                <div className="text-lg font-bold">
+                  {estimatedMonthlyGallons.toLocaleString(
+                    'en-US'
+                  )}
+                </div>
+
+                <p className="text-xs text-slate-500">
+                  Calculated automatically from all
+                  fuel-product estimates above.
+                </p>
+              </div>
+
+
+
 
               <div className="space-y-1">
                 <Label className={labelClass}>Lead Temperature</Label>
@@ -492,6 +1107,7 @@ export default function LeadForm({ lead, onSaveAndClose, onSaveAndStay, onCancel
                 <Label className={labelClass}>Lead Status</Label>
                 <Select
                   defaultValue={lead?.lead_status || "New"}
+                  disabled={leadStatus === 'Converted'}
                   onValueChange={(val) => handleSelectChange("lead_status", val)}>
 
                   <SelectTrigger className={`${inputClass} ${leadStatus === 'Converted' ? (theme === 'dark' ? 'bg-emerald-900/30 border-emerald-500 text-emerald-400' : 'bg-emerald-50 border-emerald-500 text-emerald-700') : ''}`}>
@@ -504,13 +1120,15 @@ export default function LeadForm({ lead, onSaveAndClose, onSaveAndStay, onCancel
                     <SelectItem value="Qualified">Qualified</SelectItem>
                     <SelectItem value="Nurturing">Nurturing</SelectItem>
                     <SelectItem value="Disqualified">Disqualified</SelectItem>
-                    <SelectItem value="Converted" className="text-emerald-600 font-bold">Converted</SelectItem>
+                    {leadStatus === 'Converted' && (
+                      <SelectItem value="Converted" className="text-emerald-600 font-bold">Converted</SelectItem>
+                    )}
                   </SelectContent>
                 </Select>
                 {leadStatus === 'Converted' &&
                 <p className="text-xs text-emerald-600 font-medium mt-1 flex items-center gap-1">
                     <Activity className="w-3 h-3" />
-                    Saving will create a new opportunity
+                    Historical status — this lead is linked to an opportunity
                   </p>
                 }
               </div>
@@ -524,12 +1142,78 @@ export default function LeadForm({ lead, onSaveAndClose, onSaveAndStay, onCancel
                   className={inputClass} />
 
               </div>
+              <div className="space-y-1">
+                <Label className={labelClass}>
+                  Next Follow-Up
+                </Label>
+
+                <Input
+                  type="date"
+                  {...register("next_follow_up_date")}
+                  className={inputClass}
+                />
+              </div>
+
+              <div className={`space-y-1 rounded-lg border p-3 ${
+                theme === 'dark'
+                  ? 'border-slate-700 bg-slate-900/60'
+                  : 'border-slate-200 bg-slate-50'
+              }`}>
+                <Label className={labelClass}>
+                  Follow-Up Status
+                </Label>
+
+                {!nextFollowUpDate ? (
+                  <div className="text-sm text-slate-500">
+                    No follow-up scheduled
+                  </div>
+                ) : (
+                  <div className={
+                    isFollowUpOverdue
+                      ? "font-bold text-red-500"
+                      : "font-bold text-emerald-500"
+                  }>
+                    {isFollowUpOverdue
+                      ? "OVERDUE"
+                      : daysUntilFollowUp === 0
+                        ? "Due today"
+                        : `${daysUntilFollowUp} day(s) until follow-up`
+                    }
+                  </div>
+                )}
+              </div>
+
+              <div className={`md:col-span-2 rounded-lg border p-3 text-sm ${
+                theme === 'dark'
+                  ? 'border-slate-700 bg-slate-900/40 text-slate-300'
+                  : 'border-slate-200 bg-slate-50 text-slate-600'
+              }`}>
+                <div>
+                  <strong>Assigned salesperson:</strong>{' '}
+                  Controlled by ATLAS ownership
+                </div>
+
+                <div>
+                  <strong>Converted:</strong>{' '}
+                  {leadStatus === 'Converted'
+                    ? 'Yes'
+                    : 'No'}
+                </div>
+
+                <div>
+                  <strong>Opportunity ID:</strong>{' '}
+                  {lead?.converted_opportunity_id ||
+                    'Not converted'}
+                </div>
+              </div>
+
+
 
               {/* Custom Fields Section */}
               {customFields?.length > 0 && (
-                <div className={`col-span-1 md:col-span-2 pt-4 border-t mt-2 ${theme === 'dark' ? 'border-slate-700' : 'border-slate-100'}`}>
+                <div className={`col-span-1 lg:col-span-2 pt-4 border-t mt-2 ${theme === 'dark' ? 'border-slate-700' : 'border-slate-100'}`}>
                     <h3 className={`text-sm font-bold uppercase tracking-wider mb-4 ${theme === 'dark' ? 'text-slate-400' : 'text-slate-500'}`}>Additional Info</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="grid min-w-0 grid-cols-1 lg:grid-cols-2 gap-6">
                         {customFields.map((field) => (
                             <div key={field.id} className="space-y-1">
                                 <Label className={labelClass}>{field.label}</Label>

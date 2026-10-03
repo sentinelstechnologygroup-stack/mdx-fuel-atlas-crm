@@ -244,6 +244,21 @@ async function seedLeadFixture(overrides = {}) {
       phone_number: '555-0107',
       lead_status: 'Qualified',
       product_type: 'Fuel Service',
+      company_name: 'Phase 7 Fuel Co',
+      title: 'Operations Manager',
+      mobile_phone: '(555) 010-7000',
+      website: 'https://phase7.example.test',
+      industry: 'Transportation',
+      lead_source: 'Referral',
+      referral_source: 'Existing customer',
+      estimated_unleaded_87_gallons: 10000,
+      estimated_unleaded_89_gallons: 2000,
+      estimated_unleaded_93_gallons: 1000,
+      estimated_clear_diesel_gallons: 8000,
+      estimated_dyed_diesel_gallons: 4000,
+      estimated_tank_rentals: 3,
+      estimated_deliveries_per_month: 12,
+      estimated_monthly_gallons: 25000,
       owner_user_id: 'salesperson-user',
       assigned_team_id: 'team-alpha',
       assigned_supervisor_user_id:
@@ -438,6 +453,46 @@ describe.sequential(
       });
     });
 
+    it('rejects a lead that is not Qualified', async () => {
+      await seedLeadFixture({
+        lead_status: 'Contacted',
+      });
+
+      const convert = await createCallable(
+        'salesperson@example.test'
+      );
+
+      await expect(
+        convert({
+          leadId: LEAD_ID,
+        })
+      ).rejects.toMatchObject({
+        code: 'functions/failed-precondition',
+      });
+
+      const opportunity = await readFixture(
+        'Opportunity',
+        OPPORTUNITY_ID
+      );
+
+      expect(opportunity.exists()).toBe(false);
+    });
+
+    it('allows an administrator to convert an unqualified lead as an override', async () => {
+      await seedLeadFixture({
+        lead_status: 'Contacted',
+      });
+
+      const convert = await createCallable('admin@example.test');
+      const response = await convert({ leadId: LEAD_ID });
+
+      expect(response.data).toMatchObject({
+        success: true,
+        opportunityId: OPPORTUNITY_ID,
+        created: true,
+      });
+    });
+
     it(
       'allows a supervisor to convert a team lead',
       async () => {
@@ -499,7 +554,22 @@ describe.sequential(
           lead_id: LEAD_ID,
           lead_name: 'Phase 7 Lead',
           product_type: 'Fuel Service',
-          deal_stage: 'New (חדש)',
+          company_name: 'Phase 7 Fuel Co',
+          title: 'Operations Manager',
+          mobile_phone: '(555) 010-7000',
+          website: 'https://phase7.example.test',
+          industry: 'Transportation',
+          lead_source: 'Referral',
+          referral_source: 'Existing customer',
+          estimated_unleaded_87_gallons: 10000,
+          estimated_unleaded_89_gallons: 2000,
+          estimated_unleaded_93_gallons: 1000,
+          estimated_clear_diesel_gallons: 8000,
+          estimated_dyed_diesel_gallons: 4000,
+          estimated_tank_rentals: 3,
+          estimated_deliveries_per_month: 12,
+          estimated_monthly_gallons: 25000,
+          deal_stage: 'Prospect',
           probability: 10,
           owner_user_id: 'salesperson-user',
           assigned_team_id: 'team-alpha',

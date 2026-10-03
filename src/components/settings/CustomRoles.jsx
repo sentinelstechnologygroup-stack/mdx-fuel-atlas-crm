@@ -46,7 +46,7 @@ export default function CustomRoles() {
       if (res?.data?.error) throw new Error(res.data.error);
       setCreateOpen(false);
       setForm({ name: '', description: '', base_role_key: 'supervisor' });
-      queryClient.invalidateQueries(['roleDefinitions']);
+      queryClient.invalidateQueries({ queryKey: ['roleDefinitions'] });
     } catch (e) {
       setError(e.message || 'Failed to create role');
     } finally {
@@ -66,7 +66,7 @@ export default function CustomRoles() {
       if (action === 'deactivate' && res?.data?.affected_users?.length) {
         setAffected({ role: rd.name, users: res.data.affected_users });
       }
-      queryClient.invalidateQueries(['roleDefinitions']);
+      queryClient.invalidateQueries({ queryKey: ['roleDefinitions'] });
     } catch (e) {
       window.alert(e.message || 'Failed to update role');
     } finally {
@@ -81,7 +81,7 @@ export default function CustomRoles() {
     try {
       const res = await atlas.functions.invoke('updateRoleDefinition', { role_definition_id: rd.id, action: 'delete', reason: `delete by ${perms.user?.email || 'admin'}` });
       if (res?.data?.error) throw new Error(res.data.error);
-      queryClient.invalidateQueries(['roleDefinitions']);
+      queryClient.invalidateQueries({ queryKey: ['roleDefinitions'] });
     } catch (e) {
       window.alert(e.message || 'Failed to delete role');
     } finally {

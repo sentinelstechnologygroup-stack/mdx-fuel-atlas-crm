@@ -1,9 +1,7 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { atlas } from '@/api/atlasClient';
 import { listEmployeeLookup } from '@/api/userDirectoryService';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Loader2, TrendingUp, Users, CheckCircle2, Calendar, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -63,7 +61,7 @@ export default function ReportsPage() {
           setIsExporting(true);
           const response = await atlas.functions.invoke('exportReport', { reportId: activeReport, timeRange });
           
-          if (response.status === 200 && response.data?.file) {
+          if (response?.data?.file) {
               // Decode base64 to binary
               const binaryString = window.atob(response.data.file);
               const len = binaryString.length;
@@ -129,10 +127,10 @@ export default function ReportsPage() {
                     variant="ghost"
                     size="icon"
                     onClick={() => {
-                        queryClient.invalidateQueries(['leads']);
-                        queryClient.invalidateQueries(['opportunities']);
-                        queryClient.invalidateQueries(['tasks']);
-                        queryClient.invalidateQueries(['activities']);
+                        queryClient.invalidateQueries({ queryKey: ['leads'] });
+                        queryClient.invalidateQueries({ queryKey: ['opportunities'] });
+                        queryClient.invalidateQueries({ queryKey: ['tasks'] });
+                        queryClient.invalidateQueries({ queryKey: ['activities'] });
                         toast.success("Refreshing data...");
                     }}
                     className={theme === 'dark' ? 'text-slate-400 hover:text-white' : 'text-slate-500 hover:text-slate-900'}
@@ -231,7 +229,7 @@ export default function ReportsPage() {
               {/* Main Content Area */}
               <div className="col-span-12 lg:col-span-10">
                   <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
-                      {activeReport === 'list' && <OpportunitiesListReport opportunities={opportunities} />}
+                      {activeReport === 'list' && <OpportunitiesListReport opportunities={opportunities} timeRange={timeRange} />}
                       {activeReport === 'advanced' && <OpportunityAdvancedReport leads={leads} opportunities={opportunities} />}
                       {activeReport === 'sales' && <SalesPerformance leads={leads} opportunities={opportunities} timeRange={timeRange} />}
                       {activeReport === 'conversion' && <ConversionReport leads={leads} opportunities={opportunities} timeRange={timeRange} />}

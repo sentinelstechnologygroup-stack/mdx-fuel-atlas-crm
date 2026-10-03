@@ -50,7 +50,7 @@ export function useEffectivePermissions() {
     data,
     isLoading,
     refetch,
-    invalidate: () => queryClient.invalidateQueries(['effectivePermissions']),
+    invalidate: () => queryClient.invalidateQueries({ queryKey: ['effectivePermissions'] }),
     canView,
     can,
     recordScope
