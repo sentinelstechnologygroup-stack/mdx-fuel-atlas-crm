@@ -1,10 +1,14 @@
 # Phase 14 Production Validation and Closeout
 
-Last updated: 2026-08-20
+Last updated: 2026-10-02
 
 ## Status
 
-Patrick approved this Phase 14 validation plan, the four-function scoped deployment manifest, preservation of the Base44 reference material in place, and Phase 14 closeout/release tagging after all closeout gates pass. No deployment has been run. The backup/export prerequisite, authenticated salesperson and superadmin walkthroughs, and PR #4 acceptance decision remain open.
+Patrick approved this Phase 14 validation plan, the four-function scoped deployment manifest, preservation of the Base44 reference material in place, and Phase 14 closeout/release tagging after all closeout gates pass. No production deployment has been run.
+
+Repository-only closeout work is now consolidated on `release/mdx-atlas-production-closeout`. PR #5 (temporary authentication bypass) is closed. PR #4 has been technically reconciled into the release candidate and closed as superseded; its remaining requirement is visual/workflow acceptance on the release candidate, not a separate merge decision. A GitHub Actions release gate and MDX-specific closeout regression suite have been added.
+
+Still open: production Firebase target confirmation, authenticated salesperson/superadmin walkthroughs, Firestore/Auth/Storage backup and reconciliation evidence, controlled production deployment, production smoke/reconciliation, monitoring, final merge, and release tag.
 
 ## Approval record
 
@@ -14,13 +18,13 @@ Recorded 2026-08-18:
 - Approved: the exact four-function manifest below, after target-project confirmation and backup/export completion.
 - Approved disposition: preserve Base44 reference material in place; do not delete or move it during this closeout.
 - Approved: Phase 14 closeout and release/tag after every closeout gate passes.
-- Still under review: salesperson walkthrough, superadmin walkthrough, and PR #4 visual/workflow acceptance with merge-or-defer decision.
+- Still under review: salesperson walkthrough, superadmin walkthrough, and visual/workflow acceptance of the reconciled MDX forms on the release candidate.
 - Not yet satisfied: Firestore export and Authentication/Storage reconciliation snapshot. No backup artifact was found in the repository, and Google Cloud CLI was not installed on the verification desktop.
 
 ## Candidate prerequisites
 
 - Phase 13 candidate branch is reviewed and merged to `main`.
-- PR #4 has an explicit merge or defer decision after salesperson and superadmin walkthroughs.
+- Reconciled MDX forms on the closeout branch have explicit salesperson and superadmin visual/workflow acceptance.
 - Production build, Phase 12 aggregate tests, Phase 13 workflow tests, full Functions emulator tests, Functions lint/build, and `git diff --check` pass from the final commit.
 - Firebase project, Vercel project, App Check, Secret Manager bindings, messaging provider mode, ATLAS mode, budgets, alerts, backup/export destination, and operators are confirmed.
 - A Firestore export and Authentication/Storage reconciliation snapshot are recorded before production mutation.
