@@ -55,7 +55,7 @@ export default function AutomationsPage() {
   const createRule = useMutation({
     mutationFn: (data) => atlas.entities.AutomationRule.create(data),
     onSuccess: () => {
-      queryClient.invalidateQueries(['automationRules']);
+      queryClient.invalidateQueries({ queryKey: ['automationRules'] });
       setIsDialogOpen(false);
       setEditingRule(null);
     }
@@ -63,7 +63,7 @@ export default function AutomationsPage() {
 
   const deleteRule = useMutation({
     mutationFn: (id) => atlas.entities.AutomationRule.delete(id),
-    onSuccess: () => queryClient.invalidateQueries(['automationRules'])
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['automationRules'] })
   });
 
   const toggleRule = useMutation({
@@ -84,7 +84,7 @@ export default function AutomationsPage() {
       queryClient.setQueryData(['automationRules'], context.previousRules);
     },
     onSettled: () => {
-      queryClient.invalidateQueries(['automationRules']);
+      queryClient.invalidateQueries({ queryKey: ['automationRules'] });
     }
   });
 
@@ -455,7 +455,7 @@ function RuleForm({ onSuccess, editingRule }) {
   const createRule = useMutation({
     mutationFn: (data) => atlas.entities.AutomationRule.create(data),
     onSuccess: () => {
-      queryClient.invalidateQueries(['automationRules']);
+      queryClient.invalidateQueries({ queryKey: ['automationRules'] });
       onSuccess();
     }
   });
