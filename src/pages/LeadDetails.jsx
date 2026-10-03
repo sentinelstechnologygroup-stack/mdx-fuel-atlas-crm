@@ -37,8 +37,8 @@ export default function LeadDetailsPage() {
   const updateLead = useMutation({
     mutationFn: ({ id, data }) => atlas.entities.Lead.update(id, data),
     onSuccess: () => {
-      queryClient.invalidateQueries(['lead', leadId]);
-      queryClient.invalidateQueries(['leads']);
+      queryClient.invalidateQueries({ queryKey: ['lead', leadId] });
+      queryClient.invalidateQueries({ queryKey: ['leads'] });
     }
   });
 
@@ -55,9 +55,9 @@ export default function LeadDetailsPage() {
     },
     onSuccess: async (result) => {
       await Promise.all([
-        queryClient.invalidateQueries(['opportunities']),
-        queryClient.invalidateQueries(['leads']),
-        queryClient.invalidateQueries(['lead', leadId])
+        queryClient.invalidateQueries({ queryKey: ['opportunities'] }),
+        queryClient.invalidateQueries({ queryKey: ['leads'] }),
+        queryClient.invalidateQueries({ queryKey: ['lead', leadId] })
       ]);
 
       alert(
@@ -124,7 +124,7 @@ export default function LeadDetailsPage() {
                 Convert to Opportunity
               </Button>
             )}
-            <OwnershipAssignControl entityType="lead" record={lead} onUpdated={() => queryClient.invalidateQueries(['lead', leadId])} />
+            <OwnershipAssignControl entityType="lead" record={lead} onUpdated={() => queryClient.invalidateQueries({ queryKey: ['lead', leadId] })} />
           </div>
         </div>
         <LeadForm
