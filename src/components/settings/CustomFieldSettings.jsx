@@ -26,7 +26,7 @@ export default function CustomFieldSettings() {
 
     const deleteMutation = useMutation({
         mutationFn: (id) => atlas.entities.CustomField.delete(id),
-        onSuccess: () => queryClient.invalidateQueries(['custom_fields'])
+        onSuccess: () => queryClient.invalidateQueries({ queryKey: ['custom_fields'] })
     });
 
     const handleEdit = (field) => {
@@ -117,7 +117,7 @@ export default function CustomFieldSettings() {
                 open={isEditOpen} 
                 onOpenChange={setIsEditOpen} 
                 field={editingField}
-                onSuccess={() => queryClient.invalidateQueries(['custom_fields'])}
+                onSuccess={() => queryClient.invalidateQueries({ queryKey: ['custom_fields'] })}
             />
         </div>
     );
