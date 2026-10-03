@@ -281,7 +281,7 @@ export default function SequenceCanvas({ sequenceId }) {
             if (!sequenceId) {
                 navigate(createPageUrl('SequenceBuilder') + `?id=${newId}`, { replace: true });
             } else {
-                queryClient.invalidateQueries(['sequence', sequenceId]);
+                queryClient.invalidateQueries({ queryKey: ['sequence', sequenceId] });
             }
         }
     });
