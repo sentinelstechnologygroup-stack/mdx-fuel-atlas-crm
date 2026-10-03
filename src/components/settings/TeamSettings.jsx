@@ -101,7 +101,7 @@ export default function TeamSettings() {
                                             <TableCell><Badge className="bg-amber-100 text-amber-700">Pending</Badge></TableCell>
                                             <TableCell className="text-right">
                                                 <Button variant="ghost" size="sm" className="text-red-500 hover:text-red-700 hover:bg-red-50"
-                                                    onClick={() => { if (confirm('Revoke invitation?')) atlas.entities.Invite.delete(invite.id).then(() => queryClient.invalidateQueries(['invites'])); }}>
+                                                    onClick={() => { if (confirm('Revoke invitation?')) atlas.entities.Invite.delete(invite.id).then(() => queryClient.invalidateQueries({ queryKey: ['invites'] })); }}>
                                                     <Trash2 className="w-4 h-4" />
                                                 </Button>
                                             </TableCell>
@@ -158,8 +158,8 @@ function InviteUserDialog({ open, mode = 'invite', onOpenChange, canInviteSuperA
                     ].filter(Boolean).join('\n');
                     window.prompt('Employee created. Copy these onboarding credentials and deliver them securely. The password must be changed after first login.', handoff);
                 }
-                queryClient.invalidateQueries(['directoryUsers']);
-                queryClient.invalidateQueries(['users_management']);
+                queryClient.invalidateQueries({ queryKey: ['directoryUsers'] });
+                queryClient.invalidateQueries({ queryKey: ['users_management'] });
             } else {
                 await atlas.entities.Invite.create({
                     email,
@@ -167,7 +167,7 @@ function InviteUserDialog({ open, mode = 'invite', onOpenChange, canInviteSuperA
                     status: 'pending',
                     invited_by: me?.email
                 });
-                queryClient.invalidateQueries(['invites']);
+                queryClient.invalidateQueries({ queryKey: ['invites'] });
             }
             onOpenChange(false);
             setEmail("");
