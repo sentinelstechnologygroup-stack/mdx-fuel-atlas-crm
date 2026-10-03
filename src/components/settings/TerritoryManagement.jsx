@@ -40,16 +40,16 @@ export default function TerritoryManagement() {
   const saveMutation = useMutation({
     mutationFn: ({ id, data }) => id ? atlas.entities.Territory.update(id, data) : atlas.entities.Territory.create(data),
     onSuccess: () => {
-      queryClient.invalidateQueries(['territories_mgmt']);
-      queryClient.invalidateQueries(['territories_directory']);
+      queryClient.invalidateQueries({ queryKey: ['territories_mgmt'] });
+      queryClient.invalidateQueries({ queryKey: ['territories_directory'] });
       setOpen(false);
     }
   });
   const statusMutation = useMutation({
     mutationFn: ({ id, data }) => atlas.entities.Territory.update(id, data),
     onSuccess: () => {
-      queryClient.invalidateQueries(['territories_mgmt']);
-      queryClient.invalidateQueries(['territories_directory']);
+      queryClient.invalidateQueries({ queryKey: ['territories_mgmt'] });
+      queryClient.invalidateQueries({ queryKey: ['territories_directory'] });
     }
   });
 
