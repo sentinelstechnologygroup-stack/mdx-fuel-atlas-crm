@@ -22,7 +22,6 @@ jobs:
     timeout-minutes: 45
     env:
       CI: "true"
-      MDX_EMULATOR_DISABLE_PROVIDER_SECRETS: "true"
 
     steps:
       - name: Checkout
