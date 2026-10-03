@@ -56,6 +56,7 @@ export default function ActivityLog({ leadId, opportunityId }) {
     }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['activities', leadId] });
+      queryClient.invalidateQueries({ queryKey: ['activities'] });
       setIsAdding(false);
       toast.success("Activity added successfully");
     }
@@ -69,6 +70,7 @@ export default function ActivityLog({ leadId, opportunityId }) {
     }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['activities', leadId] });
+      queryClient.invalidateQueries({ queryKey: ['activities'] });
       setEditingActivity(null);
       toast.success("Activity updated successfully");
     }
