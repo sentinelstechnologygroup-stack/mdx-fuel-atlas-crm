@@ -160,7 +160,7 @@ export function SettingsProvider({ children }) {
         return null;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(['organization_settings']);
+      queryClient.invalidateQueries({ queryKey: ['organization_settings'] });
     }
   });
 
