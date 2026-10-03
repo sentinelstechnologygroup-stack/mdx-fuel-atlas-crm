@@ -68,7 +68,7 @@ export default function RelatedTasks({ leadId, opportunityId }) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries(queryKey);
-      queryClient.invalidateQueries(['tasks']); // Main tasks list
+      queryClient.invalidateQueries({ queryKey: ['tasks'] }); // Main tasks list
       setShowForm(false);
     }
   });
@@ -77,7 +77,7 @@ export default function RelatedTasks({ leadId, opportunityId }) {
     mutationFn: ({ id, data }) => atlas.entities.Task.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries(queryKey);
-      queryClient.invalidateQueries(['tasks']);
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
     }
   });
 
@@ -85,7 +85,7 @@ export default function RelatedTasks({ leadId, opportunityId }) {
     mutationFn: (id) => atlas.entities.Task.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries(queryKey);
-      queryClient.invalidateQueries(['tasks']);
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
     }
   });
 
