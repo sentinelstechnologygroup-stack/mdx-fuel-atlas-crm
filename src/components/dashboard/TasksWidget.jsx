@@ -21,7 +21,7 @@ export default function TasksWidget({ className }) {
 
   const updateTask = useMutation({
     mutationFn: ({ id, data }) => atlas.entities.Task.update(id, data),
-    onSuccess: () => queryClient.invalidateQueries(['tasks'])
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['tasks'] })
   });
 
   // Active tasks - sorted by due date (overdue/upcoming first, then no date)
