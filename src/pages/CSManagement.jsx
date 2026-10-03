@@ -55,7 +55,7 @@ export default function CSManagementPage() {
             number_of_tanks: Number(data.number_of_tanks) || 0
         }),
         onSuccess: () => {
-            queryClient.invalidateQueries(['clients']);
+            queryClient.invalidateQueries({ queryKey: ['clients'] });
             setShowCustomerForm(false);
             setCustomerForm({
                 company_name: "",
