@@ -149,7 +149,7 @@ export default function OpportunitiesPage() {
       return opportunity;
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries(['opportunities']);
+      queryClient.invalidateQueries({ queryKey: ['opportunities'] });
       setShowForm(false);
       processAutomation('Opportunity', 'create', data);
       setEditingOpp(null);
@@ -188,7 +188,7 @@ export default function OpportunitiesPage() {
       alert("Failed to update opportunity");
     },
     onSettled: (data) => {
-      queryClient.invalidateQueries(['opportunities']);
+      queryClient.invalidateQueries({ queryKey: ['opportunities'] });
       if (data) {
           // Only trigger side effects like automation on success
           // We can't do this in onMutate easily
@@ -200,7 +200,7 @@ export default function OpportunitiesPage() {
   const deleteOppMutation = useMutation({
     mutationFn: (id) => atlas.entities.Opportunity.delete(id),
     onSuccess: () => {
-        queryClient.invalidateQueries(['opportunities']);
+        queryClient.invalidateQueries({ queryKey: ['opportunities'] });
         alert("Opportunity deleted successfully");
     }
   });
@@ -256,10 +256,10 @@ export default function OpportunitiesPage() {
       );
 
       await Promise.all([
-        queryClient.invalidateQueries(['clients']),
-        queryClient.invalidateQueries(['leads']),
-        queryClient.invalidateQueries(['tasks']),
-        queryClient.invalidateQueries(['opportunities'])
+        queryClient.invalidateQueries({ queryKey: ['clients'] }),
+        queryClient.invalidateQueries({ queryKey: ['leads'] }),
+        queryClient.invalidateQueries({ queryKey: ['tasks'] }),
+        queryClient.invalidateQueries({ queryKey: ['opportunities'] })
       ]);
     } catch (error) {
       console.error(
