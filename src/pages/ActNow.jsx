@@ -51,7 +51,7 @@ export default function ActNowPage() {
     const handleTaskSubmit = async (data) => {
         try {
             await atlas.entities.Task.create(data);
-            queryClient.invalidateQueries(['tasks']);
+            queryClient.invalidateQueries({ queryKey: ['tasks'] });
             alert("Task created successfully!");
             setShowTaskForm(false);
             setTaskDefaults(null);
