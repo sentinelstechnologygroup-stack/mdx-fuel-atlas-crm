@@ -127,10 +127,10 @@ export default function ReportsPage() {
                     variant="ghost"
                     size="icon"
                     onClick={() => {
-                        queryClient.invalidateQueries(['leads']);
-                        queryClient.invalidateQueries(['opportunities']);
-                        queryClient.invalidateQueries(['tasks']);
-                        queryClient.invalidateQueries(['activities']);
+                        queryClient.invalidateQueries({ queryKey: ['leads'] });
+                        queryClient.invalidateQueries({ queryKey: ['opportunities'] });
+                        queryClient.invalidateQueries({ queryKey: ['tasks'] });
+                        queryClient.invalidateQueries({ queryKey: ['activities'] });
                         toast.success("Refreshing data...");
                     }}
                     className={theme === 'dark' ? 'text-slate-400 hover:text-white' : 'text-slate-500 hover:text-slate-900'}
