@@ -82,8 +82,8 @@ export default function LeadAiAnalysis({ lead }) {
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(['lead', lead.id]);
-      queryClient.invalidateQueries(['leads']);
+      queryClient.invalidateQueries({ queryKey: ['lead', lead.id] });
+      queryClient.invalidateQueries({ queryKey: ['leads'] });
     },
   });
 
