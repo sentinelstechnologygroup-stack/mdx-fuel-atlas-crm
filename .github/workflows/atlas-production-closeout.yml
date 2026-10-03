@@ -22,6 +22,13 @@ jobs:
     timeout-minutes: 45
     env:
       CI: "true"
+      VITE_FIREBASE_API_KEY: "ci-emulator-api-key"
+      VITE_FIREBASE_AUTH_DOMAIN: "localhost"
+      VITE_FIREBASE_PROJECT_ID: "mdx-fuel-atlas-crm-dev"
+      VITE_FIREBASE_STORAGE_BUCKET: "mdx-fuel-atlas-crm-dev.appspot.com"
+      VITE_FIREBASE_MESSAGING_SENDER_ID: "000000000000"
+      VITE_FIREBASE_APP_ID: "1:000000000000:web:ci-emulator"
+      VITE_USE_FIREBASE_EMULATORS: "true"
 
     steps:
       - name: Checkout
