@@ -72,8 +72,8 @@ export default function ClientDetails({ client, open, onClose }) {
       ];
 
       await atlas.entities.Client.update(activeClient.id, { documents: updatedDocs });
-      queryClient.invalidateQueries(['clients']);
-      queryClient.invalidateQueries(['client', activeClient.id]);
+      queryClient.invalidateQueries({ queryKey: ['clients'] });
+      queryClient.invalidateQueries({ queryKey: ['client', activeClient.id] });
     } catch (err) {
       console.error(err);
       alert("Failed to upload file");
@@ -218,8 +218,8 @@ export default function ClientDetails({ client, open, onClose }) {
                             isDark={isDark}
                             onUpdate={async (updates) => {
                                 await atlas.entities.Client.update(activeClient.id, updates);
-                                queryClient.invalidateQueries(['clients']);
-                                queryClient.invalidateQueries(['client', activeClient.id]);
+                                queryClient.invalidateQueries({ queryKey: ['clients'] });
+                                queryClient.invalidateQueries({ queryKey: ['client', activeClient.id] });
                             }}
                         />
                     </TabsContent>
