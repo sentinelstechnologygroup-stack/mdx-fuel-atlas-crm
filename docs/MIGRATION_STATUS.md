@@ -1,6 +1,20 @@
 # Migration Status
 
-Last updated: 2026-08-18
+Last updated: 2026-10-02
+
+## 2026-10-02 production closeout update
+
+- Production closeout branch created: `release/mdx-atlas-production-closeout`.
+- Temporary authentication-bypass PR #5 was closed; the release candidate retains Firebase authentication and the explicit login-portal release control.
+- PR #4 was technically reconciled into the closeout branch and closed as superseded. Opportunity and Customer Account changes were carried forward; the newer Phase 13 Lead model was preserved.
+- MDX-specific Opportunity/Customer forms, fuel-volume fields, tank/delivery/pricing fields, and Customer creation flow are present on the candidate.
+- TanStack Query cache invalidation was migrated to the v5 object syntax across the audited CRM, reporting, task, notification, automation, settings, and dashboard paths.
+- Activity writes now invalidate both lead-specific and global activity caches so Reports can refresh after interaction changes.
+- Added `tests/mdx.closeout.regressions.test.js` and `npm run test:closeout`.
+- Added `.github/workflows/atlas-production-closeout.yml` to execute the production build, Functions lint/build, Phase 12, Phase 13, Phase 14, and closeout gates in CI.
+- Repository search finds no active `base44` runtime reference; `legacy_provider` references are limited to migration/verification documentation.
+- No production Firebase mutation, backup, deployment, Vercel promotion, or release tag has been performed by this closeout work.
+- Remaining gates are manual/operational: production project confirmation, authenticated role walkthroughs, backup/export and reconciliation, controlled deployment, production smoke/reconciliation, monitoring, final merge, and release tag.
 
 ## Current state
 
@@ -31,8 +45,8 @@ Last updated: 2026-08-18
 | 3-10 | Complete | Firebase entity, permission, workflow, storage, messaging, notification, and automation checkpoints are present in branch history through commit `6e66de2` |
 | 11 | Complete, merged, and scoped production activation complete | Merge commit `2d1e15f`; follow-up commits `a27a743` and `7e30f2e`; `invokeAtlasAi` deployed without broad Functions deployment |
 | 12 | Complete and merged | Merge commit `57fbf374953150e2d9560bcb5aeac7aa11739f40`; production build, `test:phase12`, Functions lint, and Vercel preview checks passed; see `docs/PHASE_12_VERIFICATION.md` |
-| 13 | In progress; cutover no-go | Branch `migration/phase-13-controlled-base44-cutover`; all three preserved workflows have Firebase-native implementations and focused tests; unused app logging retired by scope decision; PR #4, manual, deployment, and production-acceptance gates remain |
-| 14 | Not started | Production validation and migration closeout remain blocked on the Phase 13 go/no-go |
+| 13 | Complete as release-candidate engineering baseline | Superseded by `release/mdx-atlas-production-closeout`; Firebase-native workflows and dependency-retirement work are carried into the closeout branch |
+| 14 | In progress; production mutation not yet performed | Repository-only closeout automation is implemented; manual backup/reconciliation, authenticated walkthroughs, controlled deployment, production acceptance, monitoring, merge, and tag remain |
 
 Phase 14 remote-safe planning is recorded in `docs/PHASE_14_PRODUCTION_VALIDATION.md`. No Phase 14 deployment or production mutation has been performed.
 
