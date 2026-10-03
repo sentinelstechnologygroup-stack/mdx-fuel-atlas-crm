@@ -54,9 +54,9 @@ export default function UserDirectory() {
   });
 
   const refreshAll = () => {
-    queryClient.invalidateQueries(['directoryUsers']);
-    queryClient.invalidateQueries(['directoryTeams']);
-    queryClient.invalidateQueries(['users_management']);
+    queryClient.invalidateQueries({ queryKey: ['directoryUsers'] });
+    queryClient.invalidateQueries({ queryKey: ['directoryTeams'] });
+    queryClient.invalidateQueries({ queryKey: ['users_management'] });
   };
 
   const resolveTeam = (id) => teams.find((t) => t.id === id);
