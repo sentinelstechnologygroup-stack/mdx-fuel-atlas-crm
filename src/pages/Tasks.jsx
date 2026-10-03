@@ -35,7 +35,7 @@ export default function TasksPage() {
   const createTask = useMutation({
     mutationFn: (data) => atlas.entities.Task.create(data),
     onSuccess: () => {
-      queryClient.invalidateQueries(['tasks']);
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
       setShowTaskForm(false);
       setEditingTask(null);
     }
@@ -59,14 +59,14 @@ export default function TasksPage() {
       queryClient.setQueryData(['tasks'], context.previousTasks);
     },
     onSettled: () => {
-      queryClient.invalidateQueries(['tasks']);
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
     }
   });
 
   const deleteTask = useMutation({
     mutationFn: (id) => atlas.entities.Task.delete(id),
     onSuccess: () => {
-      queryClient.invalidateQueries(['tasks']);
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
     }
   });
 
