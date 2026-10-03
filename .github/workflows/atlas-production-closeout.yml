@@ -1,0 +1,95 @@
+name: ATLAS Production Closeout Gate
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - release/mdx-atlas-production-closeout
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: atlas-closeout-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      CI: "true"
+      MDX_EMULATOR_DISABLE_PROVIDER_SECRETS: "true"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Use Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Use Java 21 for Firebase emulators
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Install Firebase CLI
+        run: npm install --global firebase-tools
+
+      - name: Install application dependencies
+        run: npm ci
+
+      - name: Install Functions dependencies
+        run: npm --prefix functions ci
+
+      - name: Configure safe emulator-only provider values
+        shell: bash
+        run: |
+          cat > functions/.secret.local <<'EOF'
+          ATLAS_OPENAI_API_KEY=disabled
+          RESEND_API_KEY=disabled
+          TWILIO_AUTH_TOKEN=disabled
+          EOF
+          cat > functions/.env.local <<'EOF'
+          MDX_EMULATOR_DISABLE_PROVIDER_SECRETS=true
+          ATLAS_TEXT_MODEL=gpt-4.1-mini
+          ATLAS_IMAGE_MODEL=gpt-image-1
+          RESEND_FROM_EMAIL=disabled@example.invalid
+          RESEND_REPLY_TO=
+          TWILIO_ACCOUNT_SID=disabled
+          TWILIO_FROM_NUMBER=+10000000000
+          EOF
+
+      - name: Production frontend build
+        run: npm run build
+
+      - name: Functions lint
+        run: npm --prefix functions run lint
+
+      - name: Functions build
+        run: npm --prefix functions run build
+
+      - name: MDX closeout regression gate
+        run: npm run test:closeout
+
+      - name: Phase 12 aggregate regression
+        run: npm run test:phase12
+
+      - name: Phase 12 Functions emulator regression
+        run: npm run test:phase12:functions-emulator
+
+      - name: Phase 13 workflow regression
+        run: npm run test:phase13
+
+      - name: Phase 14 operational safeguards
+        run: npm run test:phase14:operations
+
+      - name: Diff whitespace check
+        run: git diff --check HEAD^ HEAD || git diff --check
