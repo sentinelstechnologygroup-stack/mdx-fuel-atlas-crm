@@ -32,7 +32,7 @@ READY establishes deployment completion, not authenticated acceptance or known-g
 ## Remaining gate disposition
 | Checklist area | Result / next requirement |
 |---|---|
-| Exact Firebase production target | BLOCKED: runbook requires Patrick confirmation; .firebaserc defaults to mdx-fuel-atlas-crm-dev. Do not infer prod from its name. |
+| Exact Firebase production target | Patrick approved prod conditional on live binding verification. Live deployed client instead binds to dev; migration prerequisites remain blocking. |
 | Vercel project / rollback IDs | Identified above; known-good rollback acceptance remains open. |
 | Operator, App Check, secrets/IAM, modes, senders, budgets/alerts | UNVERIFIED: authenticated cloud/operator access required. |
 | Backup bucket / retention / access | UNVERIFIED: approved destination and operator required. |
@@ -62,3 +62,31 @@ gcloud, Firebase CLI and PowerShell were unavailable in this execution environme
 
 ## Stop / rollback
 For any documented NO-GO, stop testing/mutations and follow PHASE_14_PRODUCTION_VALIDATION.md: disable affected approved path/provider/scheduler, roll frontend traffic back when implicated, restore only recorded known-good scoped Firebase artifacts, retain audit/usage/delivery/incident evidence, and reconcile again before resumption. No rollback was warranted or executed during this read-only/ local-validation pass.
+
+## Follow-up: approved target verification — 2026-10-05 16:02 UTC
+
+Patrick approved proceeding with the recommendation: prod for final closeout if the live CRM uses it; a separate migration if the live CRM uses dev.
+
+Read-only verification:
+- Vercel production remains READY at dpl_87t3JjEsxPZn2Gk1a8LWUwQmQQ8j / c978f589.
+- Production environment metadata contains VITE_FIREBASE_PROJECT_ID, auth domain, storage bucket, API key, app ID and sender ID. Values are marked sensitive and the connector did not return the project-ID value.
+- Connected Vercel fetch returned HTTP 200 for https://mdx-fuel-atlas-crm.vercel.app.
+- Its HTML references /assets/index-BRbYaYyf.js. Fetching that deployed asset returned HTTP 200.
+- The deployed JavaScript contains the literal Firebase configuration projectId: "mdx-fuel-atlas-crm-dev". Only that Atlas project ID was found; no prod/staging Atlas project IDs appeared.
+- src/firebase/client.js initializes Firebase from VITE_FIREBASE_PROJECT_ID. Emulator connections are gated by development mode.
+- This establishes the live frontend binding, not the existence/counts/health of production Firebase resources or user acceptance. Static HTTP 200 is not proof of backend authorization.
+- No secret values, customer records or raw bundle are committed.
+
+Disposition: HOLD deployment/cutover. The live frontend currently uses dev. Deploying Phase 14 functions only to prod cannot validate the currently live CRM. Do not silently repoint it or treat it as a completed migration. No incident NO-GO has been demonstrated; the unresolved source/destination and backup prerequisites block mutation. No rollback was performed because this pass made no production changes.
+
+### Migration preparation and continuation gates
+1. Obtain approved Google Cloud/Firebase operator access to both dev (live source) and prod (intended destination). Verify actual project ownership and existence; list roles/configuration without exposing secrets.
+2. Inventory source Auth users/profiles, Firestore entities/ownership, Storage objects, Functions, rules/indexes, providers, Scheduler/Tasks, App Check, budgets and alerts. Determine whether business data exists; do not assume dev is disposable.
+3. Confirm approved backup buckets, retention/access and destination region. Run the documented backup dry run then execute against the live source; reconcile and retain private evidence. Inventory/back up existing destination state before any destination mutation.
+4. Prepare and review a separate migration/cutover manifest for Auth/claims, Firestore, Storage, URLs/references, rules/indexes, required existing backend functions, secrets/IAM, App Check and Vercel Firebase variables. The four-function Phase 14 allowlist does not authorize deploying the rest of the application backend or copying data.
+5. Rehearse migration and role/workflow acceptance in staging with marked test records and safe provider modes. Reconcile counts/ownership and preserve IDs/references. Prevent both environments from emitting duplicate messages or running duplicate scheduled workflows.
+6. Define the write-control/cutover window, delta synchronization and data rollback plan before changing Vercel. A frontend rollback alone is insufficient if post-cutover writes have occurred in prod.
+7. Once the migration scope is reviewed and prerequisites pass, execute only that explicit scope. Confirm prod backup/reconciliation before the guarded Phase 14 deployment; preserve the exact four-function manifest and PowerShell dry-run/execute sequence.
+8. Promote/repoint Vercel only after backend dependencies pass and that specific migration action is approved. Repeat all production smoke gates, accept monitoring and tag only after final GO.
+
+Access limitation: no gcloud, Firebase CLI, PowerShell, local application-default credentials or connected Firebase/Google Cloud tools were available. Installing CLIs alone would not supply the missing authenticated operator access. Approved role test sessions and the backup destination also remain unresolved. No credentials should be placed in repository documentation or chat.
