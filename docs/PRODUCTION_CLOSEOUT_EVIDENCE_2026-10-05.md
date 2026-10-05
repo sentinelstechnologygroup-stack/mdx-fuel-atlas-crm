@@ -127,3 +127,11 @@ The access limitation above describes the earlier pass and was superseded by the
 - App Check inventory/enforcement could not be verified: the operator received permission-denied responses from the App Check API and the service did not appear in the enabled-service inventory. This is a production NO-GO gate, not authorization to weaken enforcement.
 - Messaging provider modes and approved real sender/recipient identities remain unaccepted; the deployed senders are disabled.
 - Salesperson/superadmin walkthroughs, admin password login, marked live smoke records, delivery/idempotency checks, monitoring acceptance, prod migration, and final release/tag remain manual or separately scoped blockers.
+
+### Authenticated admin acceptance — 2026-10-05
+
+- Patrick supplied an already-authenticated live CRM session and Firebase Console session; no credential entry, password reset, or authentication bypass was performed.
+- The live CRM loaded the authenticated dashboard without the former missing-profile error and displayed the administrative navigation, including Automations and System Settings.
+- Firebase Console independently showed the canonical UID-keyed profile for the existing `admin@mdxfuel.com` account with matching canonical and compatibility fields: `application_role` / `role` = `super_admin` and `account_status` / `status` = `active`.
+- The existing admin login/profile repair gate is therefore verified. This does not substitute for the remaining detailed superadmin workflow walkthrough.
+- A direct browser request to `/settings` returned Vercel `404 NOT_FOUND`. A repository-side Vercel SPA rewrite and safeguard test were added; the fix remains undeployed and must be verified in preview/production before final GO.

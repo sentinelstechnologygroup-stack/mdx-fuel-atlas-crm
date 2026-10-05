@@ -42,7 +42,7 @@ This checklist contains only the remaining human/operator gates after repository
 - [ ] Admin-only controls are unavailable.
 
 ### Superadmin
-- [ ] Login/session works.
+- [x] Login/session works (existing admin profile repair verified against live CRM and Firebase Console).
 - [ ] User administration works.
 - [ ] Role/permission overrides work.
 - [ ] Lead reassignment works.
