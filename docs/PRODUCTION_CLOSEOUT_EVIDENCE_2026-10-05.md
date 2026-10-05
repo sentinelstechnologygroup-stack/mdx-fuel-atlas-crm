@@ -1,7 +1,7 @@
 # Production closeout evidence — 2026-10-05
 
 ## Decision
-BLOCKED / NOT PRODUCTION-ACCEPTED. Repository and deployment checks pass; authenticated walkthroughs, App Check, provider acceptance, and migration-to-prod gates remain open. The authorized continuation later on this date repaired the existing admin profile and created a managed Firestore export in the live dev project. It did not deploy Firebase/Vercel, migrate data, send external communications, create a release tag, or perform a rollback.
+BLOCKED / NOT PRODUCTION-ACCEPTED. Repository and deployment checks pass; authenticated walkthroughs, App Check, provider acceptance, and migration-to-prod gates remain open. The authorized continuation later on this date repaired the existing admin profile, created a managed Firestore export in the live dev project, and—after Patrick's explicit approval—deployed the Vercel SPA-routing fix. It did not deploy Firebase, migrate data, send external communications, create a release tag, or perform a rollback.
 
 ## Baseline
 - Inspected main: c978f589ccf0edc8ea0982c4627c67032d6c3318 (PR #8).
@@ -122,7 +122,7 @@ The access limitation above describes the earlier pass and was superseded by the
 
 ### Vercel and remaining blockers
 
-- CLI inspection reconfirmed current production deployment `dpl_87t3JjEsxPZn2Gk1a8LWUwQmQQ8j` and rollback candidate `dpl_Hc476jinNT7vvyRkq4EdAtkHnaxy` are both READY. No promotion or rollback was performed.
+- At this checkpoint, CLI inspection reconfirmed production deployment `dpl_87t3JjEsxPZn2Gk1a8LWUwQmQQ8j` and rollback candidate `dpl_Hc476jinNT7vvyRkq4EdAtkHnaxy` were both READY. The later approved routing deployment is recorded below; no rollback was performed.
 - The deployed client remains bound to `mdx-fuel-atlas-crm-dev`; `mdx-fuel-atlas-crm-prod` is not an initialized replacement backend. Moving environments remains a separately scoped migration.
 - App Check inventory/enforcement could not be verified: the operator received permission-denied responses from the App Check API and the service did not appear in the enabled-service inventory. This is a production NO-GO gate, not authorization to weaken enforcement.
 - Messaging provider modes and approved real sender/recipient identities remain unaccepted; the deployed senders are disabled.
@@ -134,4 +134,13 @@ The access limitation above describes the earlier pass and was superseded by the
 - The live CRM loaded the authenticated dashboard without the former missing-profile error and displayed the administrative navigation, including Automations and System Settings.
 - Firebase Console independently showed the canonical UID-keyed profile for the existing `admin@mdxfuel.com` account with matching canonical and compatibility fields: `application_role` / `role` = `super_admin` and `account_status` / `status` = `active`.
 - The existing admin login/profile repair gate is therefore verified. This does not substitute for the remaining detailed superadmin workflow walkthrough.
-- A direct browser request to `/settings` returned Vercel `404 NOT_FOUND`. A repository-side Vercel SPA rewrite and safeguard test were added; the fix remains undeployed and must be verified in preview/production before final GO.
+- A direct browser request to `/settings` initially returned Vercel `404 NOT_FOUND`. A repository-side Vercel SPA rewrite and safeguard test were added; their later approved deployment and verification are recorded below.
+
+### Approved Vercel routing deployment — 2026-10-05
+
+- Patrick explicitly approved committing, pushing, and deploying all pending changes.
+- Commit `b5d6f62` was pushed to PR #9; its GitHub closeout gate and Vercel preview completed successfully.
+- Preview deployment `dpl_HyEDybDHLPADZmVb34TXQTcM6Au9` returned HTTP 200 for `/settings` through authenticated Vercel inspection.
+- The verified preview was promoted to production as `dpl_6mAi6Dvuvz3Ujk7gDCJiZLevNaYZ`; status is READY and the `mdx-fuel-atlas-crm.vercel.app` alias resolves to it.
+- Post-promotion checks returned HTTP 200 with `text/html` for both `/` and `/settings`.
+- No Firebase function, rule, index, Storage rule, data migration, release tag, or rollback action was included in this Vercel deployment. The existing App Check/provider/migration NO-GO gates continue to prevent a new Firebase deployment.
