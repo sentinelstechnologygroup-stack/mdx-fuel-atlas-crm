@@ -6,6 +6,7 @@ on:
       - main
   push:
     branches:
+      - main
       - release/mdx-atlas-production-closeout
   workflow_dispatch:
 
@@ -47,7 +48,7 @@ jobs:
           java-version: "21"
 
       - name: Install Firebase CLI
-        run: npm install --global firebase-tools
+        run: npm install --global firebase-tools@15.32.1
 
       - name: Install application dependencies
         run: npm ci
@@ -99,3 +100,17 @@ jobs:
 
       - name: Diff whitespace check
         run: git diff --check HEAD^ HEAD || git diff --check
+
+      - name: Record validation evidence
+        if: always()
+        env:
+          VALIDATION_STATUS: ${{ job.status }}
+        run: |
+          mkdir -p verification
+          node -e 'require("fs").writeFileSync("verification/ci.json", JSON.stringify({commit:process.env.GITHUB_SHA,run:process.env.GITHUB_RUN_ID,status:process.env.VALIDATION_STATUS,node:process.version},null,2))'
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: validation-evidence
+          path: verification/
+          retention-days: 90
