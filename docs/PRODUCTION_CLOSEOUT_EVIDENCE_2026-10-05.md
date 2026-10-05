@@ -1,7 +1,7 @@
 # Production closeout evidence — 2026-10-05
 
 ## Decision
-BLOCKED / NOT PRODUCTION-ACCEPTED. Repository and deployment checks pass; operational gates remain unverified. No production mutation, test records, external communications, Firebase deployment, Vercel promotion, release tag, or rollback was performed by this pass. No live NO-GO incident was observed; absence of authenticated production testing is not evidence that NO-GO conditions are absent.
+BLOCKED / NOT PRODUCTION-ACCEPTED. Repository and deployment checks pass; authenticated walkthroughs, App Check, provider acceptance, and migration-to-prod gates remain open. The authorized continuation later on this date repaired the existing admin profile and created a managed Firestore export in the live dev project. It did not deploy Firebase/Vercel, migrate data, send external communications, create a release tag, or perform a rollback.
 
 ## Baseline
 - Inspected main: c978f589ccf0edc8ea0982c4627c67032d6c3318 (PR #8).
@@ -89,4 +89,41 @@ Disposition: HOLD deployment/cutover. The live frontend currently uses dev. Depl
 7. Once the migration scope is reviewed and prerequisites pass, execute only that explicit scope. Confirm prod backup/reconciliation before the guarded Phase 14 deployment; preserve the exact four-function manifest and PowerShell dry-run/execute sequence.
 8. Promote/repoint Vercel only after backend dependencies pass and that specific migration action is approved. Repeat all production smoke gates, accept monitoring and tag only after final GO.
 
-Access limitation: no gcloud, Firebase CLI, PowerShell, local application-default credentials or connected Firebase/Google Cloud tools were available. Installing CLIs alone would not supply the missing authenticated operator access. Approved role test sessions and the backup destination also remain unresolved. No credentials should be placed in repository documentation or chat.
+The access limitation above describes the earlier pass and was superseded by the authorized continuation below. No credentials should be placed in repository documentation or chat.
+
+## Authorized cloud continuation — 2026-10-05
+
+### Existing admin-account repair
+
+- Authenticated operator `sentinelstechnologygroup@gmail.com` is an Owner of the live `mdx-fuel-atlas-crm-dev` project.
+- The existing enabled, verified `admin@mdxfuel.com` Auth account was preserved. Its UID, email, password, and custom claims were not changed.
+- Before repair, the canonical `userProfiles/{Auth UID}` document did not exist and no profile matched the account email. Existing explicit Auth claims recorded `super_admin` / `active`; those claims, rather than an inferred privilege, were the repair authority.
+- An atomic Firestore commit created the missing UID-keyed profile and an `AuditLog` repair record at `2026-10-05T21:18:05Z`.
+- Post-repair reconciliation found one Auth user, one profile, zero unmatched Auth users, and zero unmatched profiles.
+- Actual password login and visual access acceptance remain manual. A passwordless verification attempt stopped safely because the operator lacks `iam.serviceAccounts.signBlob`; no IAM grant, password reset, replacement Auth user, or authentication bypass was introduced.
+
+### Backup and reconciliation
+
+- Backup dry run completed against `mdx-fuel-atlas-crm-dev` and the approved private bucket.
+- Managed Firestore export completed successfully at `gs://mdx-fuel-atlas-crm-dev-phase14-backup/firestore/phase14-20261005-162105`; the Google operation reached `SUCCESSFUL` at `2026-10-05T21:22:02Z`.
+- Reconciliation captured one Auth user, one profile, zero unmatched identities, six Storage objects, and Firestore counts for one audit record, one invite, one organization-settings record, and five role definitions. There are no ownership-bearing business records and therefore no unexplained ownership variance.
+- Sensitive evidence remains only in ignored `.phase14-evidence`; it is not committed.
+- The bucket has public-access prevention and uniform bucket-level access. No retention policy, lifecycle rule, or object versioning is configured, so retention acceptance remains open.
+- The backup helper was corrected to prefer `gcloud.cmd` on Windows. Calling the PowerShell shim could terminate the helper before its post-export evidence write even though the export itself succeeded.
+
+### Existing Functions and guarded deployment
+
+- Read-only inventory found all four allowlisted functions already ACTIVE in the live dev project. Cloud Audit Logs attribute their creation on 2026-08-25 to the same authorized operator; this resolves the deployment-provenance question but does not constitute a new Phase 14 deployment.
+- `scanStaleOpportunities` and `generateWeeklySalesReport` have continued to run on schedule. Current sender values are deliberately disabled (`disabled@example.invalid`).
+- Scheduler jobs use `America/Chicago` and a three-attempt retry policy. The `recheckStaleOpportunity` Cloud Tasks queue is RUNNING with five attempts.
+- The known ATLAS, email, and SMS secrets grant accessor to the Functions runtime service account. One additional unexpected secret identifier exists and requires credential-hygiene review; its identifier and any value are intentionally omitted.
+- The guarded deployment dry run passed using the fresh backup/reconciliation evidence and preserved exactly: `qualifyNewLead`, `scanStaleOpportunities`, `recheckStaleOpportunity`, `generateWeeklySalesReport`.
+- No deploy execution was performed. A further deployment is withheld until App Check, provider behavior, manual role acceptance, and the dev-to-prod migration decision are resolved.
+
+### Vercel and remaining blockers
+
+- CLI inspection reconfirmed current production deployment `dpl_87t3JjEsxPZn2Gk1a8LWUwQmQQ8j` and rollback candidate `dpl_Hc476jinNT7vvyRkq4EdAtkHnaxy` are both READY. No promotion or rollback was performed.
+- The deployed client remains bound to `mdx-fuel-atlas-crm-dev`; `mdx-fuel-atlas-crm-prod` is not an initialized replacement backend. Moving environments remains a separately scoped migration.
+- App Check inventory/enforcement could not be verified: the operator received permission-denied responses from the App Check API and the service did not appear in the enabled-service inventory. This is a production NO-GO gate, not authorization to weaken enforcement.
+- Messaging provider modes and approved real sender/recipient identities remain unaccepted; the deployed senders are disabled.
+- Salesperson/superadmin walkthroughs, admin password login, marked live smoke records, delivery/idempotency checks, monitoring acceptance, prod migration, and final release/tag remain manual or separately scoped blockers.

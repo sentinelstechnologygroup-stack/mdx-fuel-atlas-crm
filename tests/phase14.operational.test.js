@@ -47,7 +47,8 @@ describe("Phase 14 operational safeguards", () => {
     );
 
     expect(script).toContain("[Parameter(Mandatory = $true)]");
-    expect(script).toContain("gcloud firestore export");
+    expect(script).toContain("Get-Command gcloud.cmd");
+    expect(script).toContain("$gcloudCommand.Source firestore export");
     expect(script).toContain('status = "SUCCESSFUL"');
     expect(script).toContain("EvidenceOutput");
     expect(script).toContain("if (-not $Execute)");

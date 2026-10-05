@@ -19,10 +19,10 @@ This checklist contains only the remaining human/operator gates after repository
 ## Manual prerequisites
 
 - [ ] Confirm exact Firebase production project ID.
-- [ ] Confirm Vercel production project and current rollback deployment.
-- [ ] Confirm approved operator account.
+- [x] Confirm Vercel production project and current rollback deployment.
+- [x] Confirm approved operator account.
 - [ ] Confirm App Check production-domain registration/enforcement plan.
-- [ ] Confirm Secret Manager bindings for ATLAS, email, and SMS.
+- [x] Confirm Secret Manager bindings for ATLAS, email, and SMS.
 - [ ] Confirm messaging provider modes and sender identities.
 - [ ] Confirm backup bucket and retention/access policy.
 - [ ] Decide repository visibility and final `main` protection policy.
@@ -54,29 +54,29 @@ This checklist contains only the remaining human/operator gates after repository
 
 Run the documented Phase 14 backup dry run, then execute it.
 
-- [ ] Managed Firestore export succeeds.
-- [ ] Auth user count reconciles to user profiles.
-- [ ] Firestore entity counts are captured.
-- [ ] Storage object counts are captured.
-- [ ] No unexplained ownership/record variance exists.
-- [ ] Evidence file is local only and is not committed.
-- [ ] Current Vercel production and rollback IDs are recorded.
+- [x] Managed Firestore export succeeds.
+- [x] Auth user count reconciles to user profiles.
+- [x] Firestore entity counts are captured.
+- [x] Storage object counts are captured.
+- [x] No unexplained ownership/record variance exists.
+- [x] Evidence file is local only and is not committed.
+- [x] Current Vercel production and rollback IDs are recorded.
 
 ## Controlled deployment
 
 Only after backup/reconciliation passes:
 
-- [ ] Run `Deploy-Phase14Functions.ps1` dry run.
-- [ ] Confirm exact target project.
-- [ ] Confirm exact allowlist:
+- [x] Run `Deploy-Phase14Functions.ps1` dry run.
+- [x] Confirm exact live target project (`mdx-fuel-atlas-crm-dev`; migration to prod remains separate).
+- [x] Confirm exact allowlist:
   - `qualifyNewLead`
   - `scanStaleOpportunities`
   - `recheckStaleOpportunity`
   - `generateWeeklySalesReport`
 - [ ] Execute guarded deployment.
-- [ ] Verify Scheduler timezone/retry settings.
-- [ ] Verify Cloud Tasks queue behavior.
-- [ ] Verify provider secrets and IAM bindings.
+- [x] Verify Scheduler timezone/retry settings.
+- [x] Verify Cloud Tasks queue configuration.
+- [x] Verify provider secrets and IAM bindings (one unexpected secret identifier remains a hygiene blocker).
 - [ ] Deploy rules/indexes/Storage rules only if separately required and approved.
 
 ## Production smoke test
@@ -130,5 +130,5 @@ Only after every applicable item above passes:
 - [x] PR #6 is marked ready and merged to `main`.
 - [x] Current inspected `main` SHA is recorded; final accepted release SHA remains pending.
 - [ ] Release tag is created.
-- [ ] Phase 14 closeout evidence is updated without secrets/customer data.
+- [x] Phase 14 closeout evidence is updated without secrets/customer data.
 - [ ] MDX Fuel ATLAS CRM is declared production-ready.

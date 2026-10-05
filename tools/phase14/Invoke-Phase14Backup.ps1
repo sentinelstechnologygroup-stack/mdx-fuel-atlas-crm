@@ -22,11 +22,16 @@ $ErrorActionPreference = "Stop"
 $timestamp = Get-Date -Format "yyyyMMdd-HHmmss"
 $exportUri = $ExportDestination.TrimEnd("/") + "/phase14-$timestamp"
 
-if (-not (Get-Command gcloud -ErrorAction SilentlyContinue)) {
+$gcloudCommand = Get-Command gcloud.cmd -ErrorAction SilentlyContinue
+if (-not $gcloudCommand) {
+  $gcloudCommand = Get-Command gcloud -ErrorAction SilentlyContinue
+}
+
+if (-not $gcloudCommand) {
   throw "Google Cloud CLI (gcloud) is required for a managed Firestore export."
 }
 
-$account = (& gcloud auth list --filter=status:ACTIVE --format="value(account)").Trim()
+$account = (& $gcloudCommand.Source auth list --filter=status:ACTIVE --format="value(account)").Trim()
 if (-not $account) {
   throw "No active gcloud account was found. Run gcloud auth login first."
 }
@@ -42,7 +47,7 @@ if (-not $Execute) {
   exit 0
 }
 
-& gcloud firestore export $exportUri --project=$ProjectId
+& $gcloudCommand.Source firestore export $exportUri --project=$ProjectId
 if ($LASTEXITCODE -ne 0) {
   throw "Firestore export submission failed."
 }
