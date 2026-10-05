@@ -1,12 +1,14 @@
 # MDX Fuel ATLAS CRM — Production GO / NO-GO Checklist
 
-Last updated: 2026-10-02
+Last updated: 2026-10-05
+
+Current-main verification: `c978f589ccf0edc8ea0982c4627c67032d6c3318`. See [October 5 closeout evidence](PRODUCTION_CLOSEOUT_EVIDENCE_2026-10-05.md). Status: **BLOCKED — operational acceptance remains open**. Checked items below reflect only verified facts; they do not authorize final GO.
 
 This checklist contains only the remaining human/operator gates after repository-side closeout work. The authoritative technical runbook remains `docs/PHASE_14_PRODUCTION_VALIDATION.md`.
 
 ## Release candidate
 
-- Branch: `release/mdx-atlas-production-closeout`
+- Original release branch: `release/mdx-atlas-production-closeout`; now merged to `main`.
 - Pull request: #6 — MDX ATLAS CRM production closeout
 - Temporary authentication bypass PR #5: closed
 - MDX forms PR #4: technically reconciled and closed as superseded
@@ -125,8 +127,8 @@ Only after every applicable item above passes:
 - [ ] Production reconciliation is clean.
 - [ ] Monitoring observation is accepted.
 - [ ] PR #6 CI is green.
-- [ ] PR #6 is marked ready and merged to `main`.
-- [ ] Final `main` SHA is recorded.
+- [x] PR #6 is marked ready and merged to `main`.
+- [x] Current inspected `main` SHA is recorded; final accepted release SHA remains pending.
 - [ ] Release tag is created.
 - [ ] Phase 14 closeout evidence is updated without secrets/customer data.
 - [ ] MDX Fuel ATLAS CRM is declared production-ready.
