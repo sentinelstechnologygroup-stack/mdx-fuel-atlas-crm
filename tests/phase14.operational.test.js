@@ -47,10 +47,25 @@ describe("Phase 14 operational safeguards", () => {
     );
 
     expect(script).toContain("[Parameter(Mandatory = $true)]");
-    expect(script).toContain("gcloud firestore export");
+    expect(script).toContain("Get-Command gcloud.cmd");
+    expect(script).toContain("$gcloudCommand.Source firestore export");
     expect(script).toContain('status = "SUCCESSFUL"');
     expect(script).toContain("EvidenceOutput");
     expect(script).toContain("if (-not $Execute)");
+  });
+
+  it("keeps Vercel client-side routes on the Vite application shell", async () => {
+    const config = JSON.parse(await readFile(
+      new URL("../vercel.json", import.meta.url),
+      "utf8"
+    ));
+
+    expect(config.rewrites).toEqual([
+      {
+        source: "/(.*)",
+        destination: "/index.html",
+      },
+    ]);
   });
 
   it("keeps reconciliation read-only and privacy-safe", async () => {
