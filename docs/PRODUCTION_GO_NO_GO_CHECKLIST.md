@@ -2,7 +2,7 @@
 
 Last updated: 2026-10-05
 
-Current-main verification: `c978f589ccf0edc8ea0982c4627c67032d6c3318`. See [October 5 closeout evidence](PRODUCTION_CLOSEOUT_EVIDENCE_2026-10-05.md). Status: **BLOCKED — operational acceptance remains open**. Checked items below reflect only verified facts; they do not authorize final GO.
+Current-main verification: `b69409382cec12cc1dd0cfbc0a047e553ffa6614`. See [October 5 closeout evidence](PRODUCTION_CLOSEOUT_EVIDENCE_2026-10-05.md). Status: **BLOCKED — operational acceptance remains open**. Checked items below reflect only verified facts; they do not authorize final GO.
 
 This checklist contains only the remaining human/operator gates after repository-side closeout work. The authoritative technical runbook remains `docs/PHASE_14_PRODUCTION_VALIDATION.md`.
 
@@ -15,6 +15,7 @@ This checklist contains only the remaining human/operator gates after repository
 - Base44 runtime dependency: none identified by repository search
 - Production authentication: present on release candidate
 - Broad Firebase Functions deployment: prohibited
+- PR #9: merged to `main`; current production Vercel deployment was built from the merged branch.
 
 ## Manual prerequisites
 
@@ -73,17 +74,17 @@ Only after backup/reconciliation passes:
   - `scanStaleOpportunities`
   - `recheckStaleOpportunity`
   - `generateWeeklySalesReport`
-- [ ] Execute guarded deployment.
+- [x] Compare the guarded Function implementations to deployed source; another deployment is not required.
 - [x] Verify Scheduler timezone/retry settings.
 - [x] Verify Cloud Tasks queue configuration.
 - [x] Verify provider secrets and IAM bindings (one unexpected secret identifier remains a hygiene blocker).
-- [ ] Deploy rules/indexes/Storage rules only if separately required and approved.
+- [x] Confirm deployed Firestore rules, Storage rules, and indexes match the repository; no deployment is required.
 
 ## Production smoke test
 
 Use dedicated clearly marked test records.
 
-- [ ] Anonymous access denied.
+- [x] Anonymous Firestore and Storage access denied (HTTP 403).
 - [ ] Inactive account denied.
 - [ ] Salesperson scope correct.
 - [ ] Supervisor team scope correct.
@@ -126,7 +127,7 @@ Only after every applicable item above passes:
 
 - [ ] Production reconciliation is clean.
 - [ ] Monitoring observation is accepted.
-- [ ] PR #6 CI is green.
+- [x] PR #6 CI is green.
 - [x] PR #6 is marked ready and merged to `main`.
 - [x] Current inspected `main` SHA is recorded; final accepted release SHA remains pending.
 - [ ] Release tag is created.
