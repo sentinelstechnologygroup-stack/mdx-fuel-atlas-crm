@@ -144,3 +144,17 @@ The access limitation above describes the earlier pass and was superseded by the
 - The verified preview was promoted to production as `dpl_6mAi6Dvuvz3Ujk7gDCJiZLevNaYZ`; status is READY and the `mdx-fuel-atlas-crm.vercel.app` alias resolves to it.
 - Post-promotion checks returned HTTP 200 with `text/html` for both `/` and `/settings`.
 - No Firebase function, rule, index, Storage rule, data migration, release tag, or rollback action was included in this Vercel deployment. The existing App Check/provider/migration NO-GO gates continue to prevent a new Firebase deployment.
+
+## Post-merge alignment and security audit — 2026-10-05
+
+- PR #9 was marked ready and merged to `main` as `b69409382cec12cc1dd0cfbc0a047e553ffa6614` after the full local validation suite and required checks passed.
+- Vercel automatically built the merged `main` commit as production deployment `dpl_51ajzFCNK16g53PoqPkmgGZo1DNv`; it is READY and `/settings` returns HTTP 200.
+- Anonymous Firestore and Storage requests both return HTTP 403.
+- Active Firestore and Storage rulesets exactly match the repository files. Deployed indexes and field overrides also match `firestore.indexes.json`.
+- The four guarded Function implementation files match the deployed source archive. The only source difference is the unrelated portal-session export in the shared `index.ts`; another four-function deployment is not required.
+- The four guarded Functions have zero ERROR-level Cloud Run log entries during the inspected 30-day window.
+- App Check has no registered web configuration and its API is absent from the enabled-service inventory. Enforcement remains a NO-GO gate; see `PHASE_14_SECURITY_REMEDIATION.md`.
+- The default Functions runtime account retains broad `roles/editor`. Removing it without first assigning and validating narrower per-function service accounts would risk an outage.
+- Each expected provider secret grants accessor only to the current runtime account. One unexpected secret has no accessor and no enabled version; deletion/rotation remains a separately confirmed hygiene action.
+- No Monitoring alert policies or notification channels exist. The Cloud Billing Budget API is disabled, so budget alerts require Patrick's amount, thresholds, and recipient decision before configuration.
+- Marked production test records will use the `PH14-YYYYMMDD-*` convention defined in the security remediation plan.
