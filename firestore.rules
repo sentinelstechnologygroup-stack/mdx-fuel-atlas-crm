@@ -90,6 +90,12 @@ service cloud.firestore {
       return applicationRole() == 'salesperson';
     }
 
+    // Unknown entity names must not inherit the legacy shared-entity policy.
+    // Add new schemas here only after an explicit authorization review.
+    function isDeclaredEntity(entityName) {
+      return entityName in ["Activity","AuditLog","AutomationLog","AutomationRule","AutomationTrigger","Client","ContactPersona","CustomField","DiscoveryData","Invite","Lead","MarketingSequence","MarketingTemplate","ModulePermission","Notification","NotificationSettings","OnboardingTemplate","Opportunity","OrganizationSettings","RecordTransferHistory","ReportConfig","RoleDefinition","SalesTarget","SequenceActivityLog","SequenceEnrollment","SequenceStep","StepTransition","Task","Team","Territory","User","UserPermissionOverride","Query"];
+    }
+
     function isRecordScopedEntity(entityName) {
       return entityName in [
         'Activity',
@@ -383,7 +389,7 @@ service cloud.firestore {
 
     match /entities/{entityName}/records/{recordId} {
       allow get, list: if
-        entityName != 'User' &&
+        entityName != 'User' && isDeclaredEntity(entityName) &&
         (
           (
             isRecordScopedEntity(entityName) &&
@@ -407,7 +413,7 @@ service cloud.firestore {
         );
 
       allow create: if
-        entityName != 'User' &&
+        entityName != 'User' && isDeclaredEntity(entityName) &&
         (
           (
             isRecordScopedEntity(entityName) &&
@@ -431,7 +437,7 @@ service cloud.firestore {
         );
 
       allow update: if
-        entityName != 'User' &&
+        entityName != 'User' && isDeclaredEntity(entityName) &&
         (
           (
             isRecordScopedEntity(entityName) &&
@@ -459,7 +465,7 @@ service cloud.firestore {
         );
 
       allow delete: if
-        entityName != 'User' &&
+        entityName != 'User' && isDeclaredEntity(entityName) &&
         (
           (
             isRecordScopedEntity(entityName) &&
