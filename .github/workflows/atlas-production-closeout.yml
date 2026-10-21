@@ -83,6 +83,9 @@ jobs:
       - name: Functions build
         run: npm --prefix functions run build
 
+      - name: Undeclared entity default-deny regression
+        run: firebase emulators:exec --only firestore --project demo-mdx-hardening "node --test tests/firestore.unknown-entities.test.mjs"
+
       - name: MDX closeout regression gate
         run: npm run test:closeout
 

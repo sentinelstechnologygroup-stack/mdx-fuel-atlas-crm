@@ -11,7 +11,9 @@ import { createFirestoreEntity } from '@/firebase/entityAdapter';
 
 const TEST_EMAIL = 'salesperson@example.test';
 const TEST_PASSWORD = 'AtlasTest!2026';
-const TEST_ENTITY = 'Phase3AdapterTest';
+// Exercise generic adapter behavior through a declared shared entity.
+// Unknown collection access is tested as denied in firestore.unknown-entities.test.mjs.
+const TEST_ENTITY = 'ReportConfig';
 
 const entity = createFirestoreEntity(TEST_ENTITY);
 const createdRecordIds = new Set();
